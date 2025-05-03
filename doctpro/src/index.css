@@ -1,0 +1,15 @@
+body {
+  margin: 0;
+  overflow: hidden;
+}
+html {
+  overflow: hidden;
+}
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ant-layout {
+@apply dark:bg-black dark:text-white;
+}
