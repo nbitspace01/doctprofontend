@@ -1,24 +1,42 @@
 import { UserOutlined } from "@ant-design/icons";
-import { Modal, Form, Input, Select, Button, Upload, message } from "antd";
+import { Modal, Form, Input, Select, Button, Upload, message, App } from "antd";
 import type { UploadProps } from "antd";
-import React from "react";
+import React, { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
+import { TOKEN } from "../Common/constant.function";
+import { showSuccess } from "../Common/Notification";
+
+interface SubAdminData {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  status: string;
+  active_user: boolean;
+  role: string;
+  organization_type: string;
+  location: string;
+  associated_location: string;
+}
 
 interface AddSubAdminModalProps {
   open: boolean;
   onCancel: () => void;
   onSubmit: (values: any) => void;
+  initialData?: SubAdminData | null;
 }
 
 interface SubAdminFormValues {
-  fullName: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   role: string;
-  orgType: string;
+  organization_type: string;
   location: string;
-  locationAllocation: string;
+  associated_location: string;
   password: string;
   confirmPassword: string;
 }
@@ -27,8 +45,11 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   open,
   onCancel,
   onSubmit,
+  initialData,
 }) => {
   const [form] = Form.useForm();
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const { notification } = App.useApp();
 
   const roleOptions = [
     { value: "in charge", label: "In Charge" },
@@ -36,6 +57,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     { value: "assistant", label: "Assistant" },
     { value: "admin", label: "Admin" },
     { value: "faculty", label: "Faculty" },
+    { value: "subadmin", label: "Sub Admin" },
   ];
 
   const organizationOptions = [
@@ -66,37 +88,120 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     },
   };
 
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        form.setFieldsValue({
+          first_name: initialData.first_name,
+          last_name: initialData.last_name,
+          email: initialData.email,
+          phone: initialData.phone,
+          role: initialData.role,
+          organization_type: initialData.organization_type,
+          location: initialData.location,
+          associated_location: initialData.location,
+          status: initialData.status,
+        });
+      } else {
+        form.resetFields();
+      }
+    }
+  }, [open, initialData, form]);
+
   const createSubAdminMutation = useMutation({
-    mutationFn: (data: SubAdminFormValues) =>
-      axios.post("/api/create/sub-admin", data),
-    onSuccess: () => {
-      message.success("Sub-admin created successfully");
+    mutationFn: (values: SubAdminFormValues) => {
+      const payload = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        phone: values.phone,
+        password: values.password,
+        organization_type: values.organization_type.toLowerCase(),
+        role: values.role,
+        location: values.location,
+        associated_location: values.associated_location,
+      };
+      return axios.post(`${API_URL}/api/user/create-sub-admin`, payload, {
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+        },
+      });
+    },
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: "Sub-admin Created Successfully",
+        description: data.message,
+      });
       form.resetFields();
       onCancel();
+      onSubmit(data);
     },
     onError: (error: any) => {
-      // Check if the error has a response property
+      console.error("API Error:", error); // Add this for debugging
       const errorMessage =
         error.response?.data?.message ?? "Failed to create sub-admin";
       message.error(errorMessage);
     },
   });
 
+  const updateSubAdminMutation = useMutation({
+    mutationFn: (values: SubAdminFormValues) => {
+      const payload = {
+        first_name: values.first_name,
+        last_name: values.last_name,
+        email: values.email,
+        phone: values.phone,
+        password: values.password,
+        organization_type: values.organization_type,
+        role: values.role,
+        location: values.location,
+        associated_location: values.associated_location,
+      };
+
+      return axios.put(
+        `${API_URL}/api/user/update-sub-admin/${initialData?.id}`,
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${TOKEN}`,
+          },
+        }
+      );
+    },
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: "Sub-admin Updated Successfully",
+        description: data.message,
+      });
+      form.resetFields();
+      onCancel();
+      onSubmit(data);
+    },
+    onError: (error: any) => {
+      console.error("API Error:", error);
+      const errorMessage =
+        error.response?.data?.message ?? "Failed to update sub-admin";
+      message.error(errorMessage);
+    },
+  });
+
+  const handleSubmit = (values: SubAdminFormValues) => {
+    if (initialData) {
+      updateSubAdminMutation.mutate(values);
+    } else {
+      createSubAdminMutation.mutate(values);
+    }
+  };
+
   return (
     <Modal
-      title="Create New Sub-Admin"
+      title={initialData ? "Edit Sub Admin" : "Create New Sub-Admin"}
       open={open}
       onCancel={onCancel}
       footer={null}
       width={600}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={(values) => {
-          createSubAdminMutation.mutate(values);
-        }}
-      >
+      <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <div className="flex justify-center mb-6">
           <Upload {...uploadProps}>
             <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer">
@@ -106,11 +211,19 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         </div>
 
         <Form.Item
-          label="Full Name"
-          name="fullName"
-          rules={[{ required: true, message: "Please enter full name" }]}
+          label="First Name"
+          name="first_name"
+          rules={[{ required: true, message: "Please enter first name" }]}
         >
-          <Input placeholder="Enter full name" />
+          <Input placeholder="Enter first name" />
+        </Form.Item>
+
+        <Form.Item
+          label="Last Name"
+          name="last_name"
+          rules={[{ required: true, message: "Please enter last name" }]}
+        >
+          <Input placeholder="Enter last name" />
         </Form.Item>
 
         <Form.Item
@@ -143,7 +256,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
           <Form.Item
             label="Organization Type"
-            name="orgType"
+            name="organization_type"
             rules={[
               { required: true, message: "Please select organization type" },
             ]}
@@ -161,10 +274,10 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         </Form.Item>
 
         <Form.Item
-          label="Location based allocation"
-          name="locationAllocation"
+          label="Associated Location"
+          name="associated_location"
           rules={[
-            { required: true, message: "Please select location allocation" },
+            { required: true, message: "Please select associated location" },
           ]}
         >
           <Select placeholder="Select Location" options={locationOptions} />
@@ -206,9 +319,18 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
             type="primary"
             htmlType="submit"
             className="bg-blue-600"
-            loading={createSubAdminMutation.isPending}
+            loading={
+              initialData
+                ? updateSubAdminMutation.isPending
+                : createSubAdminMutation.isPending
+            }
+            disabled={
+              initialData
+                ? updateSubAdminMutation.isPending
+                : createSubAdminMutation.isPending
+            }
           >
-            Create
+            {initialData ? "Update" : "Create"}
           </Button>
         </div>
       </Form>

@@ -8,6 +8,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { Button, Checkbox, Form, Input, message, Select } from "antd";
 import axios from "axios";
 import loginIllustration from "../../assets/illustrationlogin.png";
+import { showMessage } from "../Common/ResponseMessage";
 import { Logo } from "../Common/SVG/svg.functions";
 
 interface LoginFormValues {
@@ -28,9 +29,11 @@ const LoginPage = () => {
       return response.data;
     },
     onSuccess: (data) => {
-      message.success("Login successful!");
       console.log("Login successful!", data);
       navigate({ to: "/auth/verify" });
+      showMessage.success(
+        "Login successful! Redirecting to verification page..."
+      );
     },
     onError: (error: any) => {
       message.error(

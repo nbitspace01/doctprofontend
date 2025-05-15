@@ -1,32 +1,46 @@
-import { DownloadOutlined, FilterFilled } from "@ant-design/icons";
-import { Avatar, Button, Input, Table } from "antd";
+import {
+  DownloadOutlined,
+  FilterFilled,
+  EditOutlined,
+  DeleteOutlined,
+  EyeOutlined,
+  MoreOutlined,
+} from "@ant-design/icons";
+import { Button, Input, Table, Dropdown } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
 import { TOKEN } from "../Common/constant.function";
 import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Loader from "../Common/Loader";
+import ViewSubAdmin from "./ViewSubAdmin";
 
 interface SubAdminData {
-  key: string;
-  sNo: number;
-  name: string;
+  id: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
   role: string;
   location: string;
-  orgType: string;
-  avatar: string;
-  first_name: string;
-  last_name: string;
+  organization_type: string;
   status: string;
+  active_user: boolean;
+  associated_location: string;
 }
 
 const SubAdmin: React.FC = () => {
   const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState<SubAdminData | null>(null);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedSubAdmin, setSelectedSubAdmin] = useState<SubAdminData | null>(
+    null
+  );
+  const queryClient = useQueryClient();
+
   const fetchSubAdmin = async () => {
     const token = TOKEN;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
@@ -35,12 +49,13 @@ const SubAdmin: React.FC = () => {
         Authorization: `Bearer ${token}`,
       },
     });
-    console.log(res.data, "res.data");
-    return res.data;
+    console.log("API Response:", res.data);
+
+    return res.data.data ?? [];
   };
 
   const {
-    data: subAdmin,
+    data: rawSubAdmin,
     isLoading: subAdminLoading,
     isError: subAdminError,
   } = useQuery({
@@ -49,7 +64,28 @@ const SubAdmin: React.FC = () => {
   });
 
   if (subAdminLoading) return <Loader size="large" />;
-  if (subAdminError) return <div>Error: "An error occurred"</div>;
+  if (subAdminError) return <div>Error: An error occurred</div>;
+
+  const subAdmin = Array.isArray(rawSubAdmin) ? rawSubAdmin : [];
+
+  const handleEdit = (record: SubAdminData) => {
+    setEditData({
+      ...record,
+      role: record.role || "",
+      location: record.location || "",
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (record: SubAdminData) => {
+    console.log("Delete:", record);
+    // Add your delete logic here
+  };
+
+  const handleViewSubAdmin = (subAdmin: SubAdminData) => {
+    setSelectedSubAdmin(subAdmin);
+    setIsViewDrawerOpen(true);
+  };
 
   const columns: ColumnsType<SubAdminData> = [
     {
@@ -63,7 +99,7 @@ const SubAdmin: React.FC = () => {
       key: "name",
       render: (_, record) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white uppercase">
+          <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center !text-white uppercase">
             {record.first_name.charAt(0)}
           </div>
           <span>{`${record.first_name} ${record.last_name}`}</span>
@@ -79,17 +115,23 @@ const SubAdmin: React.FC = () => {
       title: "Phone Number",
       dataIndex: "phone",
       key: "phone",
-      render: (phone) => phone || "N/A",
+      render: (phone) => phone ?? "N/A",
     },
     {
       title: "Role",
       dataIndex: "role",
       key: "role",
-      render: (role) => (
-        <span className="px-3 py-1 text-green-600 bg-green-100 rounded-full text-sm">
-          {role?.name || "N/A"}
-        </span>
-      ),
+    },
+    {
+      title: "Location",
+      dataIndex: "location",
+      key: "location",
+      render: (location) => location ?? "N/A",
+    },
+    {
+      title: "Organization Type",
+      dataIndex: "organization_type",
+      key: "organization_type",
     },
     {
       title: "Status",
@@ -107,11 +149,55 @@ const SubAdmin: React.FC = () => {
         </span>
       ),
     },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <Dropdown
+          menu={{
+            items: [
+              {
+                key: "view",
+                icon: <EyeOutlined />,
+                label: "View",
+                onClick: () => handleViewSubAdmin(record),
+              },
+              {
+                key: "edit",
+                icon: <EditOutlined />,
+                label: "Edit",
+                onClick: () => handleEdit(record),
+              },
+              {
+                key: "delete",
+                icon: <DeleteOutlined />,
+                label: "Delete",
+                onClick: () => handleDelete(record),
+                danger: true,
+              },
+            ],
+          }}
+          trigger={["click"]}
+        >
+          <Button
+            type="text"
+            icon={<MoreOutlined />}
+            className="hover:bg-gray-100"
+          />
+        </Dropdown>
+      ),
+    },
   ];
 
   const handleAddSubAdmin = (values: any) => {
-    console.log("New Sub Admin:", values);
+    if (editData) {
+      console.log("Updating Sub Admin:", values);
+    } else {
+      console.log("New Sub Admin:", values);
+    }
+    queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
     setIsModalOpen(false);
+    setEditData(null);
   };
 
   return (
@@ -121,7 +207,7 @@ const SubAdmin: React.FC = () => {
         <Button
           type="primary"
           icon={<Plus />}
-          className="bg-blue-700"
+          className="bg-button-primary hover:!bg-button-primary"
           onClick={() => setIsModalOpen(true)}
         >
           Add New Sub Admin
@@ -150,9 +236,9 @@ const SubAdmin: React.FC = () => {
 
       <Table
         columns={columns}
-        dataSource={subAdmin.data}
+        dataSource={subAdmin}
         pagination={{
-          total: subAdmin.total,
+          total: subAdmin.length,
           pageSize: 10,
           showSizeChanger: true,
           showQuickJumper: true,
@@ -162,9 +248,21 @@ const SubAdmin: React.FC = () => {
 
       <AddSubAdminModal
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
         onSubmit={handleAddSubAdmin}
+        initialData={editData}
       />
+
+      {selectedSubAdmin && (
+        <ViewSubAdmin
+          open={isViewDrawerOpen}
+          onClose={() => setIsViewDrawerOpen(false)}
+          subAdminData={selectedSubAdmin}
+        />
+      )}
     </div>
   );
 };

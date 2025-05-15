@@ -1,13 +1,16 @@
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
+import { Card, Progress, Select } from "antd";
+import axios from "axios";
 import React from "react";
-import { Card, Select, Progress } from "antd";
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
 } from "recharts";
 import {
   totalCollege,
@@ -15,14 +18,11 @@ import {
   totalHospital,
   totalStudents,
 } from "../../pages/Common/SVG/svg.functions";
-import { useNavigate } from "@tanstack/react-router";
-import axios from "axios";
-import { useQuery } from "@tanstack/react-query";
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
-  <div className="text-center">
+  <div className="text-center text-sm">
     <p className="text-gray-600">Total User</p>
     <p className="text-3xl font-bold">{total}</p>
   </div>
@@ -32,20 +32,18 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const fetchDashboardCounts = async () => {
-    const token = TOKEN;
     const res = await axios.get(`${API_URL}/api/dashboard/counts`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${TOKEN}`,
       },
     });
     return res.data;
   };
 
   const fetchKycStats = async () => {
-    const token = TOKEN; // Replace with your actual token
     const res = await axios.get(`${API_URL}/api/dashboard/getKycStatusCounts`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${TOKEN}`,
       },
     });
     return res.data;
@@ -57,10 +55,9 @@ const Dashboard: React.FC = () => {
   });
 
   const fetchSubAdmin = async () => {
-    const token = TOKEN;
     const res = await axios.get(`${API_URL}/api/dashboard/sub-admin/list`, {
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${TOKEN}`,
       },
     });
     console.log(res.data, "res.data");
@@ -272,45 +269,53 @@ const Dashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {subAdmin.data.slice(0, 5).map((admin: any, index: any) => (
-                  <tr key={admin.id} className="border-t">
-                    <td className="py-3 px-4">{index + 1}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        {admin.imageUrl ? (
-                          <img
-                            src={admin.imageUrl}
-                            alt={`${admin.first_name} ${admin.last_name}`}
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                            {admin.first_name.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <span>{`${admin.first_name} ${admin.last_name}`}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">{admin.email}</td>
-                    <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                        {admin.role?.name ?? "N/A"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span
-                        className={`px-2 py-1 rounded-full text-sm ${
-                          admin.status === "ACTIVE"
-                            ? "bg-green-100 text-green-600"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {admin.status}
-                      </span>
+                {subAdmin?.data?.length > 0 ? (
+                  subAdmin.data.slice(0, 5).map((admin: any, index: number) => (
+                    <tr key={admin.id} className="border-t">
+                      <td className="py-3 px-4">{index + 1}</td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-2">
+                          {admin.imageUrl ? (
+                            <img
+                              src={admin.imageUrl}
+                              alt={`${admin.first_name} ${admin.last_name}`}
+                              className="w-8 h-8 rounded-full"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center text-white">
+                              {admin.first_name.charAt(0).toUpperCase()}
+                            </div>
+                          )}
+                          <span>{`${admin.first_name} ${admin.last_name}`}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">{admin.email}</td>
+                      <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
+                          {admin.role?.name ?? "N/A"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span
+                          className={`px-2 py-1 rounded-full text-sm ${
+                            admin.status === "ACTIVE"
+                              ? "bg-green-100 text-green-600"
+                              : "bg-red-100 text-red-600"
+                          }`}
+                        >
+                          {admin.status}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                      No sub-admin data available
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

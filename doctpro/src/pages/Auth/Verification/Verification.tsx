@@ -4,6 +4,7 @@ import { Button, Card, Input, Space, Typography, message } from "antd";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../../Common/SVG/svg.functions";
+import { showMessage } from "../../Common/ResponseMessage";
 
 const { Title, Link } = Typography;
 
@@ -95,10 +96,9 @@ const Verification = () => {
       return response.data;
     },
     onSuccess: (data) => {
-      message.success("Verification successful! ✅");
       navigate({ to: "/app/dashboard" });
       localStorage.setItem("userToken", data.token);
-      console.log("data", data);
+      showMessage.success("Verification successful! ✅");
     },
     onError: (error) => {
       message.error("Invalid OTP. Please try again.");

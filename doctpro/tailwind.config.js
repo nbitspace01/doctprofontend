@@ -2,7 +2,21 @@
 export default {
   content: ["./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        button: {
+          primary: "#1f479d",
+        },
+      },
+    },
   },
+  corePlugins: {
+    preflight: false,
+  },
+  safelist: [
+    {
+      pattern: /^ant-/,
+    },
+  ],
   plugins: [],
 };

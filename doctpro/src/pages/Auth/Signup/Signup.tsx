@@ -26,7 +26,7 @@ const SignUp: React.FC = () => {
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const response = await axios.post(`${URL}/api/auth/signup`, values);
+      const response = await axios.post(`${URL}/api/user/register`, values);
       return response.data;
     },
     onSuccess: (data) => {
@@ -153,7 +153,7 @@ const SignUp: React.FC = () => {
                   className="dark:bg-darkprimary dark:text-white"
                 >
                   <Select.Option value="admin">Admin</Select.Option>
-                  <Select.Option value="admin">Sub-Admin</Select.Option>
+                  <Select.Option value="sub-admin">Sub-Admin</Select.Option>
                 </Select>
               </Form.Item>
               <Form.Item
