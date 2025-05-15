@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
-import { Modal, Input, Select, Switch, Button, Form, notification } from "antd";
 import { PictureOutlined } from "@ant-design/icons";
-import { ApiHospitalData } from "../Hospital.types";
-import { showMessage } from "../../Common/ResponseMessage";
+import { Button, Form, Input, Modal, notification, Select, Switch } from "antd";
+import { useEffect, useState } from "react";
 import { showSuccess } from "../../Common/Notification";
+import { ApiHospitalData } from "../Hospital.types";
 
 // Define the props interface
 interface AddHospitalModalProps {

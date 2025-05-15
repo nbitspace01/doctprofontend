@@ -1,17 +1,19 @@
-import React, { useState } from "react";
-import { Table, Button, Input, Tag, Dropdown, Space } from "antd";
 import {
   DownloadOutlined,
   FilterOutlined,
-  PlusOutlined,
   MoreOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
+import {
+  QueryClientProvider,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { Button, Dropdown, Input, Space, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import React, { useState } from "react";
 import DegreeAddModal from "./DegreeAddModal";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { App } from "antd";
 import DegreeView from "./DegreeView";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 interface DegreeData {
   id: string;
@@ -22,8 +24,6 @@ interface DegreeData {
   created_at: string;
   updated_at: string;
 }
-
-const queryClient = new QueryClient();
 
 const DegreeSpecializationList: React.FC = () => {
   const queryClient = useQueryClient();

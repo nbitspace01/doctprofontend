@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
-import {
-  Modal,
-  Form,
-  Input,
-  Select,
-  Button,
-  Upload,
-  TimePicker,
-  message,
-} from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
+import {
+  Button,
+  Form,
+  Input,
+  Modal,
+  Select,
+  TimePicker,
+  Upload,
+  message,
+} from "antd";
 import axios from "axios";
+import React, { useEffect, useState } from "react";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -73,6 +73,7 @@ const HospitalRegistration: React.FC = () => {
         },
       }),
     onSuccess: (response) => {
+      console.log("KYC verification successful:", response.data);
       setCurrentStep(currentStep + 1);
       message.success("KYC submitted successfully");
     },
@@ -232,7 +233,7 @@ const HospitalRegistration: React.FC = () => {
       </div>
 
       <Form.List name="operating_hours">
-        {(fields, { add, remove }) => (
+        {(fields, { add }) => (
           <>
             <div className="flex justify-between items-center">
               <span>Operation Hrs</span>

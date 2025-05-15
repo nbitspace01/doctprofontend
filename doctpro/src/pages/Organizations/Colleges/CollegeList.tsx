@@ -1,16 +1,16 @@
-import React, { useState } from "react";
-import { Table, Input, Button, Tag, Avatar, Dropdown, Menu } from "antd";
 import {
-  SearchOutlined,
-  FilterOutlined,
   DownloadOutlined,
+  FilterOutlined,
   MoreOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
 import { useQuery } from "@tanstack/react-query";
+import { Avatar, Button, Dropdown, Input, Menu, Table, Tag } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
-import AddCollegeModal from "./AddCollegeModal";
+import React, { useState } from "react";
 import Loader from "../../Common/Loader";
+import AddCollegeModal from "./AddCollegeModal";
 
 interface CollegeData {
   key: string;
@@ -113,7 +113,7 @@ const CollegeList: React.FC = () => {
     {
       title: "Action",
       key: "action",
-      render: (_, record) => (
+      render: () => (
         <Dropdown
           overlay={
             <Menu

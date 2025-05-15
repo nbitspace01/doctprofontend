@@ -1,6 +1,5 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Layout } from "antd";
-import SubMenu from "antd/es/menu/SubMenu";
 import {
   Building,
   Building2,
