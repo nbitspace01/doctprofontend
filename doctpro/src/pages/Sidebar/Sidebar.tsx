@@ -141,7 +141,7 @@ const Sidebar: React.FC = () => {
       icon: <UserRoundCog />,
       onClick: () => {
         setSelectedItem("kyc");
-        navigate({ to: "/app/subadmin" });
+        navigate({ to: "/app/kyc" });
       },
     },
     { id: "settings", label: "Settings", icon: <Settings /> },

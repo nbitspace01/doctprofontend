@@ -52,11 +52,11 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   const { notification } = App.useApp();
 
   const roleOptions = [
-    { value: "in charge", label: "In Charge" },
-    { value: "coordinator", label: "Coordinator" },
-    { value: "assistant", label: "Assistant" },
-    { value: "admin", label: "Admin" },
-    { value: "faculty", label: "Faculty" },
+    // { value: "in charge", label: "In Charge" },
+    // { value: "coordinator", label: "Coordinator" },
+    // { value: "assistant", label: "Assistant" },
+    // { value: "admin", label: "Admin" },
+    // { value: "faculty", label: "Faculty" },
     { value: "subadmin", label: "Sub Admin" },
   ];
 
@@ -92,8 +92,9 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     if (open) {
       if (initialData) {
         form.setFieldsValue({
-          first_name: initialData.first_name,
-          last_name: initialData.last_name,
+          // first_name: initialData.first_name,
+          // last_name: initialData.last_name,
+          name: initialData.first_name + " " + initialData.last_name,
           email: initialData.email,
           phone: initialData.phone,
           role: initialData.role,
@@ -111,8 +112,9 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   const createSubAdminMutation = useMutation({
     mutationFn: (values: SubAdminFormValues) => {
       const payload = {
-        first_name: values.first_name,
-        last_name: values.last_name,
+        // first_name: values.first_name,
+        // last_name: values.last_name,
+        name: values.first_name + " " + values.last_name,
         email: values.email,
         phone: values.phone,
         password: values.password,

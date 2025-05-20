@@ -21,6 +21,7 @@ import DegreeSpecializationList from "./pages/Organizations/Degree/DegreeSpecial
 import ClinicsList from "./pages/Organizations/Clinics/ClinicsList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
+import KycList from "./pages/KYCManagement/KycList";
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -112,6 +113,12 @@ const healthcareRoute = createRoute({
   component: () => <HealthCareList />,
 });
 
+const kycRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "kyc",
+  component: () => <KycList />,
+});
+
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   authLayoutRoute.addChildren([loginRoute, signupRoute, verificationRoute]),
@@ -124,6 +131,7 @@ const routeTree = rootRoute.addChildren([
     clinicsRoute,
     studentsRoute,
     healthcareRoute,
+    kycRoute,
   ]),
 ]);
 

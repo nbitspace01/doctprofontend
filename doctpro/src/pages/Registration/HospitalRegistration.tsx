@@ -16,7 +16,7 @@ import React, { useEffect, useState } from "react";
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
   name: string;
-  branch_location: string;
+  branchLocation: string;
   type: "hospital" | "clinic";
   city: string;
   state: string;
@@ -24,16 +24,20 @@ interface HospitalRegistrationData {
   zipcode: string;
   email: string;
   phone: string;
-  website_url: string;
-  logo_url: string;
+  website: string;
+  logoUrl: string;
   operating_hours: Array<{
     day: string;
     from: string;
     to: string;
   }>;
-  hr_full_name: string;
-  hr_email: string;
-  hr_phone: string;
+  links: Array<{
+    type: string;
+    url: string;
+  }>;
+  contact_person: string;
+  admin_email: string;
+  admin_phone: string;
 }
 
 // Add interface for KYC data
@@ -43,6 +47,7 @@ const HospitalRegistration: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [form] = Form.useForm();
   const [preRegistrationId, setPreRegistrationId] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
 
   // Replace file states with URL states
   const [idProofUrl, setIdProofUrl] = useState<string>("");
@@ -51,11 +56,13 @@ const HospitalRegistration: React.FC = () => {
   // Update the mutation with proper typing and error handling
   const hospitalRegistrationMutation = useMutation({
     mutationFn: (data: HospitalRegistrationData) =>
-      axios.post("http://localhost:3000/api/hospital/hospital-register ", data),
+      axios.post("http://localhost:3000/api/hospital/register ", data),
     onSuccess: (response) => {
       // Store the pre-registration ID from the response
-      const { id } = response.data;
-      setPreRegistrationId(id);
+      const { hospital_id } = response.data;
+      const { user_id } = response.data;
+      setPreRegistrationId(hospital_id);
+      setUserId(user_id);
       setCurrentStep(currentStep + 1);
     },
     onError: (error) => {
@@ -64,29 +71,36 @@ const HospitalRegistration: React.FC = () => {
     },
   });
 
-  // Update the KYC mutation to handle JSON
+  // Update the KYC mutation to handle JSON and add better error handling
   const kycVerificationMutation = useMutation({
-    mutationFn: (data: any) =>
-      axios.post("http://localhost:3000/api/hospital/hospital-kyc", data, {
+    mutationFn: (data: any) => {
+      console.log("Attempting to submit KYC data:", data);
+      return axios.post("http://localhost:3000/api/hospital/upload", data, {
         headers: {
           "Content-Type": "application/json",
         },
-      }),
+      });
+    },
     onSuccess: (response) => {
       console.log("KYC verification successful:", response.data);
       setCurrentStep(currentStep + 1);
       message.success("KYC submitted successfully");
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error("KYC verification failed:", error);
-      message.error("Failed to submit KYC");
+      console.error("Error response:", error.response?.data);
+      message.error(
+        `Failed to submit KYC: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     },
   });
 
   const setPasswordMutation = useMutation({
     mutationFn: (data: any) =>
       axios.post(
-        `http://localhost:3000/api/student/register/set-password/${preRegistrationId}`,
+        `http://localhost:3000/api/user/register/set-password/${userId}`,
         data
       ),
     onSuccess: () => {
@@ -101,9 +115,9 @@ const HospitalRegistration: React.FC = () => {
       <div className="mb-4">
         <Upload
           className="flex justify-center"
-          name="logo_url"
+          name="logoUrl"
           onChange={({ file }) => {
-            form.setFieldsValue({ logo_url: file.url || "" });
+            form.setFieldsValue({ logoUrl: file.url || "" });
           }}
         >
           <div className="text-center">
@@ -145,7 +159,7 @@ const HospitalRegistration: React.FC = () => {
       </Form.Item>
 
       <Form.Item
-        name="branch_location"
+        name="branchLocation"
         label={
           <span>
             Branch Location <span className="text-red-500">*</span>
@@ -297,7 +311,7 @@ const HospitalRegistration: React.FC = () => {
         </div>
         <div className="grid grid-cols-2 gap-4">
           <Form.Item
-            name="website_url"
+            name="website"
             label="Website URL"
             rules={[{ required: true, message: "Please enter website URL" }]}
           >
@@ -343,12 +357,12 @@ const HospitalRegistration: React.FC = () => {
         </div>
       </div>
 
-      <Form.Item name="logo_url" label="Logo">
+      <Form.Item name="logoUrl" label="Logo">
         <Upload
           name="logo"
           onChange={({ file }) => {
             if (file.status === "done") {
-              form.setFieldsValue({ logo_url: file.response.url });
+              form.setFieldsValue({ logoUrl: file.response.url });
             }
           }}
         >
@@ -486,49 +500,72 @@ const HospitalRegistration: React.FC = () => {
         const formattedValues: HospitalRegistrationData = {
           name: values.name,
           type: values.type,
-          branch_location: values.branch_location,
+          branchLocation: values.branchLocation,
           city: values.city,
           state: values.state,
           country: values.country,
           zipcode: values.zipcode,
           email: values.email,
           phone: values.phone,
-          website_url: values.website_url,
-          logo_url: values.logo_url ?? "",
+          website: values.website,
+          logoUrl: values.logoUrl ?? "",
           operating_hours:
             values.operating_hours?.map((hour: any) => ({
               day: hour.day,
               from: hour.from?.format("HH:mm"),
               to: hour.to?.format("HH:mm"),
-            })) || [],
-          hr_full_name: values.hr_full_name,
-          hr_email: values.hr_email,
-          hr_phone: values.hr_phone,
+            })) ?? [],
+          links: [
+            {
+              type: "Website",
+              url: values.website,
+            },
+          ],
+          contact_person: values.hr_full_name,
+          admin_email: values.hr_email,
+          admin_phone: values.hr_phone,
         };
 
         console.log("Formatted values:", formattedValues);
         hospitalRegistrationMutation.mutate(formattedValues);
       } else if (currentStep === 2) {
-        // Now we can send just the URLs
+        // Validate required fields
+        if (!userId || !preRegistrationId) {
+          message.error(
+            "Missing required registration data. Please complete step 1 first."
+          );
+          return;
+        }
+
+        if (!values.id_proof_type || !values.id_proof_number || !idProofUrl) {
+          message.error("Please fill in all ID proof details");
+          return;
+        }
+
+        if (!values.license_type || !values.license_number || !licenseUrl) {
+          message.error("Please fill in all license details");
+          return;
+        }
+
         const kycData = {
-          pre_registration_id: preRegistrationId,
+          user_id: userId,
+          hospital_id: preRegistrationId,
           id_proof_type: values.id_proof_type,
           id_proof_number: values.id_proof_number,
-          id_proof_url: idProofUrl, // Using the stored URL
+          id_proof_url: idProofUrl,
           license_type: values.license_type,
           license_number: values.license_number,
-          license_url: licenseUrl, // Using the stored URL
+          license_url: licenseUrl,
         };
 
-        console.log("Sending KYC Data:", kycData);
-
-        // Update mutation to send JSON instead of FormData
+        console.log("Submitting KYC Data:", kycData);
         kycVerificationMutation.mutate(kycData);
       } else {
         setCurrentStep(currentStep + 1);
       }
     } catch (error) {
       console.error("Form validation failed:", error);
+      message.error("Please fill in all required fields");
     }
   };
 
@@ -542,7 +579,6 @@ const HospitalRegistration: React.FC = () => {
 
       const passwordData = {
         password: values.password,
-        // pre_registration_id: preRegistrationId, // Make sure to include the ID
       };
 
       console.log("Step 3 payload:", passwordData);
@@ -567,6 +603,12 @@ const HospitalRegistration: React.FC = () => {
       message.error("Please complete step 1 first");
     }
   }, [currentStep, preRegistrationId]);
+
+  // Add debugging for userId and preRegistrationId
+  useEffect(() => {
+    console.log("Current userId:", userId);
+    console.log("Current preRegistrationId:", preRegistrationId);
+  }, [userId, preRegistrationId]);
 
   return (
     <div>
