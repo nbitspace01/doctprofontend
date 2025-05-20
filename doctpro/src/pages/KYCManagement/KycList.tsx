@@ -1,13 +1,13 @@
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Table, Input, Button, Tag, Dropdown, Menu, Modal } from "antd";
 import {
-  SearchOutlined,
   DownloadOutlined,
   FilterOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Dropdown, Input, Menu, Modal, Table, Tag } from "antd";
 import axios from "axios";
-import KycViewDrawer from "./KycViewDrawer";
 import { useState } from "react";
+import KycViewDrawer from "./KycViewDrawer";
 
 interface KycSubmission {
   id: string;
@@ -21,18 +21,15 @@ interface KycSubmission {
 }
 
 const KycList = () => {
-  // Fetch KYC submissions using TanStack Query
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { data: kycData, isLoading } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
-      const response = await axios.get(
-        "http://localhost:3000/api/kyc/kyc-submissions",
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-          },
-        }
-      );
+      const response = await axios.get(`${API_URL}/api/kyc/kyc-submissions`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+        },
+      });
       return response.data;
     },
   });
@@ -146,9 +143,7 @@ const KycList = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axios.post(
-        `http://localhost:3000/api/kyc/kyc-submissions/${id}/delete`
-      );
+      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/delete`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });

@@ -53,10 +53,14 @@ const HospitalRegistration: React.FC = () => {
   const [idProofUrl, setIdProofUrl] = useState<string>("");
   const [licenseUrl, setLicenseUrl] = useState<string>("");
 
+  // Add this state for the logo file
+  const [logoUrl, setLogoUrl] = useState<string>("");
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+
   // Update the mutation with proper typing and error handling
   const hospitalRegistrationMutation = useMutation({
     mutationFn: (data: HospitalRegistrationData) =>
-      axios.post("http://localhost:3000/api/hospital/register ", data),
+      axios.post(`${API_URL}/api/hospital/register`, data),
     onSuccess: (response) => {
       // Store the pre-registration ID from the response
       const { hospital_id } = response.data;
@@ -75,7 +79,7 @@ const HospitalRegistration: React.FC = () => {
   const kycVerificationMutation = useMutation({
     mutationFn: (data: any) => {
       console.log("Attempting to submit KYC data:", data);
-      return axios.post("http://localhost:3000/api/hospital/upload", data, {
+      return axios.post(`${API_URL}/api/hospital/upload`, data, {
         headers: {
           "Content-Type": "application/json",
         },
@@ -99,10 +103,7 @@ const HospitalRegistration: React.FC = () => {
 
   const setPasswordMutation = useMutation({
     mutationFn: (data: any) =>
-      axios.post(
-        `http://localhost:3000/api/user/register/set-password/${userId}`,
-        data
-      ),
+      axios.post(`${API_URL}/api/user/register/set-password/${userId}`, data),
     onSuccess: () => {
       setIsModalOpen(false);
       // Add success notification or redirect here
@@ -116,13 +117,29 @@ const HospitalRegistration: React.FC = () => {
         <Upload
           className="flex justify-center"
           name="logoUrl"
-          onChange={({ file }) => {
-            form.setFieldsValue({ logoUrl: file.url || "" });
+          beforeUpload={(file) => {
+            // Create a local URL for preview
+            const fileUrl = URL.createObjectURL(file);
+            setLogoUrl(fileUrl);
+            form.setFieldsValue({ logoUrl: fileUrl });
+            return false; // Prevent default upload
+          }}
+          onRemove={() => {
+            setLogoUrl("");
+            form.setFieldsValue({ logoUrl: "" });
           }}
         >
           <div className="text-center">
             <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <UploadOutlined className="text-2xl" />
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo"
+                  className="w-full h-full rounded-full object-cover"
+                />
+              ) : (
+                <UploadOutlined className="text-2xl" />
+              )}
             </div>
             <p>Profile Picture</p>
           </div>
@@ -360,10 +377,16 @@ const HospitalRegistration: React.FC = () => {
       <Form.Item name="logoUrl" label="Logo">
         <Upload
           name="logo"
-          onChange={({ file }) => {
-            if (file.status === "done") {
-              form.setFieldsValue({ logoUrl: file.response.url });
-            }
+          beforeUpload={(file) => {
+            // Create a local URL for preview
+            const fileUrl = URL.createObjectURL(file);
+            setLogoUrl(fileUrl);
+            form.setFieldsValue({ logoUrl: fileUrl });
+            return false; // Prevent default upload
+          }}
+          onRemove={() => {
+            setLogoUrl("");
+            form.setFieldsValue({ logoUrl: "" });
           }}
         >
           <Button icon={<UploadOutlined />}>Upload Logo</Button>

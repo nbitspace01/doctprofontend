@@ -27,8 +27,9 @@ interface StudentViewProps {
 }
 
 const fetchStudentDetails = async (studentId: string) => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const response = await axios.get<StudentDetails>(
-    `http://localhost:3000/api/student/${studentId}`
+    `${API_URL}/api/student/${studentId}`
   );
   return response.data;
 };

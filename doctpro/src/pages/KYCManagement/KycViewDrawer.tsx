@@ -27,8 +27,9 @@ interface KycViewDrawerProps {
 }
 
 const fetchKycDetails = async (kycId: string) => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { data } = await axios.get<KycDetails>(
-    `http://localhost:3000/api/kyc/kyc-submissions/${kycId}`,
+    `${API_URL}/api/kyc/kyc-submissions/${kycId}`,
     {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("userToken")}`,
@@ -48,6 +49,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   const [rejectReason, setRejectReason] = useState("");
   const [rejectRemarks, setRejectRemarks] = useState("");
   const queryClient = useQueryClient();
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
   const { data: kycDetails, isLoading } = useQuery({
     queryKey: ["kycDetails", kycId],
@@ -57,13 +59,10 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axios.post(
-        `http://localhost:3000/api/kyc/kyc-submissions/${id}/reject`,
-        {
-          reason: rejectReason,
-          remarks: rejectRemarks,
-        }
-      );
+      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/reject`, {
+        reason: rejectReason,
+        remarks: rejectRemarks,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
@@ -74,9 +73,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axios.post(
-        `http://localhost:3000/api/kyc/kyc-submissions/${id}/approve`
-      );
+      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/approve`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });

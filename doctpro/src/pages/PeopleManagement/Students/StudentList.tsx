@@ -30,9 +30,8 @@ interface Student {
 }
 
 const fetchStudents = async (): Promise<Student[]> => {
-  const response = await fetch(
-    "http://localhost:3000/api/student/student/list"
-  );
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const response = await fetch(`${API_URL}/api/student/student/list`);
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }

@@ -39,6 +39,7 @@ const HealthCareList: React.FC = () => {
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<
     string | null
   >(null);
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const {
     data: healthcareData,
     isLoading,
@@ -47,7 +48,7 @@ const HealthCareList: React.FC = () => {
     queryKey: ["healthcareProfessionals"],
     queryFn: async () => {
       const response = await axios.get(
-        "http://localhost:3000/api/healthCare/healthcare-professionals"
+        `${API_URL}/api/healthCare/healthcare-professionals`
       );
       return response.data;
     },

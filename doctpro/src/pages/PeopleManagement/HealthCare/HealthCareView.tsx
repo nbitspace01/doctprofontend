@@ -41,11 +41,12 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
   onClose,
   professionalId,
 }) => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { data, isLoading } = useQuery({
     queryKey: ["healthcareProfessional", professionalId],
     queryFn: async () => {
       const response = await axios.get<HealthCareProfessional>(
-        `http://localhost:3000/api/healthCare/healthcare-professionals/${professionalId}`
+        `${API_URL}/api/healthCare/healthcare-professionals/${professionalId}`
       );
       return response.data;
     },
