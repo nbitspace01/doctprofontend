@@ -53,7 +53,7 @@ const ClinicsList = () => {
       dataIndex: "sNo",
       key: "sNo",
       width: 80,
-      render: (index: number) => index + 1,
+      render: (_: any, __: any, index: number) => index + 1,
     },
 
     {
