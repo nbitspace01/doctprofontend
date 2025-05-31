@@ -1,4 +1,4 @@
-import { Modal, Select, Form, Input, Button } from "antd";
+import { Modal, Select, Form, Input, Button, notification } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React from "react";
@@ -30,8 +30,12 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
       const response = await axios.post(`${API_URL}/api/college/`, data);
       return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["colleges"] });
+      notification.success({
+        message: "College Added Successfully",
+        description: data.message,
+      });
       form.resetFields();
       onClose();
     },

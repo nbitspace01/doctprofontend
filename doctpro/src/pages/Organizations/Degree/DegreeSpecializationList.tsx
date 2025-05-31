@@ -1,19 +1,17 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import {
   QueryClientProvider,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { Button, Dropdown, Input, Space, Table, Tag } from "antd";
+import { Button, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import DegreeAddModal from "./DegreeAddModal";
 import DegreeView from "./DegreeView";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
+import Loader from "../../Common/Loader";
 
 interface DegreeData {
   id: string;
@@ -27,7 +25,6 @@ interface DegreeData {
 
 const DegreeSpecializationList: React.FC = () => {
   const queryClient = useQueryClient();
-  const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingDegree, setEditingDegree] = useState<DegreeData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
@@ -49,13 +46,16 @@ const DegreeSpecializationList: React.FC = () => {
       return [];
     }
   };
-  const { data: fetchedDegreeSpecialization, isLoading } = useQuery<
+  const { data: fetchedDegreeSpecialization, isFetching } = useQuery<
     DegreeData[],
     Error
   >({
     queryKey: ["degreeSpecialization"],
     queryFn: fetchDegreeSpecialization,
   });
+  if (isFetching) {
+    return <Loader size="large" />;
+  }
 
   const handleEdit = (record: DegreeData) => {
     // Ensure we're creating a clean copy of the record with all required fields
@@ -165,25 +165,11 @@ const DegreeSpecializationList: React.FC = () => {
       title: "Action",
       key: "action",
       render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "1",
-                label: "View",
-                onClick: () => handleView(record),
-              },
-              {
-                key: "2",
-                label: "Edit",
-                onClick: () => handleEdit(record),
-              },
-              { key: "3", label: "Delete" },
-            ],
-          }}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <CommonDropdown
+          onView={() => handleView(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => {}}
+        />
       ),
     },
   ];
@@ -222,32 +208,22 @@ const DegreeSpecializationList: React.FC = () => {
           degreeId={selectedDegree?.id ?? ""}
         />
 
-        <div className="flex justify-between items-center mb-6">
-          <Input.Search
-            placeholder="Search"
-            className="max-w-xs"
-            value={searchText}
-            onChange={(e) => setSearchText(e.target.value)}
-          />
-          <Space>
-            <Button icon={<DownloadOutlined />}>Download Report</Button>
-            <Button icon={<FilterOutlined />}>Filter by</Button>
-          </Space>
-        </div>
+        <div className="bg-white rounded-lg shadow">
+          <SearchFilterDownloadButton />
 
-        <Table
-          columns={columns}
-          dataSource={fetchedDegreeSpecialization}
-          rowKey="id"
-          loading={isLoading}
-          pagination={{
-            total: fetchedDegreeSpecialization?.length ?? 0,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-          }}
-          className="shadow-sm rounded-lg"
-        />
+          <Table
+            columns={columns}
+            dataSource={fetchedDegreeSpecialization}
+            rowKey="id"
+            pagination={{
+              total: fetchedDegreeSpecialization?.length ?? 0,
+              pageSize: 10,
+              showSizeChanger: true,
+              showQuickJumper: true,
+            }}
+            className="shadow-sm rounded-lg"
+          />
+        </div>
       </div>
     </QueryClientProvider>
   );

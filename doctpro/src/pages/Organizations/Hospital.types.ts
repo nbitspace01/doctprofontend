@@ -7,4 +7,5 @@ export interface ApiHospitalData {
   isHeadBranch: boolean;
   created_at: string;
   updated_at: string;
+  status: string;
 }

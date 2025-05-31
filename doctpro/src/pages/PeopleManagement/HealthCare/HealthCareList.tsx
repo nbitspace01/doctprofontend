@@ -1,14 +1,11 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button, Dropdown, Input } from "antd";
+import { Avatar, Button } from "antd";
 import axios from "axios";
 import React, { useState } from "react";
 import HealthCareView from "./HealthCareView";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
+import Loader from "../../Common/Loader";
 
 interface HealthcareProfessional {
   id: string;
@@ -42,7 +39,7 @@ const HealthCareList: React.FC = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const {
     data: healthcareData,
-    isLoading,
+    isFetching,
     error,
   } = useQuery<HealthcareProfessionalsResponse>({
     queryKey: ["healthcareProfessionals"],
@@ -71,8 +68,8 @@ const HealthCareList: React.FC = () => {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
-  if (isLoading) {
-    return <div>Loading...</div>;
+  if (isFetching) {
+    return <Loader size="large" />;
   }
 
   if (error) {
@@ -83,28 +80,7 @@ const HealthCareList: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Healthcare professionals</h1>
 
-      <div className="flex justify-between items-center mb-6">
-        <div className="relative w-80">
-          <Input
-            prefix={<SearchOutlined className="text-gray-400" />}
-            placeholder="Search"
-            className="w-full"
-          />
-        </div>
-
-        <div className="flex gap-4">
-          <Button
-            icon={<DownloadOutlined />}
-            className="flex items-center"
-            type="text"
-          >
-            Download Report
-          </Button>
-          <Button icon={<FilterOutlined />} className="flex items-center">
-            Filter by
-          </Button>
-        </div>
-      </div>
+      <SearchFilterDownloadButton />
 
       <div className=" shadowoverflow-x-auto shadow-sm rounded-lg">
         <table className="w-full">
@@ -146,25 +122,27 @@ const HealthCareList: React.FC = () => {
                 <td className="px-6 py-4">
                   <div className="flex items-center">
                     <Avatar className="bg-button-primary w-8 h-8 rounded-full mr-2 text-white">
-                      {professional.name?.charAt(0)}
+                      {professional.name?.charAt(0) || "N/A"}
                     </Avatar>
-                    <span className="text-sm">{professional.name}</span>
+                    <span className="text-sm">
+                      {professional.name || "N/A"}
+                    </span>
                   </div>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {professional.role}
+                  {professional.role || "N/A"}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {professional.email}
+                  {professional.email || "N/A"}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {professional.phone}
+                  {professional.phone || "N/A"}
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-500">
-                  {professional.qualification}
+                  {professional.qualification || "N/A"}
                 </td>
                 <td className="px-6 py-4 text-sm text-blue-600">
-                  {professional.dob}
+                  {professional.dob || "N/A"}
                 </td>
                 <td className="px-6 py-4">
                   <span
@@ -176,25 +154,14 @@ const HealthCareList: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4">
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: "1",
-                          label: "View",
-                          onClick: () => {
-                            setSelectedProfessionalId(professional.id);
-                            setIsDrawerOpen(true);
-                          },
-                        },
-                        { key: "2", label: "Edit" },
-                        { key: "3", label: "Delete" },
-                      ],
+                  <CommonDropdown
+                    onView={() => {
+                      setSelectedProfessionalId(professional.id);
+                      setIsDrawerOpen(true);
                     }}
-                    trigger={["click"]}
-                  >
-                    <Button type="text" icon={<MoreOutlined />} />
-                  </Dropdown>
+                    onEdit={() => {}}
+                    onDelete={() => {}}
+                  />
                 </td>
               </tr>
             ))}

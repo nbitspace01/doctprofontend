@@ -22,6 +22,7 @@ import ClinicsList from "./pages/Organizations/Clinics/ClinicsList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
+import AdsPostList from "./pages/AdsManagement/AdsPostList";
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -119,6 +120,12 @@ const kycRoute = createRoute({
   component: () => <KycList />,
 });
 
+const adsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "ads",
+  component: () => <AdsPostList />,
+});
+
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   authLayoutRoute.addChildren([loginRoute, signupRoute, verificationRoute]),
@@ -132,6 +139,7 @@ const routeTree = rootRoute.addChildren([
     studentsRoute,
     healthcareRoute,
     kycRoute,
+    adsRoute,
   ]),
 ]);
 

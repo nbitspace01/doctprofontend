@@ -1,10 +1,190 @@
-import HospitalRegistration from "../../Registration/HospitalRegistration";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Table, Input, Button, Tag, Space, Dropdown } from "antd";
+import {
+  SearchOutlined,
+  PlusOutlined,
+  DownloadOutlined,
+  FilterOutlined,
+} from "@ant-design/icons";
+import axios from "axios";
+import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
+import { useState } from "react";
+import ClinicViewDrawer from "./ClinicViewDrawer";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
+
+interface Hospital {
+  id: number;
+  name: string;
+  branch: string;
+  address: string;
+  status: "Active" | "Inactive" | "Pending";
+  logo?: string;
+}
 
 const ClinicsList = () => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const queryClient = useQueryClient();
+  const { data: hospitals, isFetching } = useQuery({
+    queryKey: ["hospitals"],
+    queryFn: async () => {
+      const { data } = await axios.get(`${API_URL}/api/hospital/`);
+      return data.data;
+    },
+  });
+
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(
+    null
+  );
+
+  const handleOpenModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalVisible(false);
+    queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+  };
+
+  const columns = [
+    // s no will be the index of the row
+    {
+      title: "S No",
+      dataIndex: "sNo",
+      key: "sNo",
+      width: 80,
+      render: (text: string, record: Hospital, index: number) => index + 1,
+    },
+
+    {
+      title: "Id",
+      dataIndex: "id",
+      key: "id",
+    },
+    {
+      title: "Hospital/Clinic Name",
+      dataIndex: "name",
+      key: "name",
+
+      render: (text: string, record: Hospital) => (
+        <div className="flex items-center gap-2">
+          {record.logo ? (
+            <img
+              src={record.logo}
+              alt={text}
+              className="w-8 h-8 rounded-full"
+            />
+          ) : (
+            <div className="w-8 h-8 bg-button-primary text-white rounded-full flex items-center justify-center">
+              {text.charAt(0)}
+            </div>
+          )}
+          <span>{text}</span>
+        </div>
+      ),
+    },
+    {
+      title: "Branch Location",
+      dataIndex: "branchLocation",
+      key: "branchLocation",
+    },
+    {
+      title: "Address",
+      dataIndex: "address",
+      key: "address",
+      render: (address: string) => {
+        return address === "null, null, null" ? "N/A" : address || "N/A";
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "status",
+      key: "status",
+      render: (status: string) => (
+        <Tag
+          color={
+            status === "Active"
+              ? "success"
+              : status === "Inactive"
+              ? "error"
+              : "warning"
+          }
+        >
+          {status}
+        </Tag>
+      ),
+    },
+    {
+      title: "Action",
+      key: "action",
+      render: (record: Hospital) => (
+        <CommonDropdown
+          onView={() => {
+            setSelectedHospitalId(record.id);
+          }}
+          onEdit={() => {}}
+          onDelete={() => {}}
+        />
+      ),
+    },
+  ];
+
   return (
-    <div>
-      <h1>Clinics List</h1>
-      <HospitalRegistration />
+    <div className="p-6">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-semibold">
+          Hospital & Clinics Management
+        </h1>
+        <Button
+          type="primary"
+          icon={<PlusOutlined />}
+          onClick={handleOpenModal}
+          className="bg-button-primary"
+        >
+          Add New Hospital & Clinics
+        </Button>
+      </div>
+
+      {isModalVisible && (
+        <HospitalRegistration
+          isOpen={isModalVisible}
+          onClose={handleCloseModal}
+        />
+      )}
+
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 flex justify-between items-center border-b">
+          <Input
+            prefix={<SearchOutlined className="text-gray-400" />}
+            placeholder="Search"
+            className="max-w-xs"
+          />
+          <Space>
+            <Button icon={<DownloadOutlined />}>Download Report</Button>
+            <Button icon={<FilterOutlined />}>Filter by</Button>
+          </Space>
+        </div>
+
+        <Table
+          columns={columns}
+          dataSource={hospitals}
+          loading={isFetching}
+          pagination={{
+            total: hospitals?.length,
+            pageSize: 8,
+            showSizeChanger: true,
+          }}
+          className="w-full"
+        />
+      </div>
+
+      {selectedHospitalId && (
+        <ClinicViewDrawer
+          isOpen={true}
+          onClose={() => setSelectedHospitalId(null)}
+          hospitalId={selectedHospitalId.toString()}
+        />
+      )}
     </div>
   );
 };

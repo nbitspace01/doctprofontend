@@ -1,16 +1,12 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button, Dropdown, Input, Menu, Table, Tag } from "antd";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Avatar, Button, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import Loader from "../../Common/Loader";
 import AddCollegeModal from "./AddCollegeModal";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
 
 interface CollegeData {
   key: string;
@@ -29,10 +25,10 @@ interface CollegeResponse {
 }
 
 const CollegeList: React.FC = () => {
-  const [searchText, setSearchText] = useState("");
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
   const fetchColleges = async () => {
     setLoading(true);
@@ -114,25 +110,11 @@ const CollegeList: React.FC = () => {
       title: "Action",
       key: "action",
       render: () => (
-        <Dropdown
-          overlay={
-            <Menu
-              items={[
-                {
-                  key: "1",
-                  label: "Edit",
-                },
-                { key: "2", label: "Delete" },
-                {
-                  key: "3",
-                  label: "View Details",
-                },
-              ]}
-            />
-          }
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <CommonDropdown
+          onView={() => {}}
+          onEdit={() => {}}
+          onDelete={() => {}}
+        />
       ),
     },
   ];
@@ -162,6 +144,11 @@ const CollegeList: React.FC = () => {
     setIsModalVisible(true);
   };
 
+  const handleModalClose = () => {
+    setIsModalVisible(false);
+    queryClient.invalidateQueries({ queryKey: ["Colleges"] });
+  };
+
   return (
     <div className="p-6">
       {loading ? (
@@ -183,30 +170,11 @@ const CollegeList: React.FC = () => {
 
           <AddCollegeModal
             visible={isModalVisible}
-            onClose={() => setIsModalVisible(false)}
+            onClose={handleModalClose}
           />
 
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex justify-between items-center mb-6">
-              <Input
-                prefix={<SearchOutlined className="text-gray-400" />}
-                placeholder="Search"
-                className="max-w-xs"
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-              <div className="flex gap-4">
-                <Button
-                  icon={<DownloadOutlined />}
-                  className="flex items-center"
-                >
-                  Download Report
-                </Button>
-                <Button icon={<FilterOutlined />} className="flex items-center">
-                  Filter by
-                </Button>
-              </div>
-            </div>
+          <div className="bg-white rounded-lg shadow-sm">
+            <SearchFilterDownloadButton />
 
             <Table
               columns={columns}

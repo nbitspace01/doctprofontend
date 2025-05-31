@@ -1,13 +1,11 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Dropdown, Input, Menu, Modal, Table, Tag } from "antd";
-import axios from "axios";
+import { Modal, Table, Tag } from "antd";
 import { useState } from "react";
 import KycViewDrawer from "./KycViewDrawer";
+import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../Common/CommonActionsDropdown";
+import { ApiRequest } from "../Common/constant.function";
+import Loader from "../Common/Loader";
 
 interface KycSubmission {
   id: string;
@@ -22,17 +20,41 @@ interface KycSubmission {
 
 const KycList = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const { data: kycData, isLoading } = useQuery({
+  const queryClient = useQueryClient();
+
+  // Group all useState hooks at the top
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<KycSubmission | null>(
+    null
+  );
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
+
+  // Place all other hooks before any conditional returns
+  const { data: kycData, isFetching } = useQuery({
     queryKey: ["kyc-submissions"],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/kyc/kyc-submissions`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-        },
-      });
+      const response = await ApiRequest.get(
+        `${API_URL}/api/kyc/kyc-submissions`
+      );
       return response.data;
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await ApiRequest.post(`${API_URL}/api/kyc/kyc-submissions/${id}/delete`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
+      setDeleteModalVisible(false);
+      setSelectedRecord(null);
+    },
+  });
+
+  if (isFetching) {
+    return <Loader size="large" />;
+  }
 
   const columns = [
     {
@@ -98,33 +120,24 @@ const KycList = () => {
       title: "Action",
       key: "action",
       render: (_: any, record: KycSubmission) => {
-        const menu = (
-          <Menu>
-            <Menu.Item key="view" onClick={() => handleView(record)}>
-              View
-            </Menu.Item>
-            <Menu.Item key="edit" onClick={() => handleEdit(record)}>
-              Edit
-            </Menu.Item>
-            <Menu.Item key="delete" onClick={() => handleDelete(record)} danger>
-              Delete
-            </Menu.Item>
-          </Menu>
-        );
-
         return (
-          <Dropdown overlay={menu} trigger={["click"]}>
-            <Button type="link" size="small">
-              •••
-            </Button>
-          </Dropdown>
+          <CommonDropdown
+            onView={() => {
+              handleView(record);
+            }}
+            onEdit={() => {
+              handleEdit(record);
+            }}
+            onDelete={() => {
+              handleDelete(record);
+            }}
+          />
         );
       },
     },
   ];
 
   const handleView = (record: KycSubmission) => {
-    console.log("View:", record);
     setIsDrawerOpen(true);
     setSelectedKycId(record.id);
   };
@@ -133,24 +146,6 @@ const KycList = () => {
     // Implement edit logic
     console.log("Edit:", record);
   };
-
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<KycSubmission | null>(
-    null
-  );
-
-  const queryClient = useQueryClient();
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/delete`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
-      setDeleteModalVisible(false);
-      setSelectedRecord(null);
-    },
-  });
 
   const handleDelete = (record: KycSubmission) => {
     setSelectedRecord(record);
@@ -163,38 +158,25 @@ const KycList = () => {
     }
   };
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
 
-      <div className="flex justify-between items-center mb-6">
-        <Input
-          prefix={<SearchOutlined />}
-          placeholder="Search"
-          className="max-w-xs"
+      <div className="bg-white rounded-lg shadow">
+        <SearchFilterDownloadButton />
+
+        <Table
+          columns={columns}
+          dataSource={kycData}
+          rowKey="id"
+          pagination={{
+            total: kycData?.length,
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `Total ${total} items`,
+          }}
         />
-        <div className="flex gap-3">
-          <Button icon={<DownloadOutlined />}>Download Report</Button>
-          <Button icon={<FilterOutlined />}>Filter by</Button>
-        </div>
       </div>
-
-      <Table
-        columns={columns}
-        dataSource={kycData}
-        loading={isLoading}
-        rowKey="id"
-        pagination={{
-          total: kycData?.length,
-          pageSize: 10,
-          showSizeChanger: true,
-          showTotal: (total) => `Total ${total} items`,
-        }}
-      />
-
       <KycViewDrawer
         isOpen={isDrawerOpen}
         onClose={() => setIsDrawerOpen(false)}

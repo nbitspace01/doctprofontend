@@ -1,21 +1,15 @@
-import {
-  DownloadOutlined,
-  FilterFilled,
-  EditOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  MoreOutlined,
-} from "@ant-design/icons";
-import { Button, Input, Table, Dropdown } from "antd";
+import { Button, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
-import { TOKEN } from "../Common/constant.function";
-import axios from "axios";
+import { ApiRequest } from "../Common/constant.function";
+
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import Loader from "../Common/Loader";
 import ViewSubAdmin from "./ViewSubAdmin";
+import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../Common/CommonActionsDropdown";
+import Loader from "../Common/Loader";
 
 interface SubAdminData {
   id: string;
@@ -32,7 +26,6 @@ interface SubAdminData {
 }
 
 const SubAdmin: React.FC = () => {
-  const [searchText, setSearchText] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState<SubAdminData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
@@ -42,29 +35,20 @@ const SubAdmin: React.FC = () => {
   const queryClient = useQueryClient();
 
   const fetchSubAdmin = async () => {
-    const token = TOKEN;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-    const res = await axios.get(`${API_URL}/api/dashboard/sub-admin/list`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log("API Response:", res.data);
+    const res = await ApiRequest.get(`${API_URL}/api/dashboard/sub-admin/list`);
 
     return res.data.data ?? [];
   };
 
-  const {
-    data: rawSubAdmin,
-    isLoading: subAdminLoading,
-    isError: subAdminError,
-  } = useQuery({
+  const { data: rawSubAdmin, isFetching } = useQuery({
     queryKey: ["subAdmin"],
     queryFn: fetchSubAdmin,
   });
 
-  if (subAdminLoading) return <Loader size="large" />;
-  if (subAdminError) return <div>Error: An error occurred</div>;
+  if (isFetching) {
+    return <Loader size="large" />;
+  }
 
   const subAdmin = Array.isArray(rawSubAdmin) ? rawSubAdmin : [];
 
@@ -153,38 +137,11 @@ const SubAdmin: React.FC = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "view",
-                icon: <EyeOutlined />,
-                label: "View",
-                onClick: () => handleViewSubAdmin(record),
-              },
-              {
-                key: "edit",
-                icon: <EditOutlined />,
-                label: "Edit",
-                onClick: () => handleEdit(record),
-              },
-              {
-                key: "delete",
-                icon: <DeleteOutlined />,
-                label: "Delete",
-                onClick: () => handleDelete(record),
-                danger: true,
-              },
-            ],
-          }}
-          trigger={["click"]}
-        >
-          <Button
-            type="text"
-            icon={<MoreOutlined />}
-            className="hover:bg-gray-100"
-          />
-        </Dropdown>
+        <CommonDropdown
+          onView={() => handleViewSubAdmin(record)}
+          onEdit={() => handleEdit(record)}
+          onDelete={() => handleDelete(record)}
+        />
       ),
     },
   ];
@@ -214,37 +171,20 @@ const SubAdmin: React.FC = () => {
         </Button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <Input
-          placeholder="Search"
-          value={searchText}
-          onChange={(e) => setSearchText(e.target.value)}
-          className="max-w-xs"
+      <div className="bg-white rounded-lg shadow">
+        <SearchFilterDownloadButton />
+        <Table
+          columns={columns}
+          dataSource={subAdmin}
+          pagination={{
+            total: subAdmin.length,
+            pageSize: 10,
+            showSizeChanger: true,
+            showQuickJumper: true,
+          }}
+          rowKey="id"
         />
-        <div className="flex gap-4">
-          <Button
-            icon={<DownloadOutlined />}
-            className="flex items-center text-blue-600"
-          >
-            Download Report
-          </Button>
-          <Button icon={<FilterFilled />} className="flex items-center">
-            Filter by
-          </Button>
-        </div>
       </div>
-
-      <Table
-        columns={columns}
-        dataSource={subAdmin}
-        pagination={{
-          total: subAdmin.length,
-          pageSize: 10,
-          showSizeChanger: true,
-          showQuickJumper: true,
-        }}
-        rowKey="id"
-      />
 
       <AddSubAdminModal
         open={isModalOpen}

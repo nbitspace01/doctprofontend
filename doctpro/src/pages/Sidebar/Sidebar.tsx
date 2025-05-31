@@ -3,6 +3,7 @@ import { Layout } from "antd";
 import {
   Building,
   Building2,
+  FileText,
   House,
   LogOut,
   MessageCircleQuestion,
@@ -17,18 +18,48 @@ const { Sider } = Layout;
 
 const Sidebar: React.FC = () => {
   const navigate = useNavigate();
-  const [selectedItem, setSelectedItem] = React.useState<string>("dashboard");
-  const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
-  const [selectedSubMenu, setSelectedSubMenu] = React.useState<string>("");
+  const [selectedItem, setSelectedItem] = React.useState<string>(
+    () => localStorage.getItem("selectedItem") ?? ""
+  );
+  const [expandedMenus, setExpandedMenus] = React.useState<string[]>(() =>
+    JSON.parse(localStorage.getItem("expandedMenus") ?? "[]")
+  );
+  const [selectedSubMenu, setSelectedSubMenu] = React.useState<string>(
+    () => localStorage.getItem("selectedSubMenu") ?? ""
+  );
+
+  React.useEffect(() => {
+    localStorage.setItem("selectedItem", selectedItem);
+    localStorage.setItem("expandedMenus", JSON.stringify(expandedMenus));
+    localStorage.setItem("selectedSubMenu", selectedSubMenu);
+  }, [selectedItem, expandedMenus, selectedSubMenu]);
+
+  React.useEffect(() => {
+    const currentPath = window.location.pathname;
+
+    menuItems.forEach((item) => {
+      if (item.subMenu) {
+        item.subMenu.forEach((subItem) => {
+          if (currentPath.includes(subItem.id)) {
+            setSelectedItem(item.id);
+            setSelectedSubMenu(subItem.id);
+            setExpandedMenus((prev) => [...prev, item.id]);
+          }
+        });
+      } else if (currentPath.includes(item.id)) {
+        setSelectedItem(item.id);
+      }
+    });
+  }, []);
+
   const toggleSubmenu = (menuId: string) => {
-    setExpandedMenus((prev) =>
-      prev.includes(menuId)
-        ? prev.filter((id) => id !== menuId)
-        : [...prev, menuId]
-    );
+    setExpandedMenus((prev) => (prev.includes(menuId) ? [] : [menuId]));
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("selectedItem");
+    localStorage.removeItem("expandedMenus");
+    localStorage.removeItem("selectedSubMenu");
     localStorage.clear();
     navigate({ to: "/auth/login" });
   };
@@ -41,6 +72,7 @@ const Sidebar: React.FC = () => {
       className: "text-white",
       onClick: () => {
         setSelectedItem("dashboard");
+        setExpandedMenus([]);
         navigate({ to: "/app/dashboard" });
       },
     },
@@ -50,6 +82,7 @@ const Sidebar: React.FC = () => {
       icon: <ShieldUser />,
       onClick: () => {
         setSelectedItem("sub-admin");
+        setExpandedMenus([]);
         navigate({ to: "/app/subadmin" });
       },
     },
@@ -58,15 +91,17 @@ const Sidebar: React.FC = () => {
       label: "Master List",
       icon: <Building2 />,
       onClick: () => {
-        toggleSubmenu("masters");
         setSelectedItem("masters");
+        toggleSubmenu("masters");
       },
       subMenu: [
         {
           id: "hospitals",
           label: "Hospital & Clinics List",
           onClick: () => {
+            setSelectedItem("masters");
             setSelectedSubMenu("hospitals");
+            setExpandedMenus(["masters"]);
             navigate({ to: "/app/hospitals" });
           },
         },
@@ -93,8 +128,8 @@ const Sidebar: React.FC = () => {
       label: "Organizations",
       icon: <Building2 />,
       onClick: () => {
-        toggleSubmenu("organizations");
         setSelectedItem("organizations");
+        toggleSubmenu("organizations");
       },
       subMenu: [
         {
@@ -102,7 +137,9 @@ const Sidebar: React.FC = () => {
           label: "Clinics",
           icon: <Building2 />,
           onClick: () => {
+            setSelectedItem("organizations");
             setSelectedSubMenu("clinics");
+            setExpandedMenus(["organizations"]);
             navigate({ to: "/app/clinics" });
           },
         },
@@ -113,8 +150,8 @@ const Sidebar: React.FC = () => {
       label: "People Management",
       icon: <Building />,
       onClick: () => {
-        toggleSubmenu("people");
         setSelectedItem("people");
+        toggleSubmenu("people");
       },
       subMenu: [
         {
@@ -136,11 +173,31 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
+      id: "ad-management",
+      label: "Ads Management",
+      icon: <FileText />,
+      onClick: () => {
+        toggleSubmenu("ad-management");
+        setSelectedItem("ad-management");
+      },
+      subMenu: [
+        {
+          id: "adspostlist",
+          label: "Ads Post List",
+          onClick: () => {
+            setSelectedSubMenu("adspostlist");
+            navigate({ to: "/app/ads" });
+          },
+        },
+      ],
+    },
+    {
       id: "kyc",
       label: "KYC Management",
       icon: <UserRoundCog />,
       onClick: () => {
         setSelectedItem("kyc");
+        setExpandedMenus((prev) => (prev.includes("kyc") ? [] : ["kyc"]));
         navigate({ to: "/app/kyc" });
       },
     },

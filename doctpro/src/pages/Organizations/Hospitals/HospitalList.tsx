@@ -1,18 +1,9 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  MoreOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   App,
   Avatar,
   Button,
   Drawer,
-  Dropdown,
-  Input,
-  Menu,
   message,
   Skeleton,
   Table,
@@ -23,10 +14,19 @@ import React, { useState } from "react";
 import { ApiHospitalData } from "../Hospital.types";
 import AddHospitalModal from "./AddHospitalModal";
 import { showSuccess } from "../../Common/Notification";
-
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
+import Loader from "../../Common/Loader";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
-const fetchHospitals = async (): Promise<ApiHospitalData[]> => {
+interface ApiResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: ApiHospitalData[];
+}
+
+const fetchHospitals = async (): Promise<ApiResponse> => {
   const response = await fetch(`${API_URL}/api/hospital/`);
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
@@ -81,7 +81,7 @@ const HospitalList: React.FC = () => {
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
 
-  const { data: hospitals, isLoading } = useQuery({
+  const { data: hospitals, isFetching } = useQuery({
     queryKey: ["hospitals"],
     queryFn: fetchHospitals,
   });
@@ -110,6 +110,10 @@ const HospitalList: React.FC = () => {
     },
   });
 
+  if (isFetching) {
+    return <Loader size="large" />;
+  }
+
   const handleSuccess = (message: string) => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
     console.log("message:", message);
@@ -136,14 +140,18 @@ const HospitalList: React.FC = () => {
   };
 
   const tableData: HospitalData[] =
-    hospitals?.map((hospital, index) => ({
+    hospitals?.data?.map((hospital, index) => ({
       key: hospital.id,
       sNo: index + 1,
       name: hospital.name,
       logo: hospital.logoUrl,
       branchLocation: hospital.branchLocation,
       updatedOn: new Date(hospital.updated_at).toLocaleDateString(),
-      status: hospital.isActive ? "Active" : "Inactive",
+      status: (hospital.status?.toLowerCase() === "active"
+        ? "Active"
+        : hospital.status?.toLowerCase() === "inactive"
+        ? "Inactive"
+        : "Pending") as HospitalData["status"],
     })) || [];
 
   const columns: ColumnsType<HospitalData> = [
@@ -197,34 +205,19 @@ const HospitalList: React.FC = () => {
     {
       title: "Action",
       key: "action",
+
       render: (_, record) => (
-        <Dropdown
-          overlay={
-            <Menu
-              items={[
-                {
-                  key: "1",
-                  label: "Edit",
-                  onClick: () => {
-                    setSelectedHospitalId(record.key);
-                    setIsModalOpen(true);
-                  },
-                },
-                { key: "2", label: "Delete" },
-                {
-                  key: "3",
-                  label: "View Details",
-                  onClick: () => {
-                    setViewHospitalId(record.key);
-                    setIsDrawerOpen(true);
-                  },
-                },
-              ]}
-            />
-          }
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+        <CommonDropdown
+          onView={() => {
+            setViewHospitalId(record.key);
+            setIsDrawerOpen(true);
+          }}
+          onEdit={() => {
+            setSelectedHospitalId(record.key);
+            setIsModalOpen(true);
+          }}
+          onDelete={() => {}}
+        />
       ),
     },
   ];
@@ -247,30 +240,21 @@ const HospitalList: React.FC = () => {
         </Button>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
-        <Input
-          prefix={<SearchOutlined className="text-gray-400" />}
-          placeholder="Search"
-          className="max-w-xs"
-        />
-        <div className="flex gap-3">
-          <Button icon={<DownloadOutlined />}>Download Report</Button>
-          <Button icon={<FilterOutlined />}>Filter by</Button>
-        </div>
-      </div>
+      <div className="bg-white rounded-lg shadow">
+        <SearchFilterDownloadButton />
 
-      <Table
-        columns={columns}
-        dataSource={tableData}
-        loading={isLoading}
-        pagination={{
-          total: tableData.length,
-          pageSize: 8,
-          current: 1,
-          showSizeChanger: true,
-        }}
-        className="shadow-sm rounded-lg"
-      />
+        <Table
+          columns={columns}
+          dataSource={tableData}
+          pagination={{
+            total: hospitals?.total ?? 0,
+            pageSize: hospitals?.limit ?? 8,
+            current: hospitals?.page ?? 1,
+            showSizeChanger: true,
+          }}
+          className="shadow-sm rounded-lg"
+        />
+      </div>
 
       <Drawer
         title="Hospital & Clinics Management"
@@ -319,7 +303,11 @@ const HospitalList: React.FC = () => {
 
             <div>
               <h4 className="font-medium mb-2">Updated On Portal</h4>
-              <p>{new Date(viewHospital.updated_at).toLocaleDateString()}</p>
+              <p>
+                {viewHospital.updated_at
+                  ? new Date(viewHospital.updated_at).toLocaleDateString()
+                  : "Not available"}
+              </p>
             </div>
           </div>
         ) : null}
