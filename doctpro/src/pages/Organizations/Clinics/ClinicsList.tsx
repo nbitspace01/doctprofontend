@@ -1,16 +1,16 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Table, Input, Button, Tag, Space, Dropdown } from "antd";
 import {
-  SearchOutlined,
-  PlusOutlined,
   DownloadOutlined,
   FilterOutlined,
+  PlusOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Input, Space, Table, Tag } from "antd";
 import axios from "axios";
-import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
 import { useState } from "react";
-import ClinicViewDrawer from "./ClinicViewDrawer";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
+import ClinicViewDrawer from "./ClinicViewDrawer";
 
 interface Hospital {
   id: number;
@@ -53,7 +53,7 @@ const ClinicsList = () => {
       dataIndex: "sNo",
       key: "sNo",
       width: 80,
-      render: (text: string, record: Hospital, index: number) => index + 1,
+      render: (index: number) => index + 1,
     },
 
     {

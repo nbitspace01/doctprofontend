@@ -1,8 +1,8 @@
-import React from "react";
-import { Drawer, Button, Typography } from "antd";
-import { CloseOutlined, DownloadOutlined } from "@ant-design/icons";
+import { CloseOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
+import { Button, Drawer, Typography } from "antd";
 import axios from "axios";
+import React from "react";
 
 interface AdsDetailResponse {
   id: string;
@@ -62,9 +62,6 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
       state: "",
     },
     description = "",
-    imageUrl = "",
-    redirectUrl = "",
-    status = "",
   } = adsData || {};
 
   if (isLoading) {
