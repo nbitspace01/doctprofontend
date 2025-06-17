@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { Table, Button, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import CreateAdPost from "./CreateAdPost";
-import AdsPostViewDrawer from "./AdsPostViewDrawer";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
-import CommonDropdown from "../Common/CommonActionsDropdown";
+
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import CampaignAddModal from "./CampaignAddModal";
+import CampaignViewDrawer from "./CampaignViewDrawer";
 
 interface AdsPost {
   key: string;
@@ -20,7 +21,7 @@ interface AdsPost {
   status: string;
 }
 
-const AdsPostList: React.FC = () => {
+const CampaignList: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const queryClient = useQueryClient();
@@ -37,7 +38,7 @@ const AdsPostList: React.FC = () => {
     },
   });
 
-  const columns: ColumnsType<AdsPost> = [
+  const baseColumns: ColumnsType<AdsPost> = [
     {
       title: "S No",
       dataIndex: "sNo",
@@ -61,7 +62,7 @@ const AdsPostList: React.FC = () => {
       key: "companyName",
     },
     {
-      title: "Type",
+      title: "Ad Type",
       dataIndex: "adType",
       key: "adType",
     },
@@ -121,6 +122,11 @@ const AdsPostList: React.FC = () => {
       ),
     },
   ];
+  const columns: ColumnsType<AdsPost> = baseColumns.map((column) => ({
+    ...column,
+    width: column.width ?? 150,
+  }));
+
   const handleModalClose = () => {
     setIsCreateModalOpen(false);
     queryClient.invalidateQueries({ queryKey: ["ads"] });
@@ -129,13 +135,13 @@ const AdsPostList: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Ads Post</h1>
+        <h1 className="text-2xl font-semibold">Campaign Management</h1>
         <Button
           type="primary"
           className="bg-button-primary hover:!bg-button-primary"
           onClick={() => setIsCreateModalOpen(true)}
         >
-          + Create Ad Post
+          + Create New Campaign
         </Button>
       </div>
       <div className="bg-white rounded-lg shadow">
@@ -156,8 +162,12 @@ const AdsPostList: React.FC = () => {
         />
       </div>
 
-      <CreateAdPost open={isCreateModalOpen} onClose={handleModalClose} />
-      <AdsPostViewDrawer
+      <CampaignAddModal
+        isOpen={isCreateModalOpen}
+        onClose={handleModalClose}
+        onSubmit={() => {}}
+      />
+      <CampaignViewDrawer
         visible={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}
         adsId={adsData?.[0]?.id ?? ""}
@@ -166,4 +176,4 @@ const AdsPostList: React.FC = () => {
   );
 };
 
-export default AdsPostList;
+export default CampaignList;

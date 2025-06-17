@@ -1,6 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import { Drawer, Avatar, Button } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
+import EditProfileDrawer from "./EditProfileDrawer";
+import ResetPasswordModal from "./ResetPasswordModal";
 
 interface ViewProfileDrawerProps {
   visible: boolean;
@@ -20,58 +22,108 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
   onClose,
   profileData,
 }) => {
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
+
+  const handleEditProfile = () => {
+    setEditProfileVisible(true);
+  };
+
+  const handleEditProfileClose = () => {
+    setEditProfileVisible(false);
+  };
+
+  const handleSaveProfile = (values: any) => {
+    // Handle save profile logic here
+    console.log("Saving profile:", values);
+    setEditProfileVisible(false);
+  };
+
+  const handleChangePassword = () => {
+    setResetPasswordVisible(true);
+  };
+
   return (
-    <Drawer
-      title="View Profile"
-      placement="right"
-      onClose={onClose}
-      open={visible}
-      width={400}
-      closeIcon={<CloseOutlined className="text-gray-600" />}
-    >
-      <div className="flex flex-col space-y-6">
-        <div className="flex items-center space-x-4">
-          <Avatar size={64} className="bg-button-primary">
-            {profileData.name.charAt(0)}
-          </Avatar>
-          <div>
-            <h2 className="text-lg font-medium">{profileData.name}</h2>
-            <p className="text-gray-600">{profileData.title}</p>
+    <>
+      <Drawer
+        title="View Profile"
+        placement="right"
+        onClose={onClose}
+        open={visible}
+        width={400}
+        closeIcon={<CloseOutlined className="text-gray-600" />}
+      >
+        <div className="flex flex-col space-y-6 h-full">
+          <div className="flex-1">
+            <div className="flex items-center space-x-4">
+              <Avatar size={64} className="bg-button-primary">
+                {profileData.name.charAt(0)}
+              </Avatar>
+              <div>
+                <h2 className="text-lg font-medium">{profileData.name}</h2>
+                <p className="text-gray-600">{profileData.title}</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-gray-600 mb-1">Note</p>
+                <p>{profileData.note || "No note"}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-600 mb-1">Role</p>
+                <p>{profileData.role}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-600 mb-1">Email Address</p>
+                <p>{profileData.email}</p>
+              </div>
+
+              <div>
+                <p className="text-gray-600 mb-1">Phone Number</p>
+                <p>{profileData.phone}</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-2 mt-auto">
+            <Button
+              variant="outlined"
+              className="w-full border-button-primary  text-button-primary py-2 px-4 rounded-md hover:!bg-button-primary hover:!text-white transition-colors"
+              onClick={handleChangePassword}
+            >
+              Change Password
+            </Button>
+            <Button
+              className="w-full bg-button-primary text-white py-2 px-4 rounded-md hover:!bg-button-primary transition-colors"
+              onClick={handleEditProfile}
+            >
+              Edit Profile
+            </Button>
           </div>
         </div>
+      </Drawer>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-gray-600 mb-1">Note</p>
-            <p>{profileData.note}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-600 mb-1">Role</p>
-            <p>{profileData.role}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-600 mb-1">Email Address</p>
-            <p>{profileData.email}</p>
-          </div>
-
-          <div>
-            <p className="text-gray-600 mb-1">Phone Number</p>
-            <p>{profileData.phone}</p>
-          </div>
-        </div>
-
-        <Button
-          className="w-full bg-button-primary text-white py-2 px-4 rounded-md hover:!bg-button-primary transition-colors"
-          onClick={() => {
-            /* Handle edit profile */
-          }}
-        >
-          Edit Profile
-        </Button>
-      </div>
-    </Drawer>
+      <EditProfileDrawer
+        visible={editProfileVisible}
+        onClose={handleEditProfileClose}
+        onSave={handleSaveProfile}
+        initialValues={{
+          fullName: profileData.name,
+          email: profileData.email,
+          note: profileData.note,
+          phoneNumber: profileData.phone,
+          role: profileData.role,
+        }}
+      />
+      <ResetPasswordModal
+        visible={resetPasswordVisible}
+        onCancel={() => setResetPasswordVisible(false)}
+        onConfirm={handleChangePassword}
+      />
+    </>
   );
 };
 

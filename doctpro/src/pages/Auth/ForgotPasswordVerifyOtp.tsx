@@ -1,14 +1,14 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Card, Input, Space, Typography, message } from "antd";
+import { Button, Card, Input, Typography, message } from "antd";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
-import { Logo } from "../../Common/SVG/svg.functions";
-import { showMessage } from "../../Common/ResponseMessage";
+import { Logo } from "../Common/SVG/svg.functions";
+import { showMessage } from "../Common/ResponseMessage";
 
-const { Title, Link } = Typography;
+const { Link } = Typography;
 
-const Verification = () => {
+const ForgotPasswordVerifyOtp = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(50);
   const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
@@ -92,24 +92,19 @@ const Verification = () => {
 
   const mutation = useMutation({
     mutationFn: async (payload: { email: string; otp: string }) => {
-      const response = await axios.post(`${URL}/api/user/verify-otp`, payload);
+      const response = await axios.post(
+        `${URL}/api/user/forgot-password/verify-otp`,
+        payload
+      );
       return response.data;
     },
     onSuccess: async (data) => {
-      // Set all localStorage items
-      localStorage.setItem("userToken", data.token);
-      localStorage.setItem("userId", data.user.id);
-      localStorage.setItem("roleId", data.user.role.id);
-      localStorage.setItem("roleName", data.user.role.name);
-
-      // Small delay to ensure localStorage is updated
+      localStorage.setItem("userIdForgotPassword", data.userId);
+      navigate({
+        to: "/auth/change-password",
+        replace: true,
+      });
       await new Promise((resolve) => setTimeout(resolve, 100));
-
-      if (data.user.role.name === "admin") {
-        navigate({ to: "/app/dashboard" });
-      } else {
-        navigate({ to: "/app/subadmin/dashboard" });
-      }
       showMessage.success("Verification successful! ✅");
     },
     onError: (error) => {
@@ -147,37 +142,48 @@ const Verification = () => {
   return (
     <div className="h-screen w-full flex items-center justify-center bg-gray-50">
       <Card className="w-[400px] rounded-xl shadow-lg">
-        <div>
-          <div className="flex flex-col items-center mb-8">
-            <Logo />
-          </div>
-          <Title level={4} className="!text-left mb-6">
-            OTP Verification
-          </Title>
+        <div className="flex flex-col items-center mb-8">
+          <Logo />
         </div>
 
-        <Space className="w-full justify-center mb-8">
-          {otp.map((digit, index) => (
-            <Input
-              key={`otp-input-${index}`}
-              ref={(el) => {
-                inputRefs.current[index] = el as unknown as HTMLInputElement;
-              }}
-              value={digit}
-              onChange={(e) => handleOtpChange(e.target.value, index)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              onPaste={(e) => {
-                e.preventDefault();
-                const pastedData = e.clipboardData.getData("text");
-                handleOtpChange(pastedData, index);
-              }}
-              className="!w-12 !h-12 text-center text-lg"
-              maxLength={1}
-              autoFocus={index === 0}
-            />
-          ))}
-        </Space>
-
+        <div className="my-6">
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Email
+          </label>
+          <Input id="email" value={email ?? ""} disabled className="mb-4" />
+        </div>
+        <div className="mb-8">
+          <label
+            htmlFor="otp"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
+            OTP
+          </label>
+          <div className="flex gap-2 justify-center">
+            {otp.map((digit, index) => (
+              <Input
+                key={`otp-input-${index}`}
+                ref={(el) => {
+                  inputRefs.current[index] = el as unknown as HTMLInputElement;
+                }}
+                value={digit}
+                onChange={(e) => handleOtpChange(e.target.value, index)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  const pastedData = e.clipboardData.getData("text");
+                  handleOtpChange(pastedData, index);
+                }}
+                className="!w-12 !h-12 text-center text-lg"
+                maxLength={1}
+                autoFocus={index === 0}
+              />
+            ))}
+          </div>
+        </div>
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <span className="text-gray-600">Did not receive OTP?</span>
@@ -194,7 +200,6 @@ const Verification = () => {
             {String(timeLeft % 60).padStart(2, "0")})
           </span>
         </div>
-
         <Button
           type="primary"
           className="w-full h-12 rounded-md text-lg bg-[#1f479d]"
@@ -208,4 +213,4 @@ const Verification = () => {
   );
 };
 
-export default Verification;
+export default ForgotPasswordVerifyOtp;

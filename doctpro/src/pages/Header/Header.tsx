@@ -1,15 +1,56 @@
 import { BellOutlined, SearchOutlined } from "@ant-design/icons";
+import { useQuery } from "@tanstack/react-query";
 import { Avatar, Badge, Dropdown, Input } from "antd";
 import React, { useState } from "react";
+import axiosInstance from "../Common/axiosInstance";
 import { EditIcon, ViewIcon } from "../Common/SVG/svg.functions";
-import ViewProfileDrawer from "./ViewProfileDrawer";
 import EditProfileDrawer from "./EditProfileDrawer";
+import ViewProfileDrawer from "./ViewProfileDrawer";
+
+// Add this interface for type safety
+interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  role: string;
+  userType: string;
+  status: string;
+  kyc_verified: boolean;
+  createdAt: string;
+  followersCount: number;
+  followingCount: number;
+  recommendationCount: number;
+  gender: string;
+  dob: string;
+  location: string;
+  degree: string;
+  specialization: string;
+  college: string;
+  startYear: number;
+  endYear: number;
+  idCardUrl: string | null;
+  course: string | null;
+  type: string;
+}
 
 const Header: React.FC = () => {
   const [viewProfileDrawerVisible, setViewProfileDrawerVisible] =
     useState(false);
   const [editProfileDrawerVisible, setEditProfileDrawerVisible] =
     useState(false);
+  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const USER_ID = localStorage.getItem("userId");
+
+  const { data: userProfile } = useQuery<UserProfile>({
+    queryKey: ["userProfile"],
+    queryFn: async () => {
+      const response = await axiosInstance.get(
+        `${URL}/api/user/profile/${USER_ID}`
+      );
+      return response.data;
+    },
+  });
 
   const userMenuItems = [
     {
@@ -30,15 +71,18 @@ const Header: React.FC = () => {
     },
   ];
 
+  // Replace the hardcoded profileData with the fetched data
   const profileData = {
-    name: "Surya",
+    name: userProfile?.name ?? "Loading...",
     avatar: "https://i.pravatar.cc/150?img=3",
-    role: "Doctor",
-    title: "Dr. Surya",
-    note: "Cardiologist",
-    email: "surya@gmail.com",
-    phone: "9876543210",
-    // Add other profile fields as needed
+    role: userProfile?.role ?? "Loading...",
+    title:
+      userProfile?.type === "Doctor"
+        ? `Dr. ${userProfile.name}`
+        : userProfile?.name ?? "Loading...",
+    note: userProfile?.specialization ?? "",
+    email: userProfile?.email ?? "",
+    phone: userProfile?.phone ?? "",
   };
 
   return (
@@ -89,6 +133,13 @@ const Header: React.FC = () => {
         visible={editProfileDrawerVisible}
         onClose={() => setEditProfileDrawerVisible(false)}
         onSave={() => {}}
+        initialValues={{
+          fullName: userProfile?.name ?? "",
+          email: userProfile?.email ?? "",
+          note: userProfile?.specialization ?? "",
+          phoneNumber: userProfile?.phone ?? "",
+          role: userProfile?.role ?? "",
+        }}
       />
     </>
   );

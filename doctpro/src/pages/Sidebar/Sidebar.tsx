@@ -143,6 +143,14 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/clinics" });
           },
         },
+        {
+          id: "colleges",
+          label: "Colleges",
+          onClick: () => {
+            setSelectedSubMenu("colleges");
+            navigate({ to: "/app/colleges/list" });
+          },
+        },
       ],
     },
     {
@@ -168,6 +176,14 @@ const Sidebar: React.FC = () => {
           onClick: () => {
             setSelectedSubMenu("healthcare");
             navigate({ to: "/app/healthcare" });
+          },
+        },
+        {
+          id: "campaign",
+          label: "Campaign",
+          onClick: () => {
+            setSelectedSubMenu("campaign");
+            navigate({ to: "/app/campaign" });
           },
         },
       ],

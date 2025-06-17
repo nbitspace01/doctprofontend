@@ -5,7 +5,7 @@ import React, { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { TOKEN } from "../Common/constant.function";
-import { showSuccess } from "../Common/Notification";
+import { showError, showSuccess } from "../Common/Notification";
 
 interface SubAdminData {
   id: string;
@@ -139,10 +139,13 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
-      console.error("API Error:", error); // Add this for debugging
+      // Add this for debugging
       const errorMessage =
         error.response?.data?.message ?? "Failed to create sub-admin";
-      message.error(errorMessage);
+      showError(notification, {
+        message: "Failed to create sub-admin",
+        description: errorMessage,
+      });
     },
   });
 
@@ -183,7 +186,10 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       console.error("API Error:", error);
       const errorMessage =
         error.response?.data?.message ?? "Failed to update sub-admin";
-      message.error(errorMessage);
+      showError(notification, {
+        message: "Failed to update sub-admin",
+        description: errorMessage,
+      });
     },
   });
 
