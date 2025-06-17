@@ -1,9 +1,9 @@
 import { UserOutlined } from "@ant-design/icons";
-import { Modal, Form, Input, Select, Button, Upload, message, App } from "antd";
-import type { UploadProps } from "antd";
-import React, { useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
+import type { UploadProps } from "antd";
+import { App, Button, Form, Input, Modal, Select, Upload } from "antd";
 import axios from "axios";
+import React, { useEffect } from "react";
 import { TOKEN } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
 

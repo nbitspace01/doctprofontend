@@ -1,10 +1,10 @@
-import React, { useState } from "react";
-import { Form, Input, Button, message } from "antd";
 import { EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
-import { Logo } from "../Common/SVG/svg.functions";
-import loginIllustration from "../../assets/illustrationlogin.png";
-import { useParams, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
+import { Button, Form, Input, message } from "antd";
 import axios from "axios";
+import React, { useState } from "react";
+import loginIllustration from "../../assets/illustrationlogin.png";
+import { Logo } from "../Common/SVG/svg.functions";
 
 const ChangePassword: React.FC = () => {
   const [form] = Form.useForm();

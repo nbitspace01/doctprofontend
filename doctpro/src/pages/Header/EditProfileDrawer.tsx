@@ -1,8 +1,7 @@
-import React from "react";
-import { Drawer, Input, Button, Form, App } from "antd";
-import { EditOutlined } from "@ant-design/icons";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { App, Button, Drawer, Form, Input } from "antd";
 import axios from "axios";
+import React from "react";
 import { showError, showSuccess } from "../Common/Notification";
 
 interface EditProfileDrawerProps {
