@@ -5,10 +5,10 @@ import {
 } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Checkbox, Form, Input, message, Select } from "antd";
-import axios from "axios";
+import { App, Button, Checkbox, Form, Input, Select } from "antd";
+import axios, { AxiosError } from "axios";
 import loginIllustration from "../../assets/illustrationlogin.png";
-import { showMessage } from "../Common/ResponseMessage";
+import { showError, showSuccess } from "../Common/Notification";
 import { Logo } from "../Common/SVG/svg.functions";
 
 interface LoginFormValues {
@@ -22,24 +22,40 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const { notification } = App.useApp();
 
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) => {
-      const response = await axios.post(`${URL}/api/user/login`, values);
-      return response.data;
+      try {
+        const response = await axios.post(`${URL}/api/user/login`, values);
+        return response.data;
+      } catch (error) {
+        const axiosError = error as AxiosError<{ error: string }>;
+        const errorMessage =
+          axiosError.response?.data?.error ?? "An error occurred during login";
+
+        showError(notification, {
+          message: "Login Failed",
+          description: errorMessage,
+          duration: 5,
+        });
+        throw error;
+      }
     },
     onSuccess: (data) => {
       console.log("Login successful!", data);
+      showSuccess(notification, {
+        message: "Login Successful",
+      });
       navigate({ to: "/auth/verify" });
-      showMessage.success(
-        "Login successful! Redirecting to verification page..."
-      );
     },
-    onError: (error: any) => {
-      message.error(
-        error.response?.data?.message ?? "Login failed. Please try again."
-      );
-    },
+    // onError: (error: Error) => {
+    //   showError(notification, {
+    //     message: "Login Failed",
+    //     description: error.message,
+    //     duration: 5,
+    //   });
+    // },
   });
 
   const onFinish = (values: LoginFormValues) => {
@@ -133,7 +149,10 @@ const LoginPage = () => {
                 <Form.Item name="remember" valuePropName="checked" noStyle>
                   <Checkbox>Remember Me</Checkbox>
                 </Form.Item>
-                <a href="#" className="text-blue-600 hover:text-blue-800">
+                <a
+                  href="/auth/forgot-password"
+                  className="text-button-primary hover:text-button-primary"
+                >
                   Forgot Password?
                 </a>
               </div>
@@ -144,7 +163,7 @@ const LoginPage = () => {
               <Button
                 type="primary"
                 htmlType="submit"
-                className="w-full h-10 bg-[#1f479d]"
+                className="w-full h-10 bg-button-primary"
                 loading={loginMutation.isPending}
               >
                 {loginMutation.isPending ? "Logging in..." : "Login"}

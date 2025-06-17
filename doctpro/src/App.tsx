@@ -23,6 +23,13 @@ import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
 import AdsPostList from "./pages/AdsManagement/AdsPostList";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
+import ListCollege from "./pages/Organizations/College/ListCollege";
+import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
+import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
+import PostManagementList from "./pages/PostManagement/PostManagementList";
+import ChangePassword from "./pages/Auth/ChangePassword";
+import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -60,6 +67,24 @@ const verificationRoute = createRoute({
   component: Verification,
 });
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: "forgot-password",
+  component: ForgotPassword,
+});
+
+const forgotPasswordVerifyOtpRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: "forgot-password/verify-otp",
+  component: ForgotPasswordVerifyOtp,
+});
+
+const changePasswordRoute = createRoute({
+  getParentRoute: () => authLayoutRoute,
+  path: "change-password",
+  component: ChangePassword,
+});
+
 const appRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "app",
@@ -70,6 +95,12 @@ const dashboardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "dashboard",
   component: () => <Dashboard />,
+});
+
+const subadminDashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "subadmin/dashboard",
+  component: () => <SubAdminDashboard />,
 });
 
 const subAdminRoute = createRoute({
@@ -88,6 +119,12 @@ const collegesRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "colleges",
   component: () => <CollegeList />,
+});
+
+const collegeListRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "colleges/list",
+  component: () => <ListCollege />,
 });
 
 const degreeSpecializationRoute = createRoute({
@@ -114,6 +151,12 @@ const healthcareRoute = createRoute({
   component: () => <HealthCareList />,
 });
 
+const campaignRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "campaign",
+  component: () => <CampaignList />,
+});
+
 const kycRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "kyc",
@@ -126,20 +169,37 @@ const adsRoute = createRoute({
   component: () => <AdsPostList />,
 });
 
+const postManagementRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "post-management/list",
+  component: () => <PostManagementList />,
+});
+
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
-  authLayoutRoute.addChildren([loginRoute, signupRoute, verificationRoute]),
+  authLayoutRoute.addChildren([
+    loginRoute,
+    signupRoute,
+    verificationRoute,
+    forgotPasswordRoute,
+    changePasswordRoute,
+    forgotPasswordVerifyOtpRoute,
+  ]),
   appRoute.addChildren([
     dashboardRoute,
+    subadminDashboardRoute,
     subAdminRoute,
     hospitalsRoute,
     collegesRoute,
+    collegeListRoute,
     degreeSpecializationRoute,
     clinicsRoute,
     studentsRoute,
     healthcareRoute,
     kycRoute,
     adsRoute,
+    campaignRoute,
+    postManagementRoute,
   ]),
 ]);
 

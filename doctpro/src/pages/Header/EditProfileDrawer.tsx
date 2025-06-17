@@ -1,24 +1,72 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { App, Button, Drawer, Form, Input } from "antd";
+import axios from "axios";
 import React from "react";
-import { Drawer, Input, Button, Form } from "antd";
-import { EditOutlined } from "@ant-design/icons";
+import { showError, showSuccess } from "../Common/Notification";
 
 interface EditProfileDrawerProps {
   visible: boolean;
   onClose: () => void;
   onSave: (values: any) => void;
+  initialValues?: {
+    fullName: string;
+    email: string;
+    note: string;
+    phoneNumber: string;
+    role: string;
+  };
 }
 
 const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   visible,
   onClose,
   onSave,
+  initialValues,
 }) => {
   const [form] = Form.useForm();
+  const queryClient = useQueryClient();
+  const { notification } = App.useApp();
+  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const USER_ID = localStorage.getItem("userId");
+
+  React.useEffect(() => {
+    if (initialValues) {
+      form.setFieldsValue(initialValues);
+    }
+  }, [form, initialValues]);
+
+  const updateProfileMutation = useMutation({
+    mutationFn: async (values: any) => {
+      const response = await axios.put(`${URL}/api/user/profile/${USER_ID}`, {
+        name: values.fullName,
+        specialization: values.note,
+        phone: values.phoneNumber,
+      });
+      return response.data;
+    },
+    onSuccess: (data) => {
+      showSuccess(notification, {
+        message: "Profile Updated Successfully",
+        description: data.message,
+      });
+      // Invalidate and refetch userProfile query
+      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      onSave(data);
+      onClose();
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message ?? "Failed to update profile";
+      showError(notification, {
+        message: "Failed to update profile",
+        description: errorMessage,
+      });
+    },
+  });
 
   const handleSubmit = () => {
     form.validateFields().then((values) => {
-      onSave(values);
-      onClose();
+      updateProfileMutation.mutate(values);
     });
   };
 
@@ -38,17 +86,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         </div>
       }
     >
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          fullName: "JohnAdmin",
-          email: "surya@xyz.com",
-          note: "Super Admin For Hospital & College",
-          phoneNumber: "+91 99999 99999",
-          role: "Sub Admin",
-        }}
-      >
+      <Form form={form} layout="vertical" initialValues={initialValues}>
         <div className="mb-6 flex justify-center">
           <div className="relative">
             <img
@@ -56,9 +94,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
               alt="Profile"
               className="w-24 h-24 rounded-full"
             />
-            <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-md">
-              <EditOutlined className="text-blue-600" />
-            </div>
           </div>
         </div>
         <p className="text-center text-gray-500 text-sm mb-6">
@@ -78,9 +113,9 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         <Form.Item
           label="Note"
           name="note"
-          rules={[
-            { required: true, min: 3, message: "Required, Min 3 Characters" },
-          ]}
+          // rules={[
+          //   { required: true, min: 3, message: "Required, Min 3 Characters" },
+          // ]}
         >
           <Input placeholder="Enter note" />
         </Form.Item>

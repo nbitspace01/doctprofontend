@@ -7,10 +7,19 @@ const axiosInstance = axios.create({
   },
 });
 
-// Request interceptor
+// Request interceptor with retry mechanism
 axiosInstance.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("userToken");
+  async (config) => {
+    let token = localStorage.getItem("userToken");
+    let retries = 0;
+
+    // If token is not found, retry up to 3 times with a small delay
+    while (!token && retries < 3) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      token = localStorage.getItem("userToken");
+      retries++;
+    }
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -25,12 +34,12 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || !localStorage.getItem("authToken")) {
-      // Clear any existing auth data
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("userData");
-
-      // Redirect to login page
+    if (error.response?.status === 401) {
+      // Handle unauthorized access
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("roleId");
+      localStorage.removeItem("roleName");
       window.location.href = "/auth/login";
     }
     return Promise.reject(error);

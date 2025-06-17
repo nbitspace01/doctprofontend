@@ -246,7 +246,7 @@ const StudentList: React.FC = () => {
           columns={columns}
           dataSource={students}
           rowKey="studentId"
-          scroll={{ x: 2000 }}
+          scroll={{ x: "max-content" }}
           pagination={{
             total: students.length,
             pageSize: 10,
