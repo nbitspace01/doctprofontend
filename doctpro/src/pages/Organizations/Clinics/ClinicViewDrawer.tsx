@@ -1,4 +1,4 @@
-import { Drawer } from "antd";
+import { Avatar, Drawer } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import {
   ClockCircleOutlined,
@@ -8,6 +8,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface HospitalData {
   name: string;
@@ -45,12 +46,11 @@ const ClinicViewDrawer = ({
   onClose,
   hospitalId,
 }: ClinicViewDrawerProps) => {
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { data: hospitalData, isLoading } = useQuery<HospitalData>({
     queryKey: ["hospital", hospitalId],
     queryFn: async () => {
-      const response = await axios.get(
-        `http://localhost:3000/api/hospital/${hospitalId}`
-      );
+      const response = await axios.get(`${API_URL}/api/hospital/${hospitalId}`);
       return response.data;
     },
   });
@@ -85,11 +85,17 @@ const ClinicViewDrawer = ({
       <div className="p-6">
         {/* Hospital Header */}
         <div className="flex items-center gap-4 mb-6">
-          <img
-            src={hospitalData?.documents?.adminId}
-            alt="Hospital Logo"
-            className="w-16 h-16 rounded-full"
-          />
+          {hospitalData?.documents?.adminId ? (
+            <img
+              src={hospitalData?.documents?.adminId}
+              alt="Hospital Logo"
+              className="w-16 h-16 rounded-full"
+            />
+          ) : (
+            <Avatar className="bg-button-primary text-white">
+              {hospitalData?.name?.charAt(0)}
+            </Avatar>
+          )}
           <h2 className="text-xl font-semibold">{hospitalData?.name}</h2>
         </div>
 
@@ -97,20 +103,23 @@ const ClinicViewDrawer = ({
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600">Location:</p>
-            <p>{hospitalData?.branchLocation} </p>
+            <p>{hospitalData?.branchLocation ?? "N/A"} </p>
           </div>
           <div>
             <p className="text-gray-600">Address</p>
-            <p>{hospitalData?.address}</p>
+            <p>{hospitalData?.address ?? "N/A"}</p>
           </div>
           <div>
             <p className="text-gray-600">Created on</p>
-            <p>{hospitalData?.createdOn}</p>
+            <FormattedDate
+              dateString={hospitalData?.createdOn ?? ""}
+              format="long"
+            />
           </div>
           <div>
             <p className="text-gray-600">Status</p>
             <span className="px-3 py-1 bg-green-100 text-green-600 rounded-full">
-              {hospitalData?.status}
+              {hospitalData?.status ?? "N/A"}
             </span>
           </div>
         </div>
@@ -121,13 +130,13 @@ const ClinicViewDrawer = ({
             <p className="text-gray-600 flex items-center gap-2">
               <MailOutlined /> Email Address
             </p>
-            <p>{hospitalData?.email}</p>
+            <p>{hospitalData?.email ?? "N/A"}</p>
           </div>
           <div>
             <p className="text-gray-600 flex items-center gap-2">
               <PhoneOutlined /> Phone Number
             </p>
-            <p>{hospitalData?.phone}</p>
+            <p>{hospitalData?.phone ?? "N/A"}</p>
           </div>
         </div>
 
@@ -139,7 +148,8 @@ const ClinicViewDrawer = ({
           <div className="grid grid-cols-2 gap-4">
             {hospitalData?.operationHrs?.map((operationHr) => (
               <p key={operationHr?.day}>
-                {operationHr?.day}: {operationHr?.from} - {operationHr?.to}
+                {operationHr?.day}: {operationHr?.from ?? "N/A"} -{" "}
+                {operationHr?.to ?? "N/A"}
               </p>
             ))}
           </div>
@@ -156,7 +166,7 @@ const ClinicViewDrawer = ({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {hospitalData?.websiteUrl}
+            {hospitalData?.websiteUrl ?? "N/A"}
           </a>
         </div>
 
@@ -166,18 +176,24 @@ const ClinicViewDrawer = ({
             <UserOutlined /> HR/Admin Contacts
           </p>
           <div className="flex items-center gap-4">
-            <img
-              src={hospitalData?.documents?.adminId}
-              alt="Admin"
-              className="w-10 h-10 rounded-full"
-            />
-            <div>
-              <p>{hospitalData?.adminContact?.name}</p>
+            {hospitalData?.documents?.adminId ? (
+              <img
+                src={hospitalData?.documents?.adminId}
+                alt="Admin"
+                className="w-10 h-10 rounded-full"
+              />
+            ) : (
+              <Avatar className="bg-button-primary text-white">
+                {hospitalData?.adminContact?.name?.charAt(0)}
+              </Avatar>
+            )}
+            <div className="flex mt-2  gap-2">
+              <p>{hospitalData?.adminContact?.name ?? "N/A"}</p>
               <p className="text-gray-600">
-                {hospitalData?.adminContact?.email}
+                {hospitalData?.adminContact?.email ?? "N/A"}
               </p>
               <p className="text-gray-600">
-                {hospitalData?.adminContact?.phone}
+                {hospitalData?.adminContact?.phone ?? "N/A"}
               </p>
             </div>
           </div>

@@ -17,6 +17,7 @@ import { showSuccess } from "../../Common/Notification";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import Loader from "../../Common/Loader";
+import FormattedDate from "../../Common/FormattedDate";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 interface ApiResponse {
@@ -240,12 +241,13 @@ const HospitalList: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow w-full">
         <SearchFilterDownloadButton />
 
         <Table
           columns={columns}
           dataSource={tableData}
+          scroll={{ x: "max-content" }}
           pagination={{
             total: hospitals?.total ?? 0,
             pageSize: hospitals?.limit ?? 8,
@@ -304,9 +306,14 @@ const HospitalList: React.FC = () => {
             <div>
               <h4 className="font-medium mb-2">Updated On Portal</h4>
               <p>
-                {viewHospital.updated_at
-                  ? new Date(viewHospital.updated_at).toLocaleDateString()
-                  : "Not available"}
+                {viewHospital.updated_at ? (
+                  <FormattedDate
+                    dateString={viewHospital.updated_at}
+                    format="long"
+                  />
+                ) : (
+                  "Not available"
+                )}
               </p>
             </div>
           </div>
