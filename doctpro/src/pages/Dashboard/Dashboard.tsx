@@ -83,10 +83,6 @@ const Dashboard: React.FC = () => {
     queryFn: fetchKycStats,
   });
 
-  console.log(data);
-  console.log(kycStats, "kycStats");
-  console.log(subAdmin, "subAdmin");
-
   if (isLoading || kycStatsLoading || subAdminLoading)
     return <Loader size="large" />;
   if (isError || kycStatsError || subAdminError)
@@ -283,17 +279,21 @@ const Dashboard: React.FC = () => {
                             />
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center text-white">
-                              {admin.first_name.charAt(0).toUpperCase()}
+                              {admin.first_name
+                                ? admin.first_name.charAt(0).toUpperCase()
+                                : "U"}
                             </div>
                           )}
-                          <span>{`${admin.first_name} ${admin.last_name}`}</span>
+                          <span>{`${admin.first_name || ""} ${
+                            admin.last_name || ""
+                          }`}</span>
                         </div>
                       </td>
                       <td className="py-3 px-4">{admin.email}</td>
                       <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
                       <td className="py-3 px-4">
                         <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                          {admin.role?.name ?? "N/A"}
+                          {admin.role ?? "N/A"}
                         </span>
                       </td>
                       <td className="py-3 px-4">

@@ -12,6 +12,7 @@ import DegreeView from "./DegreeView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import Loader from "../../Common/Loader";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface DegreeData {
   id: string;
@@ -159,7 +160,7 @@ const DegreeSpecializationList: React.FC = () => {
       title: "Created on",
       dataIndex: "created_at",
       key: "created_at",
-      render: (date) => new Date(date).toLocaleDateString(),
+      render: (date) => <FormattedDate dateString={date} format="long" />,
     },
     {
       title: "Action",
@@ -208,12 +209,13 @@ const DegreeSpecializationList: React.FC = () => {
           degreeId={selectedDegree?.id ?? ""}
         />
 
-        <div className="bg-white rounded-lg shadow">
+        <div className="bg-white rounded-lg shadow w-full">
           <SearchFilterDownloadButton />
 
           <Table
             columns={columns}
             dataSource={fetchedDegreeSpecialization}
+            scroll={{ x: "max-content" }}
             rowKey="id"
             pagination={{
               total: fetchedDegreeSpecialization?.length ?? 0,

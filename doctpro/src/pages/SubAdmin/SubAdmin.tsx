@@ -44,6 +44,9 @@ const SubAdmin: React.FC = () => {
   const { data: rawSubAdmin, isFetching } = useQuery({
     queryKey: ["subAdmin"],
     queryFn: fetchSubAdmin,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
   if (isFetching) {
@@ -171,11 +174,12 @@ const SubAdmin: React.FC = () => {
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow w-full">
         <SearchFilterDownloadButton />
         <Table
           columns={columns}
           dataSource={subAdmin}
+          scroll={{ x: "max-content" }}
           pagination={{
             total: subAdmin.length,
             pageSize: 10,

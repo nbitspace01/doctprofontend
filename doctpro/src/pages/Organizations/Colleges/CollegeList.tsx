@@ -173,12 +173,13 @@ const CollegeList: React.FC = () => {
             onClose={handleModalClose}
           />
 
-          <div className="bg-white rounded-lg shadow-sm">
+          <div className="bg-white rounded-lg shadow-sm w-full">
             <SearchFilterDownloadButton />
 
             <Table
               columns={columns}
               dataSource={tableData}
+              scroll={{ x: "max-content" }}
               pagination={{
                 total: fetchedColleges?.total ?? 0,
                 pageSize: 10,

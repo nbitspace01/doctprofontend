@@ -6,6 +6,7 @@ import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { ApiRequest } from "../Common/constant.function";
 import Loader from "../Common/Loader";
+import FormattedDate from "../Common/FormattedDate";
 
 interface KycSubmission {
   id: string;
@@ -92,7 +93,9 @@ const KycList = () => {
       title: "Created On",
       dataIndex: "created_on",
       key: "created_on",
-      render: (date: string) => new Date(date).toLocaleDateString(),
+      render: (date: string) => (
+        <FormattedDate dateString={date} format="long" />
+      ),
     },
     {
       title: "KYC Status",
@@ -162,12 +165,13 @@ const KycList = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow w-full">
         <SearchFilterDownloadButton />
 
         <Table
           columns={columns}
           dataSource={kycData}
+          scroll={{ x: "max-content" }}
           rowKey="id"
           pagination={{
             total: kycData?.length,

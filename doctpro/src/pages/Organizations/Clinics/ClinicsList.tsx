@@ -28,7 +28,8 @@ const ClinicsList = () => {
     queryKey: ["hospitals"],
     queryFn: async () => {
       const { data } = await axios.get(`${API_URL}/api/hospital/`);
-      return data.data;
+      console.log("API hospital data", data);
+      return Array.isArray(data.data) ? data.data : [];
     },
   });
 
@@ -152,7 +153,7 @@ const ClinicsList = () => {
         />
       )}
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white rounded-lg shadow w-full">
         <div className="p-4 flex justify-between items-center border-b">
           <Input
             prefix={<SearchOutlined className="text-gray-400" />}
@@ -169,6 +170,7 @@ const ClinicsList = () => {
           columns={columns}
           dataSource={hospitals}
           loading={isFetching}
+          scroll={{ x: "max-content" }}
           pagination={{
             total: hospitals?.length,
             pageSize: 8,

@@ -15,6 +15,7 @@ interface DegreeViewProps {
 }
 
 import { useQuery } from "@tanstack/react-query";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface DegreeViewProps {
   open: boolean;
@@ -103,13 +104,11 @@ const DegreeView: React.FC<DegreeViewProps> = ({ open, onClose, degreeId }) => {
         <div>
           <p className="text-gray-500 mb-1">Created on</p>
           <p className="text-base">
-            {degreeData?.created_at
-              ? new Date(degreeData.created_at).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "long",
-                  year: "numeric",
-                })
-              : "N/A"}
+            {degreeData?.created_at ? (
+              <FormattedDate dateString={degreeData.created_at} format="long" />
+            ) : (
+              "N/A"
+            )}
           </p>
         </div>
       </div>

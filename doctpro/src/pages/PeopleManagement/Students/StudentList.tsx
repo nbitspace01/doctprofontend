@@ -5,6 +5,7 @@ import Loader from "../../Common/Loader";
 import StudentView from "./StudentView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import { MoreOutlined } from "@ant-design/icons";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface Student {
   studentId: string;
@@ -110,6 +111,9 @@ const StudentList: React.FC = () => {
       dataIndex: "dob",
       key: "dob",
       width: 170,
+      render: (dob: string) => {
+        return <FormattedDate dateString={dob} format="long" />;
+      },
     },
     {
       title: "Address",

@@ -6,6 +6,7 @@ import HealthCareView from "./HealthCareView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import Loader from "../../Common/Loader";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface HealthcareProfessional {
   id: string;
@@ -142,7 +143,7 @@ const HealthCareList: React.FC = () => {
                   {professional.qualification || "N/A"}
                 </td>
                 <td className="px-6 py-4 text-sm text-blue-600">
-                  {professional.dob || "N/A"}
+                  <FormattedDate dateString={professional.dob} format="long" />
                 </td>
                 <td className="px-6 py-4">
                   <span
