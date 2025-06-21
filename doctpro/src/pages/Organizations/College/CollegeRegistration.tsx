@@ -1,15 +1,27 @@
 import React, { useState } from "react";
-import { Modal, Form, Input, Select, Button, message } from "antd";
+import {
+  Modal,
+  Form,
+  Input,
+  Select,
+  Button,
+  message,
+  Upload,
+  UploadProps,
+} from "antd";
 import { registerCollege, CollegeKycPayload } from "../../../api/college";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserOutlined } from "@ant-design/icons";
+import { TOKEN, USER_ID } from "../../Common/constant.function";
+import { MobileIcon } from "../../Common/SVG/svg.functions";
 
 interface CollegeRegistrationProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 export const uploadCollegeKyc = async (payload: CollegeKycPayload) => {
   const formData = new FormData();
@@ -24,7 +36,7 @@ export const uploadCollegeKyc = async (payload: CollegeKycPayload) => {
 
   try {
     const response = await axios.post(
-      `${URL}/api/college/clgid/kyc`,
+      `${API_URL}/api/college/clgid/kyc`,
       formData,
       {
         headers: {
@@ -54,6 +66,70 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
     college_id: string;
     user_id: string;
   } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
+
+  const uploadProps: UploadProps = {
+    maxCount: 1,
+    showUploadList: false,
+    accept: "image/*",
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        message.error("You can only upload image files!");
+        return false;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error("Image must be smaller than 2MB!");
+        return false;
+      }
+      return true;
+    },
+    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
+      try {
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file as File);
+        formData.append("entity", "post");
+        formData.append("userId", USER_ID || "");
+
+        const response = await axios.post(
+          `${API_URL}/api/post/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${TOKEN}`,
+            },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total
+                );
+                onProgress?.({ percent });
+              }
+            },
+          }
+        );
+
+        const { url } = response.data;
+
+        setImageUrl(url || "");
+        form.setFieldsValue({ profile_image: url });
+
+        onSuccess?.(response.data);
+        message.success("Image uploaded successfully!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        onError?.(error as Error);
+        message.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
+    },
+  };
 
   const handleNext = async () => {
     try {
@@ -72,6 +148,7 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         admin_name: values.inChargeFullName,
         admin_email: values.inChargeEmail,
         admin_person_phone: values.inChargePhone,
+        logoUrl: imageUrl,
       };
 
       const response = await registerCollege(payload);
@@ -137,6 +214,7 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
     setCurrentForm("registration");
     setRegistrationData(null);
     form.resetFields();
+    setImageUrl("");
     onClose();
   };
 
@@ -229,7 +307,24 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
     <div className="space-y-4">
       <div className="flex justify-center mb-6">
         <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center">
-          <span className="text-gray-400">Logo here</span>
+          <Upload {...uploadProps}>
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserOutlined className="text-3xl text-gray-400" />
+              )}
+            </div>
+          </Upload>
+          {uploading && (
+            <div className="text-center text-sm text-gray-500 mt-2">
+              Uploading...
+            </div>
+          )}
         </div>
       </div>
 
@@ -239,8 +334,15 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         rules={[{ required: true, message: "Please enter college name" }]}
       >
         <Select placeholder="Select College Name">
-          <Select.Option value="college1">College 1</Select.Option>
-          <Select.Option value="college2">College 2</Select.Option>
+          <Select.Option value="college1">Vel Tech University</Select.Option>
+          <Select.Option value="college2">Amrita University</Select.Option>
+          <Select.Option value="college3">Anna University</Select.Option>
+          <Select.Option value="college4">SRM University</Select.Option>
+          <Select.Option value="college5">JNTU Hyderabad</Select.Option>
+          <Select.Option value="college6">JNTU Kakatiya</Select.Option>
+          <Select.Option value="college7">JNTU Anantapur</Select.Option>
+          <Select.Option value="college8">JNTU Kurnool</Select.Option>
+          <Select.Option value="college9">JNTU Khammam</Select.Option>
         </Select>
       </Form.Item>
 
@@ -264,15 +366,27 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
       <div className="grid grid-cols-2 gap-4">
         <Form.Item name="state" label="State">
           <Select placeholder="Select State">
-            <Select.Option value="state1">State 1</Select.Option>
-            <Select.Option value="state2">State 2</Select.Option>
+            <Select.Option value="state1">Tamil Nadu</Select.Option>
+            <Select.Option value="state2">Karnataka</Select.Option>
+            <Select.Option value="state3">Andhra Pradesh</Select.Option>
+            <Select.Option value="state4">Telangana</Select.Option>
+            <Select.Option value="state5">Kerala</Select.Option>
+            <Select.Option value="state6">Maharashtra</Select.Option>
+            <Select.Option value="state7">Rajasthan</Select.Option>
+            <Select.Option value="state8">Gujarat</Select.Option>
           </Select>
         </Form.Item>
 
         <Form.Item name="country" label="Country">
           <Select placeholder="Select Country">
-            <Select.Option value="country1">Country 1</Select.Option>
-            <Select.Option value="country2">Country 2</Select.Option>
+            <Select.Option value="country1">India</Select.Option>
+            <Select.Option value="country2">USA</Select.Option>
+            <Select.Option value="country3">UK</Select.Option>
+            <Select.Option value="country4">Australia</Select.Option>
+            <Select.Option value="country5">Canada</Select.Option>
+            <Select.Option value="country6">New Zealand</Select.Option>
+            <Select.Option value="country7">South Africa</Select.Option>
+            <Select.Option value="country8">Germany</Select.Option>
           </Select>
         </Form.Item>
       </div>
@@ -287,7 +401,7 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
           label="Phone Number *"
           rules={[{ required: true, message: "Please enter phone number" }]}
         >
-          <Input placeholder="+91 99999 99999" />
+          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
         </Form.Item>
 
         <Form.Item name="website" label="Website *">
@@ -306,7 +420,7 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         </Form.Item>
 
         <Form.Item name="inChargePhone" label="Phone Number">
-          <Input placeholder="+91 99999 99999" />
+          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
         </Form.Item>
       </div>
     </div>

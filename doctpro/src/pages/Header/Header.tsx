@@ -6,6 +6,7 @@ import axiosInstance from "../Common/axiosInstance";
 import { EditIcon, ViewIcon } from "../Common/SVG/svg.functions";
 import EditProfileDrawer from "./EditProfileDrawer";
 import ViewProfileDrawer from "./ViewProfileDrawer";
+import { USER_NAME } from "../Common/constant.function";
 
 // Add this interface for type safety
 interface UserProfile {
@@ -117,8 +118,12 @@ const Header: React.FC = () => {
               placement="bottomRight"
             >
               <div className="flex items-center space-x-3 cursor-pointer">
-                <Avatar size="large" src="https://i.pravatar.cc/150?img=3" />
-                <span className="font-medium text-gray-700">Surya</span>
+                <Avatar size={32} className="bg-button-primary">
+                  {USER_NAME?.charAt(0)}
+                </Avatar>
+                <span className="font-medium text-gray-700">
+                  {USER_NAME ?? "Loading..."}
+                </span>
               </div>
             </Dropdown>
           </div>

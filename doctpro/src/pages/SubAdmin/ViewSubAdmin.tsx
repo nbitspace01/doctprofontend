@@ -1,6 +1,5 @@
 import React from "react";
-import { Drawer, Tag } from "antd";
-import { UserOutlined } from "@ant-design/icons";
+import { Avatar, Drawer, Image, Tag } from "antd";
 
 interface SubAdminData {
   id: string;
@@ -13,6 +12,7 @@ interface SubAdminData {
   organization_type: string;
   status: string;
   active_user: boolean;
+  profile_image: string;
 }
 
 interface ViewSubAdminProps {
@@ -38,9 +38,22 @@ const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
       <div className="flex flex-col space-y-6">
         {/* Profile Header */}
         <div className="flex items-center space-x-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <UserOutlined className="text-xl text-blue-600" />
-          </div>
+          {subAdminData.profile_image ? (
+            <Image
+              src={subAdminData.profile_image}
+              width={40}
+              height={40}
+              alt="Sub Admin"
+              className="rounded-full"
+            />
+          ) : (
+            <Avatar
+              size={40}
+              className="bg-button-primary rounded-full mr-2 text-white"
+            >
+              {subAdminData.first_name.charAt(0)}
+            </Avatar>
+          )}
           <div>
             <h3 className="text-lg font-semibold">
               {subAdminData.first_name} {subAdminData.last_name}

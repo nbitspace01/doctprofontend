@@ -1,5 +1,5 @@
 import React from "react";
-import { Drawer, Button, Tag, Avatar } from "antd";
+import { Drawer, Button, Tag, Avatar, Image } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
 import { fetchCollegeById } from "../../../api/college";
@@ -9,7 +9,7 @@ interface CollegeViewDrawerProps {
   visible: boolean;
   onClose: () => void;
   collegeId: string | null;
-  collegeData: {
+  collegeData?: {
     name: string;
     logo: string;
     location: string;
@@ -23,6 +23,7 @@ interface CollegeViewDrawerProps {
     //   weekends: string;
     // };
     websiteURL: string;
+    college_kyc: [];
     // kycDocuments: {
     //   collegeLicense: string;
     // };
@@ -199,17 +200,19 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
 
         {/* KYC Documents */}
         <div className="mt-8">
-          <h4 className="text-lg font-semibold mb-4">KYC Documents</h4>
-          {/* <div className="border rounded-lg p-4">
-            <p className="text-gray-600 mb-2">College License</p>
-            <img
-              src={
-                collegeData.kycDocuments.collegeLicense || "/default-logo.png"
-              }
-              alt="College License"
-              className="w-full h-auto"
-            />
-          </div> */}
+          <h4 className="text-lg font-semibold mb-1">KYC Documents</h4>
+          <div className="border rounded-lg py-4">
+            <p className="text-gray-600 mb-1">College License</p>
+            {collegeData.college_kyc && collegeData.college_kyc.length > 0 ? (
+              <Image
+                src={collegeData.college_kyc[0].url || "/default-logo.png"}
+                alt="College License"
+                className="w-full h-auto"
+              />
+            ) : (
+              <p className="text-gray-500">No KYC documents available</p>
+            )}
+          </div>
         </div>
 
         {/* Action Buttons */}
@@ -218,7 +221,7 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
             Back
           </Button>
           <Button
-            type="primary"
+            // type="primary"
             variant="outlined"
             danger
             className="min-w-[160px]"

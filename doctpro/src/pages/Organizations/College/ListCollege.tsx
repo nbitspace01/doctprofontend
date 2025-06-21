@@ -34,15 +34,24 @@ interface CollegeData {
   logoUrl: string | null;
 }
 
+interface CollegeResponse {
+  data: CollegeData[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 const ListCollege: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [collegeId, setCollegeId] = useState<string | null>(null);
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["colleges"],
-    queryFn: fetchColleges,
+
+  // Updated query to include pagination parameters
+  const { data, isLoading, isError, error } = useQuery<CollegeResponse>({
+    queryKey: ["colleges", currentPage, itemsPerPage],
+    queryFn: () => fetchColleges(currentPage, itemsPerPage),
   });
 
   const getStatusColor = (status: string) => {
@@ -175,7 +184,7 @@ const ListCollege: React.FC = () => {
     data?.data?.map((college: CollegeData, index: number) => ({
       ...college,
       key: college.id,
-      sNo: index + 1,
+      sNo: (currentPage - 1) * itemsPerPage + index + 1,
     })) ?? [];
 
   return (
@@ -195,7 +204,6 @@ const ListCollege: React.FC = () => {
         onClose={() => setIsModalOpen(false)}
       />
       <CollegeViewDrawer
-        collegeData={data?.data?.[0] ?? null}
         visible={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}
         collegeId={collegeId ?? null}
@@ -211,9 +219,14 @@ const ListCollege: React.FC = () => {
             current: currentPage,
             pageSize: itemsPerPage,
             total: data?.total ?? 0,
-            onChange: (page) => setCurrentPage(page),
+            onChange: (page, pageSize) => {
+              setCurrentPage(page);
+              setItemsPerPage(pageSize);
+            },
             showSizeChanger: true,
-            onShowSizeChange: (_, size) => setItemsPerPage(size),
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
           }}
           scroll={{ x: "max-content" }}
           className="mt-4"

@@ -1,6 +1,7 @@
-import { UploadOutlined } from "@ant-design/icons";
-import { useMutation } from "@tanstack/react-query";
+import { UploadOutlined, UserOutlined } from "@ant-design/icons";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
+  App,
   Button,
   Form,
   Input,
@@ -9,9 +10,14 @@ import {
   TimePicker,
   Upload,
   message,
+  UploadProps,
+  notification,
 } from "antd";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
+import { showError, showSuccess } from "../../Common/Notification";
+import { TOKEN, USER_ID } from "../../Common/constant.function";
+import { MobileIcon } from "../../Common/SVG/svg.functions";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -40,6 +46,11 @@ interface HospitalRegistrationData {
   admin_phone: string;
 }
 
+interface UpdateHospitalData {
+  hospital_id: string;
+  logoUrl: string;
+}
+
 // Add interface for KYC data
 
 interface HospitalRegistrationProps {
@@ -55,15 +66,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   const [form] = Form.useForm();
   const [preRegistrationId, setPreRegistrationId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
 
   // Replace file states with URL states
-  const [idProofUrl, setIdProofUrl] = useState<string>("");
-  const [licenseUrl, setLicenseUrl] = useState<string>("");
-
-  // Add this state for the logo file
-  const [logoUrl, setLogoUrl] = useState<string>("");
-
-  // Add state for file objects
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
@@ -75,8 +81,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       axios.post(`${API_URL}/api/hospital/register`, data),
     onSuccess: (response) => {
       // Store the pre-registration ID from the response
-      const { hospital_id } = response.data;
-      const { user_id } = response.data;
+      const { hospital_id, user_id } = response.data;
       setPreRegistrationId(hospital_id);
       setUserId(user_id);
       setCurrentStep(currentStep + 1);
@@ -87,12 +92,24 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
   });
 
-  // Update the KYC mutation to handle file upload
+  const updateHospitalMutation = useMutation({
+    mutationFn: (data: UpdateHospitalData) =>
+      axios.put(`${API_URL}/api/hospital/register/${data.hospital_id}`, {
+        logoUrl: data.logoUrl,
+      }),
+    onSuccess: () => {
+      // Optionally handle success, e.g., show a notification
+    },
+    onError: (error) => {
+      console.error("Updating hospital with logo failed:", error);
+      message.error("Failed to save logo.");
+    },
+  });
+
   const kycVerificationMutation = useMutation({
     mutationFn: async (data: any) => {
       const formData = new FormData();
 
-      // Append all the regular fields
       formData.append("user_id", data.user_id);
       formData.append("hospital_id", data.hospital_id);
       formData.append("id_proof_type", data.id_proof_type);
@@ -100,16 +117,17 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       formData.append("license_type", data.license_type);
       formData.append("license_number", data.license_number);
 
-      // Append the files with the correct field names
-      if (idProofFile) {
-        formData.append("id_proof", idProofFile);
+      // Add the actual files with correct field names
+      if (data.id_proof_file) {
+        formData.append("id_proof", data.id_proof_file);
       }
-      if (licenseFile) {
-        formData.append("license", licenseFile);
+      if (data.license_file) {
+        formData.append("license", data.license_file);
       }
-
+      console.log("formData", formData);
       return axios.post(`${API_URL}/api/hospital/upload`, formData, {
         headers: {
+          Authorization: `Bearer ${TOKEN}`,
           "Content-Type": "multipart/form-data",
         },
       });
@@ -139,40 +157,122 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
   });
 
+  const uploadProps: UploadProps = {
+    maxCount: 1,
+    showUploadList: false,
+    accept: "image/*",
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        message.error("You can only upload image files!");
+        return false;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error("Image must be smaller than 2MB!");
+        return false;
+      }
+      return true;
+    },
+    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
+      try {
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file as File);
+        formData.append("entity", "post");
+        formData.append("userId", USER_ID || "");
+
+        const response = await axios.post(
+          `${API_URL}/api/post/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${TOKEN}`,
+            },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total
+                );
+                onProgress?.({ percent });
+              }
+            },
+          }
+        );
+
+        const { url } = response.data;
+
+        setImageUrl(url || "");
+        form.setFieldsValue({ logoUrl: url });
+
+        onSuccess?.(response.data);
+        message.success("Image uploaded successfully!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        onError?.(error as Error);
+        message.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
+    },
+  };
+
+  const idProofUploadProps: UploadProps = {
+    maxCount: 1,
+    showUploadList: false,
+    accept: ".pdf,.jpg,.jpeg,.png",
+    customRequest: async ({ file, onSuccess, onError }) => {
+      try {
+        const fileObj = file as File;
+        setIdProofFile(fileObj);
+        form.setFieldsValue({ id_proof_url: fileObj.name });
+        onSuccess?.(file);
+      } catch (err: any) {
+        onError?.(err);
+      }
+    },
+  };
+
+  const licenseUploadProps: UploadProps = {
+    maxCount: 1,
+    showUploadList: false,
+    accept: ".pdf,.jpg,.jpeg,.png",
+    customRequest: async ({ file, onSuccess, onError }) => {
+      try {
+        const fileObj = file as File;
+        setLicenseFile(fileObj);
+        form.setFieldsValue({ license_url: fileObj.name });
+        onSuccess?.(file);
+      } catch (err: any) {
+        onError?.(err);
+      }
+    },
+  };
+
   // Step 1: Basic Information
   const renderStep1 = () => (
     <Form form={form} layout="vertical">
-      <div className="mb-4">
-        <Upload
-          className="flex justify-center"
-          name="logoUrl"
-          beforeUpload={(file) => {
-            // Create a local URL for preview
-            const fileUrl = URL.createObjectURL(file);
-            setLogoUrl(fileUrl);
-            form.setFieldsValue({ logoUrl: fileUrl });
-            return false; // Prevent default upload
-          }}
-          onRemove={() => {
-            setLogoUrl("");
-            form.setFieldsValue({ logoUrl: "" });
-          }}
-        >
-          <div className="text-center">
-            <div className="w-24 h-24 bg-gray-200 rounded-full mx-auto mb-2 flex items-center justify-center">
-              {logoUrl ? (
-                <img
-                  src={logoUrl}
-                  alt="Logo"
-                  className="w-full h-full rounded-full object-cover"
-                />
-              ) : (
-                <UploadOutlined className="text-2xl" />
-              )}
-            </div>
-            <p>Profile Picture</p>
+      <div className="flex justify-center mb-6">
+        <Upload {...uploadProps}>
+          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
+            {imageUrl ? (
+              <img
+                src={imageUrl}
+                alt="Profile"
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <UserOutlined className="text-3xl text-gray-400" />
+            )}
           </div>
         </Upload>
+        {uploading && (
+          <div className="text-center text-sm text-gray-500 mt-2">
+            Uploading...
+          </div>
+        )}
       </div>
 
       <Form.Item
@@ -305,7 +405,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           label="Phone Number"
           rules={[{ required: true, message: "Please enter phone number" }]}
         >
-          <Input placeholder="+91 99999 99999" />
+          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
         </Form.Item>
       </div>
 
@@ -420,23 +520,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         </div>
       </div>
 
-      <Form.Item name="logoUrl" label="Logo">
-        <Upload
-          name="logo"
-          beforeUpload={(file) => {
-            // Create a local URL for preview
-            const fileUrl = URL.createObjectURL(file);
-            setLogoUrl(fileUrl);
-            form.setFieldsValue({ logoUrl: fileUrl });
-            return false; // Prevent default upload
-          }}
-          onRemove={() => {
-            setLogoUrl("");
-            form.setFieldsValue({ logoUrl: "" });
-          }}
-        >
-          <Button icon={<UploadOutlined />}>Upload Logo</Button>
-        </Upload>
+      {/* This hidden field will hold the uploaded logo URL */}
+      <Form.Item name="logoUrl" hidden>
+        <Input />
       </Form.Item>
     </Form>
   );
@@ -476,26 +562,12 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         }
         rules={[{ required: true, message: "Please upload ID proof" }]}
       >
-        <Upload
-          name="id_proof_url"
-          accept=".pdf,.jpg,.jpeg,.png"
-          beforeUpload={(file) => {
-            setIdProofFile(file);
-            setIdProofUrl(file.name); // Store the filename instead of blob URL
-            form.setFieldValue("id_proof_url", file.name);
-            return false;
-          }}
-          onRemove={() => {
-            setIdProofFile(null);
-            setIdProofUrl("");
-            form.setFieldValue("id_proof_url", "");
-          }}
-        >
+        <Upload {...idProofUploadProps}>
           <Button icon={<UploadOutlined />} className="w-full">
             <div className="flex items-center justify-between w-full">
               <span>Choose File</span>
-              {idProofUrl && (
-                <span className="text-gray-500">📁 {idProofUrl}</span>
+              {idProofFile && (
+                <span className="text-gray-500">📁 {idProofFile.name}</span>
               )}
             </div>
           </Button>
@@ -537,26 +609,12 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         }
         rules={[{ required: true, message: "Please upload license" }]}
       >
-        <Upload
-          name="license_url"
-          accept=".pdf,.jpg,.jpeg,.png"
-          beforeUpload={(file) => {
-            setLicenseFile(file);
-            setLicenseUrl(file.name); // Store the filename instead of blob URL
-            form.setFieldValue("license_url", file.name);
-            return false;
-          }}
-          onRemove={() => {
-            setLicenseFile(null);
-            setLicenseUrl("");
-            form.setFieldValue("license_url", "");
-          }}
-        >
+        <Upload {...licenseUploadProps}>
           <Button icon={<UploadOutlined />} className="w-full">
             <div className="flex items-center justify-between w-full">
               <span>Choose File</span>
-              {licenseUrl && (
-                <span className="text-gray-500">📁 {licenseUrl}</span>
+              {licenseFile && (
+                <span className="text-gray-500">📁 {licenseFile.name}</span>
               )}
             </div>
           </Button>
@@ -613,7 +671,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           email: values.email,
           phone: values.phone,
           website: values.website,
-          logoUrl: values.logoUrl ?? "",
+          logoUrl: imageUrl, // Use the URL from the state
           operating_hours:
             values.operating_hours?.map((hour: any) => ({
               day: hour.day,
@@ -632,7 +690,25 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         };
 
         console.log("Formatted values:", formattedValues);
-        hospitalRegistrationMutation.mutate(formattedValues);
+        hospitalRegistrationMutation.mutate(formattedValues, {
+          onSuccess: (response) => {
+            const { hospital_id, user_id } = response.data;
+            setPreRegistrationId(hospital_id);
+            setUserId(user_id);
+            setCurrentStep(currentStep + 1);
+            showSuccess(notification, {
+              message: "Registration Successful",
+              description: "Proceeding to KYC verification.",
+            });
+          },
+          onError: (error: any) => {
+            showError(notification, {
+              message: "Registration Failed",
+              description:
+                error.response?.data?.message ?? "An unknown error occurred.",
+            });
+          },
+        });
       } else if (currentStep === 2) {
         // Validate required fields
         if (!userId || !preRegistrationId) {
@@ -657,8 +733,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           hospital_id: preRegistrationId,
           id_proof_type: values.id_proof_type,
           id_proof_number: values.id_proof_number,
+          id_proof_file: idProofFile,
           license_type: values.license_type,
           license_number: values.license_number,
+          license_file: licenseFile,
         };
 
         console.log("Submitting KYC Data:", kycData);
@@ -743,7 +821,8 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
             loading={
               hospitalRegistrationMutation.isPending ||
               kycVerificationMutation.isPending ||
-              setPasswordMutation.isPending
+              setPasswordMutation.isPending ||
+              uploading
             }
           >
             {currentStep === 3 ? "Submit" : "Next"}

@@ -30,6 +30,8 @@ import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
 import PostManagementList from "./pages/PostManagement/PostManagementList";
 import ChangePassword from "./pages/Auth/ChangePassword";
 import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
+import { AuthProvider } from "./pages/Common/Context/AuthContext";
+import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -175,6 +177,12 @@ const postManagementRoute = createRoute({
   component: () => <PostManagementList />,
 });
 
+const hospitalDashboardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "hospital/dashboard",
+  component: () => <HospitalDashboard />,
+});
+
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   authLayoutRoute.addChildren([
@@ -200,6 +208,7 @@ const routeTree = rootRoute.addChildren([
     adsRoute,
     campaignRoute,
     postManagementRoute,
+    hospitalDashboardRoute,
   ]),
 ]);
 
@@ -237,7 +246,9 @@ function App() {
       <AntdApp>
         <div className="min-h-screen">
           <QueryClientProvider client={queryClient}>
-            <RouterProvider router={router} />
+            <AuthProvider>
+              <RouterProvider router={router} />
+            </AuthProvider>
           </QueryClientProvider>
         </div>
       </AntdApp>

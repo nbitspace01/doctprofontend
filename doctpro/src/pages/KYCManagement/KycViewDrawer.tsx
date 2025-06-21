@@ -1,4 +1,4 @@
-import { Avatar, Button, Drawer, Modal } from "antd";
+import { Avatar, Button, Drawer, Image, Modal } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import Loader from "../Common/Loader";
@@ -119,13 +119,16 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
           <Loader size="large" />
         ) : kycDetails ? (
           <div className="space-y-6">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center ">
               <div className="" />
-              <Avatar className="bg-button-primary w-8 h-8 rounded-full mr-2 text-white">
+              <Avatar
+                size={48}
+                className="bg-button-primary  rounded-full mr-2 text-white"
+              >
                 {kycDetails.name?.charAt(0)}
               </Avatar>
-              <div>
-                <h3 className="font-medium text-lg">{kycDetails.name}</h3>
+              <div className="flex flex-col items-center">
+                <h3 className="font-medium text-lg !mt-2">{kycDetails.name}</h3>
                 <p className="text-gray-500">{kycDetails.role}</p>
               </div>
             </div>
@@ -162,7 +165,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
                         {doc.status}
                       </span>
                     </div>
-                    <img
+                    <Image
                       src={doc.url}
                       alt={doc.type}
                       className="w-full h-40 object-cover rounded"

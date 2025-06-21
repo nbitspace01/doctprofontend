@@ -1,20 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Avatar, Button, Table, Tag } from "antd";
+import { Avatar, Button, Table, Tag, Pagination } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import Loader from "../../Common/Loader";
 import AddCollegeModal from "./AddCollegeModal";
+import EditCollegeModal from "./EditCollegeModal";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import CollegeViewDrawer from "./CollegeViewDrawer";
 
 interface CollegeData {
   key: string;
+  id: string;
   sNo: number;
   logo: string;
   collegeName: string;
   location: string;
-  associatedHospital: string;
+  associatedHospital: any[];
+  hospitals: any[];
   createdOn: string;
   status: "Active" | "Pending" | "Unactive";
 }
@@ -27,12 +31,24 @@ interface CollegeResponse {
 const CollegeList: React.FC = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
+  const [selectedCollegeId, setSelectedCollegeId] = useState<string | null>(
+    null
+  );
+  const [isOpen, setIsOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const fetchColleges = async () => {
     setLoading(true);
-    const response = await fetch(`${API_URL}/api/college/`);
+    const validPage = currentPage || 1;
+    const validLimit = pageSize || 10;
+
+    const response = await fetch(
+      `${API_URL}/api/college?page=${validPage}&limit=${validLimit}`
+    );
     if (!response.ok) {
       throw new Error("Failed to fetch colleges");
     }
@@ -41,8 +57,9 @@ const CollegeList: React.FC = () => {
   };
 
   const { data: fetchedColleges } = useQuery<CollegeResponse, Error>({
-    queryKey: ["Colleges"],
+    queryKey: ["Colleges", currentPage, pageSize],
     queryFn: fetchColleges,
+    refetchOnWindowFocus: false,
   });
 
   const columns: ColumnsType<CollegeData> = [
@@ -82,6 +99,20 @@ const CollegeList: React.FC = () => {
       title: "Associated Hospital",
       dataIndex: "associatedHospital",
       key: "associatedHospital",
+      render: (associatedHospital: any, record: any) => (
+        console.log(associatedHospital),
+        (
+          <div className="flex items-center gap-3">
+            <span>
+              {record.hospitals && record.hospitals.length > 0
+                ? record.hospitals
+                    .map((hospital: any) => hospital.name)
+                    .join(", ")
+                : "No hospitals associated"}
+            </span>
+          </div>
+        )
+      ),
     },
     {
       title: "Created On",
@@ -109,25 +140,32 @@ const CollegeList: React.FC = () => {
     {
       title: "Action",
       key: "action",
-      render: () => (
+      render: (_: any, record: CollegeData) => (
         <CommonDropdown
-          onView={() => {}}
-          onEdit={() => {}}
+          onView={() => {
+            setSelectedCollegeId(record.id);
+            setIsOpen(true);
+          }}
+          onEdit={() => {
+            setSelectedCollegeId(record.id);
+            setIsEditModalVisible(true);
+          }}
           onDelete={() => {}}
         />
       ),
     },
   ];
 
-  // Transform the fetched data to match the required format
   const transformedData =
     fetchedColleges?.data?.map((college: any, index: number) => ({
-      key: index.toString(),
-      sNo: index + 1,
+      key: college._id || college.id,
+      id: college._id || college.id, // Store the actual college ID
+      sNo: (currentPage - 1) * pageSize + index + 1,
       logo: college.logo ?? null,
       collegeName: college.name ?? "N/A",
       location: college.city ?? "N/A",
       associatedHospital: college.associatedHospital ?? "N/A",
+      hospitals: college.hospitals || [], // Include hospitals data
       createdOn:
         new Date(college.created_at).toLocaleDateString("en-GB", {
           day: "2-digit",
@@ -146,7 +184,18 @@ const CollegeList: React.FC = () => {
 
   const handleModalClose = () => {
     setIsModalVisible(false);
+    // queryClient.invalidateQueries({ queryKey: ["Colleges"] });
+  };
+
+  const handleEditModalClose = () => {
+    setIsEditModalVisible(false);
+    setSelectedCollegeId(null);
     queryClient.invalidateQueries({ queryKey: ["Colleges"] });
+  };
+
+  const handlePageChange = (page: number, pageSize: number) => {
+    setCurrentPage(page);
+    setPageSize(pageSize);
   };
 
   return (
@@ -173,6 +222,12 @@ const CollegeList: React.FC = () => {
             onClose={handleModalClose}
           />
 
+          <EditCollegeModal
+            visible={isEditModalVisible}
+            onClose={handleEditModalClose}
+            collegeId={selectedCollegeId}
+          />
+
           <div className="bg-white rounded-lg shadow-sm w-full">
             <SearchFilterDownloadButton />
 
@@ -180,18 +235,34 @@ const CollegeList: React.FC = () => {
               columns={columns}
               dataSource={tableData}
               scroll={{ x: "max-content" }}
-              pagination={{
-                total: fetchedColleges?.total ?? 0,
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-              }}
+              pagination={false}
               className=" rounded-lg"
               locale={{
                 emptyText: "No colleges available",
               }}
             />
+
+            <div className="flex justify-end my-2 py-3">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={fetchedColleges?.total ?? 0}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+                onChange={handlePageChange}
+                onShowSizeChange={handlePageChange}
+              />
+            </div>
           </div>
+          <CollegeViewDrawer
+            open={isOpen}
+            onClose={() => setIsOpen(false)}
+            setOpen={setIsOpen}
+            collegeId={selectedCollegeId ?? ""}
+          />
         </>
       )}
     </div>

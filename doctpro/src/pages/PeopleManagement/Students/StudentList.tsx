@@ -6,6 +6,7 @@ import StudentView from "./StudentView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import { MoreOutlined } from "@ant-design/icons";
 import FormattedDate from "../../Common/FormattedDate";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
 
 interface Student {
   studentId: string;
@@ -24,27 +25,43 @@ interface Student {
   userStatus: string;
 }
 
-const fetchStudents = async (): Promise<Student[]> => {
+interface PaginatedResponse {
+  page: number;
+  limit: number;
+  total: number;
+  data: Student[];
+}
+
+const fetchStudents = async (
+  page: number = 1,
+  limit: number = 10
+): Promise<PaginatedResponse> => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const response = await fetch(`${API_URL}/api/student/student/list`);
+  const response = await fetch(
+    `${API_URL}/api/student/student/list?page=${page}&limit=${limit}`
+  );
   if (!response.ok) {
     throw new Error("Network response was not ok");
   }
   const data = await response.json();
-  return data.data;
+  return data;
 };
 
 const StudentList: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+  });
 
   const {
-    data: students = [],
+    data: studentsResponse,
     isFetching,
     error,
   } = useQuery({
-    queryKey: ["students"],
-    queryFn: fetchStudents,
+    queryKey: ["students", pagination.current, pagination.pageSize],
+    queryFn: () => fetchStudents(pagination.current, pagination.pageSize),
   });
 
   if (isFetching) {
@@ -53,6 +70,9 @@ const StudentList: React.FC = () => {
   if (error) {
     return <div>Error fetching students</div>;
   }
+
+  const students = studentsResponse?.data || [];
+  const total = studentsResponse?.total || 0;
 
   const columns = [
     {
@@ -206,31 +226,16 @@ const StudentList: React.FC = () => {
       key: "action",
       width: 100,
       render: (_: any, record: Student) => (
-        <Dropdown
-          menu={{
-            items: [
-              {
-                key: "1",
-                label: "View",
-                onClick: () => {
-                  setSelectedStudentId(record.studentId);
-                  setIsOpen(true);
-                },
-              },
-              {
-                key: "2",
-                label: "Edit",
-              },
-              {
-                key: "3",
-                label: "Delete",
-              },
-            ],
+        <CommonDropdown
+          onView={() => {
+            setSelectedStudentId(record.studentId);
+            setIsOpen(true);
           }}
-          trigger={["click"]}
-        >
-          <Button type="text" icon={<MoreOutlined />} />
-        </Dropdown>
+          onEdit={() => {}}
+          onDelete={() => {}}
+          showEdit={false}
+          showDelete={false}
+        />
       ),
     },
   ];
@@ -252,10 +257,17 @@ const StudentList: React.FC = () => {
           rowKey="studentId"
           scroll={{ x: "max-content" }}
           pagination={{
-            total: students.length,
-            pageSize: 10,
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: total,
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} items`,
+            onChange: (page, pageSize) => {
+              setPagination({
+                current: page,
+                pageSize: pageSize || 10,
+              });
+            },
           }}
         />
       </div>

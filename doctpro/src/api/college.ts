@@ -1,4 +1,5 @@
 import axios from "axios";
+import { useQuery } from "@tanstack/react-query";
 
 const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
@@ -42,9 +43,11 @@ export interface CollegeKycPayload {
   license: File;
 }
 
-export const fetchColleges = async () => {
+export const fetchColleges = async (page: number = 1, limit: number = 10) => {
   try {
-    const response = await axios.get(`${URL}/api/college`);
+    const response = await axios.get(
+      `${URL}/api/college?page=${page}&limit=${limit}`
+    );
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -68,4 +71,32 @@ export const fetchCollegeById = async (collegeId: string) => {
     }
     throw error;
   }
+};
+
+export const updateCollege = async (collegeId: string, payload: any) => {
+  try {
+    const response = await axios.put(
+      `${URL}/api/college/${collegeId}`,
+      payload
+    );
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ?? "Failed to update college"
+      );
+    }
+    throw error;
+  }
+};
+
+// TanStack Query hook for fetching college by ID
+export const useCollegeById = (collegeId: string) => {
+  return useQuery({
+    queryKey: ["college", collegeId],
+    queryFn: () => fetchCollegeById(collegeId),
+    enabled: !!collegeId, // Only run query if collegeId is provided
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
+  });
 };

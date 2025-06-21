@@ -60,30 +60,34 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
                 {profileData.name.charAt(0)}
               </Avatar>
               <div>
-                <h2 className="text-lg font-medium">{profileData.name}</h2>
-                <p className="text-gray-600">{profileData.title}</p>
+                <h2 className="text-lg font-medium mt-1">{profileData.name}</h2>
+                {/* <p className="text-gray-600">{profileData.title}</p> */}
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-600 mb-1">Note</p>
-                <p>{profileData.note || "No note"}</p>
-              </div>
+            <div className="space-y-4 my-4">
+              <div className="flex justify-between">
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <p className="text-gray-600 mb-1">Note</p>
+                    <p>{profileData.note || "No note"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 mb-1">Role</p>
+                    <p>{profileData.role}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <p className="text-gray-600 mb-1">Email Address</p>
+                    <p>{profileData.email || "No email provided"}</p>
+                  </div>
 
-              <div>
-                <p className="text-gray-600 mb-1">Role</p>
-                <p>{profileData.role}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-600 mb-1">Email Address</p>
-                <p>{profileData.email}</p>
-              </div>
-
-              <div>
-                <p className="text-gray-600 mb-1">Phone Number</p>
-                <p>{profileData.phone}</p>
+                  <div>
+                    <p className="text-gray-600 mb-1">Phone Number</p>
+                    <p>{profileData.phone || "No phone number provided"}</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

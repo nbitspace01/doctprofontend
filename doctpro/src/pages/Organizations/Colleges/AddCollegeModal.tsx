@@ -1,5 +1,5 @@
 import { Modal, Select, Form, Input, Button, notification } from "antd";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React from "react";
 
@@ -13,6 +13,7 @@ interface CollegePayload {
   city: string;
   district: string;
   state: string;
+  associatedHospital: string;
   hospitalIds: string[];
 }
 
@@ -23,6 +24,11 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+
+  const associatedHospital = useQuery({
+    queryKey: ["associatedHospital"],
+    queryFn: () => axios.get(`${API_URL}/api/hospital/hospitalNameList`),
+  });
 
   // Move the mutation hook here
   const addCollegeMutation = useMutation({
@@ -126,12 +132,12 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
             placeholder="Select Associated Hospital"
             className="w-full"
           >
-            <Select.Option value="5b8d28de-bf28-4e1b-945e-8d14b10c1d23">
-              Chennai Medical College
-            </Select.Option>
-            <Select.Option value="c33d9d5e-2f12-441e-9bcd-7617fdfbc8e4">
-              Apollo Hospitals
-            </Select.Option>
+            {associatedHospital.data?.data?.map((hospital: any) => (
+              <Select.Option key={hospital.id} value={hospital.id}>
+                {hospital.name}
+              </Select.Option>
+            ))}
+
             {/* Add more hospitals as needed */}
           </Select>
         </Form.Item>

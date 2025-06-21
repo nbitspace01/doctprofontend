@@ -1,4 +1,4 @@
-import { Button, Table } from "antd";
+import { Avatar, Button, Image, Pagination, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
@@ -23,6 +23,8 @@ interface SubAdminData {
   status: string;
   active_user: boolean;
   associated_location: string;
+  image_url: string;
+  profile_image: string;
 }
 
 const SubAdmin: React.FC = () => {
@@ -32,17 +34,34 @@ const SubAdmin: React.FC = () => {
   const [selectedSubAdmin, setSelectedSubAdmin] = useState<SubAdminData | null>(
     null
   );
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const queryClient = useQueryClient();
+  interface SubAdminResponse {
+    data: SubAdminData[];
+    total: number;
+  }
 
-  const fetchSubAdmin = async () => {
+  const fetchSubAdmin = async (): Promise<SubAdminResponse> => {
+    const validPage = currentPage || 1;
+    const validLimit = pageSize || 10;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-    const res = await ApiRequest.get(`${API_URL}/api/dashboard/sub-admin/list`);
+    const res = await ApiRequest.get(
+      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}`
+    );
 
-    return res.data.data ?? [];
+    // Return the full response structure with data and total
+    return {
+      data: res.data.data ?? [],
+      total: res.data.total ?? 0,
+    };
   };
 
-  const { data: rawSubAdmin, isFetching } = useQuery({
-    queryKey: ["subAdmin"],
+  const { data: subAdminResponse, isFetching } = useQuery<
+    SubAdminResponse,
+    Error
+  >({
+    queryKey: ["subAdmin", currentPage, pageSize],
     queryFn: fetchSubAdmin,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
@@ -53,13 +72,15 @@ const SubAdmin: React.FC = () => {
     return <Loader size="large" />;
   }
 
-  const subAdmin = Array.isArray(rawSubAdmin) ? rawSubAdmin : [];
+  const subAdmin = subAdminResponse?.data ?? [];
+  const totalCount = subAdminResponse?.total ?? 0;
 
   const handleEdit = (record: SubAdminData) => {
     setEditData({
       ...record,
       role: record.role || "",
       location: record.location || "",
+      profile_image: record.profile_image || record.image_url || "",
     });
     setIsModalOpen(true);
   };
@@ -74,21 +95,40 @@ const SubAdmin: React.FC = () => {
     setIsViewDrawerOpen(true);
   };
 
+  const handlePageChange = (page: number, pageSize: number) => {
+    console.log("Page changed to:", page, "Page size:", pageSize);
+    setCurrentPage(page);
+    setPageSize(pageSize);
+  };
+
   const columns: ColumnsType<SubAdminData> = [
     {
       title: "S No",
       key: "sNo",
       width: 70,
-      render: (_, __, index) => index + 1,
+      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
     },
     {
       title: "Name",
       key: "name",
       render: (_, record) => (
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center !text-white uppercase">
-            {record.first_name.charAt(0)}
-          </div>
+          {record.profile_image ? (
+            <Image
+              src={record.profile_image}
+              width={40}
+              height={40}
+              alt="Sub Admin"
+              className="rounded-full"
+            />
+          ) : (
+            <Avatar
+              size={40}
+              className="bg-button-primary rounded-full mr-2 text-white"
+            >
+              {record.first_name.charAt(0)}
+            </Avatar>
+          )}
           <span>{`${record.first_name} ${record.last_name}`}</span>
         </div>
       ),
@@ -180,14 +220,24 @@ const SubAdmin: React.FC = () => {
           columns={columns}
           dataSource={subAdmin}
           scroll={{ x: "max-content" }}
-          pagination={{
-            total: subAdmin.length,
-            pageSize: 10,
-            showSizeChanger: true,
-            showQuickJumper: true,
-          }}
+          pagination={false}
+          // onChange={handleTableChange}
           rowKey="id"
         />
+        <div className="flex justify-end my-2 py-3">
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={totalCount}
+            showSizeChanger
+            showQuickJumper
+            showTotal={(total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`
+            }
+            onChange={handlePageChange}
+            onShowSizeChange={handlePageChange}
+          />
+        </div>
       </div>
 
       <AddSubAdminModal

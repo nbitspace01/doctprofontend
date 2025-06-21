@@ -117,7 +117,13 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
         <Form.Item
           name="degreeName"
           label="Degree Name"
-          rules={[{ required: true, message: "Please enter degree name" }]}
+          rules={[
+            { required: true, message: "Please enter degree name" },
+            {
+              pattern: /^[a-zA-Z\s]+$/,
+              message: "Degree name cannot contain numbers",
+            },
+          ]}
         >
           <Input
             placeholder="Enter Degree Name"

@@ -5,6 +5,7 @@ import {
   Button,
   Drawer,
   message,
+  Pagination,
   Skeleton,
   Table,
   Tag,
@@ -17,7 +18,6 @@ import { showSuccess } from "../../Common/Notification";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import Loader from "../../Common/Loader";
-import FormattedDate from "../../Common/FormattedDate";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 interface ApiResponse {
@@ -27,8 +27,15 @@ interface ApiResponse {
   data: ApiHospitalData[];
 }
 
-const fetchHospitals = async (): Promise<ApiResponse> => {
-  const response = await fetch(`${API_URL}/api/hospital/`);
+const fetchHospitals = async (
+  currentPage: number,
+  pageSize: number
+): Promise<ApiResponse> => {
+  const validPage = currentPage || 1;
+  const validLimit = pageSize || 10;
+  const response = await fetch(
+    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}`
+  );
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
   }
@@ -42,11 +49,19 @@ interface HospitalData {
   logo: string | null;
   branchLocation: string;
   updatedOn: string;
+  address: string;
   status: "Active" | "Inactive" | "Pending";
 }
 
 const fetchHospitalById = async (id: string): Promise<ApiHospitalData> => {
-  const response = await fetch(`${API_URL}/api/hospital/${id}`);
+  const response = await fetch(`${API_URL}/api/hospital/byId`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ id: id }),
+  });
+
   if (!response.ok) {
     throw new Error("Failed to fetch hospital details");
   }
@@ -81,10 +96,12 @@ const HospitalList: React.FC = () => {
   const [viewHospitalId, setViewHospitalId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const { data: hospitals, isFetching } = useQuery({
-    queryKey: ["hospitals"],
-    queryFn: fetchHospitals,
+  const { data: hospitals, isFetching } = useQuery<ApiResponse, Error>({
+    queryKey: ["hospitals", currentPage, pageSize],
+    queryFn: () => fetchHospitals(currentPage, pageSize),
   });
 
   const { data: selectedHospital } = useQuery({
@@ -98,6 +115,8 @@ const HospitalList: React.FC = () => {
     queryKey: ["hospital", viewHospitalId],
     queryFn: () => (viewHospitalId ? fetchHospitalById(viewHospitalId) : null),
     enabled: !!viewHospitalId,
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const updateHospitalMutation = useMutation({
@@ -140,6 +159,11 @@ const HospitalList: React.FC = () => {
     }
   };
 
+  const handlePageChange = (page: number, pageSize: number) => {
+    setCurrentPage(page);
+    setPageSize(pageSize);
+  };
+
   const tableData: HospitalData[] =
     hospitals?.data?.map((hospital, index) => ({
       key: hospital.id,
@@ -147,6 +171,7 @@ const HospitalList: React.FC = () => {
       name: hospital.name,
       logo: hospital.logoUrl,
       branchLocation: hospital.branchLocation,
+      address: hospital.address,
       updatedOn: new Date(hospital.updated_at).toLocaleDateString(),
       status: (hospital.status?.toLowerCase() === "active"
         ? "Active"
@@ -166,25 +191,58 @@ const HospitalList: React.FC = () => {
       title: "Hospital/Clinic Name",
       dataIndex: "name",
       key: "name",
-      render: (text) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="bg-button-primary text-white">
-            {text.charAt(0)}
-          </Avatar>
-          <span>{text}</span>
-        </div>
-      ),
+      render: (text, record) => {
+        // Helper function to check if logoUrl is a valid image URL
+        const isValidImageUrl = (url: string | null) => {
+          if (!url || url === "" || url === "null") return false;
+          // Check if it's a JSON string (file metadata)
+          try {
+            JSON.parse(url);
+            return false; // It's JSON metadata, not a valid image URL
+          } catch {
+            // It's not JSON, check if it's a valid URL
+            return url.startsWith("http://") || url.startsWith("https://");
+          }
+        };
+
+        return (
+          <div className="flex items-center gap-3">
+            {isValidImageUrl(record.logo) ? (
+              <img
+                src={record.logo!}
+                alt={text}
+                className="w-10 h-10 rounded-full object-cover"
+                onError={(e) => {
+                  // Fallback to avatar if image fails to load
+                  e.currentTarget.style.display = "none";
+                  e.currentTarget.nextElementSibling?.classList.remove(
+                    "hidden"
+                  );
+                }}
+              />
+            ) : null}
+            <Avatar
+              className={`bg-button-primary text-white ${
+                isValidImageUrl(record.logo) ? "hidden" : ""
+              }`}
+            >
+              {text.charAt(0)}
+            </Avatar>
+            <span>{text}</span>
+          </div>
+        );
+      },
     },
     {
       title: "Branch Location",
       dataIndex: "branchLocation",
       key: "branchLocation",
     },
-    {
-      title: "Updated on Portal",
-      dataIndex: "updatedOn",
-      key: "updatedOn",
-    },
+    // {
+    //   title: "Updated on Portal",
+    //   dataIndex: "updatedOn",
+    //   key: "updatedOn",
+    // },
     {
       title: "Status",
       dataIndex: "status",
@@ -248,14 +306,23 @@ const HospitalList: React.FC = () => {
           columns={columns}
           dataSource={tableData}
           scroll={{ x: "max-content" }}
-          pagination={{
-            total: hospitals?.total ?? 0,
-            pageSize: hospitals?.limit ?? 8,
-            current: hospitals?.page ?? 1,
-            showSizeChanger: true,
-          }}
+          pagination={false}
           className="shadow-sm rounded-lg"
         />
+        <div className="flex justify-end my-2 mx-3 py-3">
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={hospitals?.total ?? 0}
+            showSizeChanger
+            showQuickJumper
+            showTotal={(total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`
+            }
+            onChange={handlePageChange}
+            onShowSizeChange={handlePageChange}
+          />
+        </div>
       </div>
 
       <Drawer
@@ -273,21 +340,35 @@ const HospitalList: React.FC = () => {
         ) : viewHospital ? (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
-              {viewHospital.logoUrl ? (
-                <img
-                  src={viewHospital.logoUrl}
-                  alt={viewHospital.name}
-                  className="w-12 h-12 rounded-full"
-                />
-              ) : (
-                <Avatar className="bg-button-primary">
-                  {viewHospital.name?.charAt(0) || ""}
-                </Avatar>
-              )}
-              <div>
+              {(() => {
+                const isValidImageUrl = (url: string | null) => {
+                  if (!url || url === "" || url === "null") return false;
+                  try {
+                    JSON.parse(url);
+                    return false;
+                  } catch {
+                    return (
+                      url.startsWith("http://") || url.startsWith("https://")
+                    );
+                  }
+                };
+
+                return isValidImageUrl(viewHospital.logoUrl) ? (
+                  <img
+                    src={viewHospital.logoUrl!}
+                    alt={viewHospital.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <Avatar size={50} className="bg-button-primary">
+                    {viewHospital.name?.charAt(0) || ""}
+                  </Avatar>
+                );
+              })()}
+              <div className="flex  items-center gap-3">
                 <h3 className="text-lg font-semibold">{viewHospital.name}</h3>
                 <Tag
-                  className={`px-3 py-1 rounded-full ${
+                  className={`flex items-center justify-center mx-2 mb-2 rounded-md text-center ${
                     viewHospital.isActive
                       ? "bg-green-50 text-green-600"
                       : "bg-red-50 text-red-600"
@@ -303,7 +384,12 @@ const HospitalList: React.FC = () => {
               <p>{viewHospital.branchLocation}</p>
             </div>
 
-            <div>
+            {/* <div>
+              <h4 className="font-medium mb-2">Address</h4>
+              <p>{viewHospital.address}</p>
+            </div> */}
+
+            {/* <div>
               <h4 className="font-medium mb-2">Updated On Portal</h4>
               <p>
                 {viewHospital.updated_at ? (
@@ -315,7 +401,7 @@ const HospitalList: React.FC = () => {
                   "Not available"
                 )}
               </p>
-            </div>
+            </div> */}
           </div>
         ) : null}
       </Drawer>

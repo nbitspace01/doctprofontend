@@ -1,4 +1,4 @@
-import { Avatar, Drawer } from "antd";
+import { Avatar, Drawer, Image, Button } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import {
   ClockCircleOutlined,
@@ -6,6 +6,8 @@ import {
   PhoneOutlined,
   GlobalOutlined,
   UserOutlined,
+  FilePdfOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
 import FormattedDate from "../../Common/FormattedDate";
@@ -33,6 +35,23 @@ interface HospitalData {
     license: string;
     adminId: string;
   };
+  logoUrl: string;
+  kyc: {
+    adminIdProof: {
+      type: string;
+      url: string;
+      number: string;
+      status: string;
+      rejectionReason: string | null;
+    } | null;
+    hospitalLicense: {
+      type: string;
+      url: string;
+      number: string;
+      status: string;
+      rejectionReason: string | null;
+    } | null;
+  };
 }
 
 interface ClinicViewDrawerProps {
@@ -47,10 +66,30 @@ const ClinicViewDrawer = ({
   hospitalId,
 }: ClinicViewDrawerProps) => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+
+  // Helper function to check if URL is a PDF
+  const isPdfUrl = (url: string | null | undefined): boolean => {
+    if (!url) return false;
+    return url.toLowerCase().endsWith(".pdf");
+  };
+
+  // Helper function to get file name from URL
+  const getFileNameFromUrl = (url: string): string => {
+    try {
+      const urlObj = new URL(url);
+      const pathname = urlObj.pathname;
+      return pathname.split("/").pop() || "Document";
+    } catch {
+      return "Document";
+    }
+  };
+
   const { data: hospitalData, isLoading } = useQuery<HospitalData>({
     queryKey: ["hospital", hospitalId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/hospital/${hospitalId}`);
+      const response = await axios.post(`${API_URL}/api/hospital/byId`, {
+        id: hospitalId,
+      });
       return response.data;
     },
   });
@@ -84,19 +123,21 @@ const ClinicViewDrawer = ({
     >
       <div className="p-6">
         {/* Hospital Header */}
-        <div className="flex items-center gap-4 mb-6">
-          {hospitalData?.documents?.adminId ? (
-            <img
-              src={hospitalData?.documents?.adminId}
+        <div className="flex items-center gap-4 mb-6 ">
+          {hospitalData?.logoUrl ? (
+            <Image
+              src={hospitalData?.logoUrl}
               alt="Hospital Logo"
-              className="w-16 h-16 rounded-full"
+              width={100}
+              height={100}
+              className="rounded-full"
             />
           ) : (
-            <Avatar className="bg-button-primary text-white">
+            <Avatar className="bg-button-primary  text-white">
               {hospitalData?.name?.charAt(0)}
             </Avatar>
           )}
-          <h2 className="text-xl font-semibold">{hospitalData?.name}</h2>
+          <h2 className="text-xl font-semibold ">{hospitalData?.name}</h2>
         </div>
 
         {/* Basic Info */}
@@ -177,7 +218,7 @@ const ClinicViewDrawer = ({
           </p>
           <div className="flex items-center gap-4">
             {hospitalData?.documents?.adminId ? (
-              <img
+              <Image
                 src={hospitalData?.documents?.adminId}
                 alt="Admin"
                 className="w-10 h-10 rounded-full"
@@ -187,7 +228,7 @@ const ClinicViewDrawer = ({
                 {hospitalData?.adminContact?.name?.charAt(0)}
               </Avatar>
             )}
-            <div className="flex mt-2  gap-2">
+            <div className="flex mt-3 justify-around  gap-3">
               <p>{hospitalData?.adminContact?.name ?? "N/A"}</p>
               <p className="text-gray-600">
                 {hospitalData?.adminContact?.email ?? "N/A"}
@@ -203,16 +244,100 @@ const ClinicViewDrawer = ({
         <div>
           <p className="text-gray-600 mb-2">KYC Documents</p>
           <div className="grid grid-cols-2 gap-4">
-            <img
-              src={hospitalData?.documents?.license}
-              alt="Hospital License"
-              className="w-full rounded-lg"
-            />
-            <img
-              src={hospitalData?.documents?.adminId}
-              alt="Admin ID"
-              className="w-full rounded-lg"
-            />
+            <div>
+              <p className="text-gray-600 mb-2">Hospital License</p>
+              {hospitalData?.kyc?.hospitalLicense &&
+              hospitalData.kyc.hospitalLicense.url ? (
+                isPdfUrl(hospitalData.kyc.hospitalLicense.url) ? (
+                  <div className="border border-gray-200 rounded-lg p-4 text-center">
+                    <FilePdfOutlined className="text-red-500 text-2xl mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      {hospitalData.kyc.hospitalLicense.type ||
+                        getFileNameFromUrl(
+                          hospitalData.kyc.hospitalLicense.url
+                        )}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Status: {hospitalData.kyc.hospitalLicense.status}
+                    </p>
+                    <Button
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      onClick={() =>
+                        window.open(
+                          hospitalData.kyc.hospitalLicense!.url,
+                          "_blank"
+                        )
+                      }
+                      size="small"
+                    >
+                      View PDF
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Status: {hospitalData.kyc.hospitalLicense.status}
+                    </p>
+                    <Image
+                      src={hospitalData.kyc.hospitalLicense.url}
+                      alt="Hospital License"
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="border border-gray-200 rounded-lg p-4 text-center text-gray-500">
+                  No license document available
+                </div>
+              )}
+            </div>
+            <div>
+              <p className="text-gray-600 mb-2">Admin Person ID</p>
+              {hospitalData?.kyc?.adminIdProof &&
+              hospitalData.kyc.adminIdProof.url ? (
+                isPdfUrl(hospitalData.kyc.adminIdProof.url) ? (
+                  <div className="border border-gray-200 rounded-lg p-4 text-center">
+                    <FilePdfOutlined className="text-red-500 text-2xl mb-2" />
+                    <p className="text-sm text-gray-600 mb-1">
+                      {hospitalData.kyc.adminIdProof.type ||
+                        getFileNameFromUrl(hospitalData.kyc.adminIdProof.url)}
+                    </p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Status: {hospitalData.kyc.adminIdProof.status}
+                    </p>
+                    <Button
+                      type="primary"
+                      icon={<DownloadOutlined />}
+                      onClick={() =>
+                        window.open(
+                          hospitalData.kyc.adminIdProof!.url,
+                          "_blank"
+                        )
+                      }
+                      size="small"
+                    >
+                      View PDF
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Status: {hospitalData.kyc.adminIdProof.status}
+                    </p>
+                    <Image
+                      src={hospitalData.kyc.adminIdProof.url}
+                      alt="Admin ID"
+                      className="w-full rounded-lg"
+                    />
+                  </div>
+                )
+              ) : (
+                <div className="border border-gray-200 rounded-lg p-4 text-center text-gray-500">
+                  No ID proof available
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

@@ -13,28 +13,46 @@ import HospitalRegistration from "../../Registration/Hospital/HospitalRegistrati
 import ClinicViewDrawer from "./ClinicViewDrawer";
 
 interface Hospital {
-  id: number;
+  id: string;
   name: string;
-  branch: string;
+  branchLocation: string;
   address: string;
-  status: "Active" | "Inactive" | "Pending";
-  logo?: string;
+  status: "Active" | "Inactive" | "Pending" | "pending";
+  logoUrl?: string;
+}
+
+interface ApiResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: Hospital[];
 }
 
 const ClinicsList = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const queryClient = useQueryClient();
-  const { data: hospitals, isFetching } = useQuery({
-    queryKey: ["hospitals"],
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const { data: apiResponse, isFetching } = useQuery({
+    queryKey: ["hospitals", currentPage, pageSize],
     queryFn: async () => {
-      const { data } = await axios.get(`${API_URL}/api/hospital/`);
+      const { data } = await axios.get(`${API_URL}/api/hospital/`, {
+        params: {
+          page: currentPage,
+          limit: pageSize,
+        },
+      });
       console.log("API hospital data", data);
-      return Array.isArray(data.data) ? data.data : [];
+      return data as ApiResponse;
     },
   });
 
+  const hospitals = apiResponse?.data || [];
+  const total = apiResponse?.total || 0;
+
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedHospitalId, setSelectedHospitalId] = useState<number | null>(
+  const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
     null
   );
 
@@ -47,6 +65,11 @@ const ClinicsList = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
   };
 
+  const handleTableChange = (pagination: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+  };
+
   const columns = [
     // s no will be the index of the row
     {
@@ -54,7 +77,8 @@ const ClinicsList = () => {
       dataIndex: "sNo",
       key: "sNo",
       width: 80,
-      render: (_: any, __: any, index: number) => index + 1,
+      render: (_: any, __: any, index: number) =>
+        (currentPage - 1) * pageSize + index + 1,
     },
 
     {
@@ -69,9 +93,9 @@ const ClinicsList = () => {
 
       render: (text: string, record: Hospital) => (
         <div className="flex items-center gap-2">
-          {record.logo ? (
+          {record.logoUrl ? (
             <img
-              src={record.logo}
+              src={record.logoUrl}
               alt={text}
               className="w-8 h-8 rounded-full"
             />
@@ -172,10 +196,15 @@ const ClinicsList = () => {
           loading={isFetching}
           scroll={{ x: "max-content" }}
           pagination={{
-            total: hospitals?.length,
-            pageSize: 8,
+            current: currentPage,
+            pageSize: pageSize,
+            total: total,
             showSizeChanger: true,
+            showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
           }}
+          onChange={handleTableChange}
           className="w-full"
         />
       </div>
@@ -184,7 +213,7 @@ const ClinicsList = () => {
         <ClinicViewDrawer
           isOpen={true}
           onClose={() => setSelectedHospitalId(null)}
-          hospitalId={selectedHospitalId.toString()}
+          hospitalId={selectedHospitalId}
         />
       )}
     </div>

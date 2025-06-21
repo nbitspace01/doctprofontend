@@ -1,8 +1,21 @@
-import { PictureOutlined } from "@ant-design/icons";
-import { Button, Form, Input, Modal, notification, Select, Switch } from "antd";
+import {
+  Button,
+  Form,
+  Input,
+  message,
+  Modal,
+  notification,
+  Select,
+  Switch,
+  Upload,
+  UploadProps,
+} from "antd";
 import { useEffect, useState } from "react";
 import { showSuccess } from "../../Common/Notification";
 import { ApiHospitalData } from "../Hospital.types";
+import { USER_ID } from "../../Common/constant.function";
+import axios from "axios";
+import { TOKEN } from "../../Common/constant.function";
 
 // Define the props interface
 interface AddHospitalModalProps {
@@ -37,10 +50,19 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     isActive: true,
   });
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string>("");
 
   useEffect(() => {
     if (isEditing && initialData) {
-      form.setFieldsValue(initialData);
+      const formValues = {
+        name: initialData.name,
+        branchLocation: initialData.branchLocation,
+        isHeadBranch: initialData.isHeadBranch,
+        logoUrl: initialData.logoUrl,
+        // add other fields as needed
+      };
+      form.setFieldsValue(formValues);
       setHospitalData({
         name: initialData.name,
         branchLocation: initialData.branchLocation,
@@ -48,6 +70,10 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         logoUrl: initialData.logoUrl,
         isActive: initialData.isActive,
       });
+      // Set the image URL for display if editing
+      if (initialData.logoUrl) {
+        setImageUrl(initialData.logoUrl);
+      }
     } else {
       form.resetFields();
       const emptyData = {
@@ -58,8 +84,9 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         isActive: true,
       };
       setHospitalData(emptyData);
+      setImageUrl(""); // Reset image URL when not editing
     }
-  }, [isEditing, initialData, form]);
+  }, [isEditing, initialData, isOpen, form]);
 
   const createHospital = async (values: Partial<ApiHospitalData>) => {
     const response = await fetch(`${API_URL}/api/hospital/`, {
@@ -78,8 +105,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   const handleSubmit = async (values: Partial<ApiHospitalData>) => {
     try {
+      // Include the logoUrl from hospitalData in the submission
+      const submissionData = {
+        ...values,
+        logoUrl: hospitalData.logoUrl,
+      };
+
       const handler = isEditing ? updateHospital : createHospital;
-      const data = await handler(values);
+      const data = await handler(submissionData);
       showSuccess(notification, {
         message: isEditing
           ? "Hospital updated successfully"
@@ -97,14 +130,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     }
   };
 
-  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const fakeUploadedUrl = URL.createObjectURL(file);
-      setHospitalData({ ...hospitalData, logoUrl: fakeUploadedUrl });
-    }
-  };
-
   // Add this function to handle form reset
   const handleClose = () => {
     // Reset both form and state to initial empty values
@@ -117,9 +142,74 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     };
 
     setHospitalData(emptyData);
+    setImageUrl(""); // Reset image URL
     form.setFieldsValue(emptyData);
     form.resetFields();
     onClose();
+  };
+
+  const uploadProps: UploadProps = {
+    maxCount: 1,
+    showUploadList: false,
+    accept: "image/*",
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        message.error("You can only upload image files!");
+        return false;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error("Image must be smaller than 2MB!");
+        return false;
+      }
+      return true;
+    },
+    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
+      try {
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file as File);
+        formData.append("entity", "post");
+        formData.append("userId", USER_ID || "");
+
+        const response = await axios.post(
+          `${API_URL}/api/post/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${TOKEN}`,
+            },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total
+                );
+                onProgress?.({ percent });
+              }
+            },
+          }
+        );
+
+        const { url } = response.data;
+
+        setImageUrl(url || "");
+
+        form.setFieldsValue({ logoUrl: url });
+        setHospitalData((prev) => ({ ...prev, logoUrl: url }));
+
+        onSuccess?.(response.data);
+        message.success("Image uploaded successfully!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        onError?.(error as Error);
+        message.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
+    },
   };
 
   return (
@@ -130,28 +220,26 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       footer={null}
       width={600}
       className="rounded-lg"
+      forceRender
     >
-      <Form form={form} initialValues={hospitalData} onFinish={handleSubmit}>
+      {/* <Form form={form} initialValues={hospitalData} onFinish={handleSubmit}> */}
+      <Form form={form} onFinish={handleSubmit}>
         <div className="space-y-6 py-4">
           {/* Logo Upload Section */}
           <div className="flex justify-center">
-            <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center relative">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              {hospitalData.logoUrl ? (
-                <img
-                  src={hospitalData.logoUrl}
-                  alt="Hospital logo"
-                  className="w-20 h-20 rounded-full object-cover"
-                />
-              ) : (
-                <PictureOutlined className="text-4xl text-gray-400" />
-              )}
-            </div>
+            <Upload {...uploadProps}>
+              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
+                {imageUrl ? (
+                  <img
+                    src={imageUrl}
+                    alt="Hospital logo"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl text-gray-400">Logo here</span>
+                )}
+              </div>
+            </Upload>
           </div>
           <p className="text-center text-gray-500">Logo here</p>
 
@@ -194,6 +282,11 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
                 setHospitalData({ ...hospitalData, isHeadBranch: checked })
               }
             />
+          </Form.Item>
+
+          {/* Hidden field for logoUrl */}
+          <Form.Item name="logoUrl" hidden>
+            <Input />
           </Form.Item>
 
           {/* Footer Buttons */}

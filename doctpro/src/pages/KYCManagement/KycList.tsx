@@ -134,6 +134,9 @@ const KycList = () => {
             onDelete={() => {
               handleDelete(record);
             }}
+            showView={true}
+            showEdit={false}
+            showDelete={true}
           />
         );
       },

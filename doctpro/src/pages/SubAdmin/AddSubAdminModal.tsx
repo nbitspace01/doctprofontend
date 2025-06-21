@@ -1,11 +1,22 @@
 import { UserOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import type { UploadProps } from "antd";
-import { App, Button, Form, Input, Modal, Select, Upload } from "antd";
+import {
+  App,
+  Button,
+  Form,
+  Image,
+  Input,
+  Modal,
+  Select,
+  Upload,
+  message,
+} from "antd";
 import axios from "axios";
-import React, { useEffect } from "react";
-import { TOKEN } from "../Common/constant.function";
+import React, { useEffect, useState } from "react";
+import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
+import { MobileIcon } from "../Common/SVG/svg.functions";
 
 interface SubAdminData {
   id: string;
@@ -19,6 +30,7 @@ interface SubAdminData {
   organization_type: string;
   location: string;
   associated_location: string;
+  profile_image?: string;
 }
 
 interface AddSubAdminModalProps {
@@ -39,6 +51,7 @@ interface SubAdminFormValues {
   associated_location: string;
   password: string;
   confirmPassword: string;
+  profile_image?: string;
 }
 
 const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
@@ -48,17 +61,12 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   initialData,
 }) => {
   const [form] = Form.useForm();
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [uploading, setUploading] = useState(false);
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { notification } = App.useApp();
 
-  const roleOptions = [
-    // { value: "in charge", label: "In Charge" },
-    // { value: "coordinator", label: "Coordinator" },
-    // { value: "assistant", label: "Assistant" },
-    // { value: "admin", label: "Admin" },
-    // { value: "faculty", label: "Faculty" },
-    { value: "subadmin", label: "Sub Admin" },
-  ];
+  const roleOptions = [{ value: "subadmin", label: "Sub Admin" }];
 
   const organizationOptions = [
     { value: "Hospital", label: "Hospital" },
@@ -80,21 +88,74 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   const uploadProps: UploadProps = {
     maxCount: 1,
     showUploadList: false,
-    customRequest: ({ file, onSuccess }) => {
-      // Handle file upload logic here
-      setTimeout(() => {
-        onSuccess?.(file);
-      }, 0);
+    accept: "image/*",
+    beforeUpload: (file) => {
+      const isImage = file.type.startsWith("image/");
+      if (!isImage) {
+        message.error("You can only upload image files!");
+        return false;
+      }
+      const isLt2M = file.size / 1024 / 1024 < 2;
+      if (!isLt2M) {
+        message.error("Image must be smaller than 2MB!");
+        return false;
+      }
+      return true;
+    },
+    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
+      try {
+        setUploading(true);
+
+        const formData = new FormData();
+        formData.append("file", file as File);
+        formData.append("entity", "post");
+        formData.append("userId", USER_ID || "");
+
+        const response = await axios.post(
+          `${API_URL}/api/post/upload`,
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${TOKEN}`,
+            },
+            onUploadProgress: (progressEvent) => {
+              if (progressEvent.total) {
+                const percent = Math.round(
+                  (progressEvent.loaded * 100) / progressEvent.total
+                );
+                onProgress?.({ percent });
+              }
+            },
+          }
+        );
+
+        const { url } = response.data;
+
+        setImageUrl(url || "");
+        console.log(url, "url");
+        form.setFieldsValue({ profile_image: url });
+
+        onSuccess?.(response.data);
+        message.success("Image uploaded successfully!");
+      } catch (error) {
+        console.error("Upload error:", error);
+        onError?.(error as Error);
+        message.error("Failed to upload image");
+      } finally {
+        setUploading(false);
+      }
     },
   };
 
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // Set the image URL state first
+        setImageUrl(initialData.profile_image || "");
         form.setFieldsValue({
-          // first_name: initialData.first_name,
-          // last_name: initialData.last_name,
-          name: initialData.first_name + " " + initialData.last_name,
+          first_name: initialData.first_name,
+          last_name: initialData.last_name,
           email: initialData.email,
           phone: initialData.phone,
           role: initialData.role,
@@ -102,12 +163,21 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           location: initialData.location,
           associated_location: initialData.location,
           status: initialData.status,
+          profile_image: initialData.profile_image,
         });
       } else {
+        setImageUrl("");
         form.resetFields();
       }
     }
   }, [open, initialData, form]);
+
+  // Separate useEffect to handle imageUrl updates
+  useEffect(() => {
+    if (initialData?.profile_image) {
+      setImageUrl(initialData.profile_image);
+    }
+  }, [initialData?.profile_image]);
 
   const createSubAdminMutation = useMutation({
     mutationFn: (values: SubAdminFormValues) => {
@@ -122,7 +192,11 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         role: values.role,
         location: values.location,
         associated_location: values.associated_location,
+        profile_picture: imageUrl || "",
       };
+
+      console.log("Create payload:", payload);
+
       return axios.post(`${API_URL}/api/user/create-sub-admin`, payload, {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -135,13 +209,14 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         description: data.message,
       });
       form.resetFields();
+      setImageUrl("");
       onCancel();
       onSubmit(data);
     },
     onError: (error: any) => {
       // Add this for debugging
       const errorMessage =
-        error.response?.data?.message ?? "Failed to create sub-admin";
+        error.response?.data?.error ?? "Failed to create sub-admin";
       showError(notification, {
         message: "Failed to create sub-admin",
         description: errorMessage,
@@ -161,7 +236,10 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         role: values.role,
         location: values.location,
         associated_location: values.associated_location,
+        profile_picture: imageUrl || "",
       };
+
+      console.log("Update payload:", payload);
 
       return axios.put(
         `${API_URL}/api/user/update-sub-admin/${initialData?.id}`,
@@ -179,13 +257,14 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         description: data.message,
       });
       form.resetFields();
+      setImageUrl("");
       onCancel();
       onSubmit(data);
     },
     onError: (error: any) => {
       console.error("API Error:", error);
       const errorMessage =
-        error.response?.data?.message ?? "Failed to update sub-admin";
+        error.response?.error ?? "Failed to update sub-admin";
       showError(notification, {
         message: "Failed to update sub-admin",
         description: errorMessage,
@@ -194,6 +273,10 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   });
 
   const handleSubmit = (values: SubAdminFormValues) => {
+    console.log("Form values:", values);
+    console.log("Profile image value:", values.profile_image);
+    console.log("Image URL state:", imageUrl);
+
     if (initialData) {
       updateSubAdminMutation.mutate(values);
     } else {
@@ -211,12 +294,31 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <div className="flex justify-center mb-6">
-          <Upload {...uploadProps}>
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer">
-              <UserOutlined className="text-3xl text-gray-400" />
+          <Upload {...uploadProps} key={initialData?.id || "new"}>
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
+              {imageUrl ? (
+                <Image
+                  src={imageUrl}
+                  preview={false}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                  onError={() => setImageUrl("")}
+                />
+              ) : (
+                <UserOutlined className="text-3xl text-gray-400" />
+              )}
             </div>
           </Upload>
+          {uploading && (
+            <div className="text-center text-sm text-gray-500 mt-2">
+              Uploading...
+            </div>
+          )}
         </div>
+
+        <Form.Item name="profile_image" hidden>
+          <Input />
+        </Form.Item>
 
         <Form.Item
           label="First Name"
@@ -250,7 +352,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           name="phone"
           rules={[{ required: true, message: "Please enter phone number" }]}
         >
-          <Input placeholder="+91 99999 99999" />
+          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
         </Form.Item>
 
         <div className="grid grid-cols-2 gap-4">

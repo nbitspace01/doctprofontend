@@ -113,7 +113,11 @@ const CampaignAddModal: React.FC<CampaignAddModalProps> = ({
               label="State"
               rules={[{ required: true, message: "Please select state" }]}
             >
-              <Select placeholder="Select State" className="rounded-md" />
+              <Select placeholder="Select State" className="rounded-md">
+                <Select.Option value="state1">State 1</Select.Option>
+                <Select.Option value="state2">State 2</Select.Option>
+                <Select.Option value="state3">State 3</Select.Option>
+              </Select>
             </Form.Item>
 
             <Form.Item
@@ -121,7 +125,11 @@ const CampaignAddModal: React.FC<CampaignAddModalProps> = ({
               label="Country"
               rules={[{ required: true, message: "Please select country" }]}
             >
-              <Select placeholder="Select Country" className="rounded-md" />
+              <Select placeholder="Select Country" className="rounded-md">
+                <Select.Option value="country1">Country 1</Select.Option>
+                <Select.Option value="country2">Country 2</Select.Option>
+                <Select.Option value="country3">Country 3</Select.Option>
+              </Select>
             </Form.Item>
           </div>
         </div>

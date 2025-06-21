@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Card, Progress, Select } from "antd";
+import { Avatar, Card, Progress, Select } from "antd";
 import axios from "axios";
 import React from "react";
 import {
@@ -20,6 +20,7 @@ import {
 } from "../../pages/Common/SVG/svg.functions";
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
+import FormattedDate from "../Common/FormattedDate";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -28,15 +29,18 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   </div>
 );
 
-const Dashboard: React.FC = () => {
+const HospitalDashboard: React.FC = () => {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const fetchDashboardCounts = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/counts`, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-      },
-    });
+    const res = await axios.get(
+      `${API_URL}/api/dashboard/sub-admin/dashboard-status`,
+      {
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+        },
+      }
+    );
     return res.data;
   };
 
@@ -54,25 +58,26 @@ const Dashboard: React.FC = () => {
     queryFn: fetchDashboardCounts,
   });
 
-  const fetchSubAdmin = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/sub-admin/list`, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-      },
-    });
+  const fetchSubAdminHealthCare = async () => {
+    const res = await axios.get(
+      `${API_URL}/api/healthCare/healthcare-professionals`,
+      {
+        headers: {
+          Authorization: `Bearer ${TOKEN}`,
+        },
+      }
+    );
     console.log(res.data, "res.data");
     return res.data;
   };
 
   const {
-    data: subAdmin,
-    isLoading: subAdminLoading,
-    isError: subAdminError,
+    data: subAdminHealthCare,
+    isLoading: subAdminHealthCareLoading,
+    isError: subAdminHealthCareError,
   } = useQuery({
     queryKey: ["subAdmin"],
-    queryFn: fetchSubAdmin,
-    refetchOnMount: true,
-    staleTime: 0,
+    queryFn: fetchSubAdminHealthCare,
   });
 
   const {
@@ -85,53 +90,53 @@ const Dashboard: React.FC = () => {
     queryFn: fetchKycStats,
   });
 
-  if (isLoading || kycStatsLoading || subAdminLoading)
+  if (isLoading || kycStatsLoading || subAdminHealthCareLoading)
     return <Loader size="large" />;
-  if (isError || kycStatsError || subAdminError)
+  if (isError || kycStatsError || subAdminHealthCareError)
     return <div>Error: {kycStatsErrorObj?.message ?? "An error occurred"}</div>;
 
   const data1 = [
     {
       date: "1 Mar",
-      "New Registration": 15,
-      "Job post": 8,
-      "Ads post": 5,
-      Appointment: 6,
+      Hospital: 15,
+      healthcare: 8,
+      "Medical Student": 5,
+      CountKYC: 6,
     },
     {
       date: "2 Mar",
-      "New Registration": 5,
-      "Job post": 10,
-      "Ads post": 2,
-      Appointment: 1,
+      Hospital: 5,
+      healthcare: 10,
+      "Medical Student": 2,
+      CountKYC: 1,
     },
     {
       date: "3 Mar",
-      "New Registration": 5,
-      "Job post": 3,
-      "Ads post": 8,
-      Appointment: 4,
+      Hospital: 5,
+      healthcare: 3,
+      "Medical Student": 8,
+      CountKYC: 4,
     },
     {
       date: "4 Mar",
-      "New Registration": 8,
-      "Job post": 5,
-      "Ads post": 20,
-      Appointment: 7,
+      Hospital: 8,
+      healthcare: 5,
+      "Medical Student": 20,
+      CountKYC: 7,
     },
     {
       date: "5 Mar",
-      "New Registration": 15,
-      "Job post": 8,
-      "Ads post": 5,
-      Appointment: 5,
+      Hospital: 15,
+      healthcare: 8,
+      "Medical Student": 5,
+      CountKYC: 5,
     },
     {
       date: "6 Mar",
-      "New Registration": 5,
-      "Job post": 10,
-      "Ads post": 2,
-      Appointment: 1,
+      Hospital: 5,
+      healthcare: 10,
+      "Medical Student": 2,
+      CountKYC: 1,
     },
   ];
 
@@ -147,10 +152,10 @@ const Dashboard: React.FC = () => {
         {Object.entries(data)
           .filter(([key]) =>
             [
-              "totalColleges",
+              "totalDoctors",
               "totalHospitals",
               "totalStudents",
-              "totalProfessionals",
+              "pendingKycCount",
             ].includes(key)
           )
           .map(([key, value]) => (
@@ -159,13 +164,12 @@ const Dashboard: React.FC = () => {
                 <div className={`p-3 rounded-full text-white`}>
                   {(key === "totalHospitals" &&
                     (totalHospital() as React.ReactNode)) ||
-                    (key === "totalColleges" &&
+                    (key === "totalDoctors" &&
                       (totalCollege() as React.ReactNode)) ||
                     (key === "totalStudents" &&
                       (totalStudents() as React.ReactNode)) ||
-                    (key === "totalProfessionals" &&
+                    (key === "pendingKycCount" &&
                       (totalHealthCare() as React.ReactNode))}{" "}
-                  ||
                 </div>
                 <div>
                   <p className="text-gray-600 text-sm">
@@ -201,10 +205,10 @@ const Dashboard: React.FC = () => {
               <YAxis />
               <Tooltip />
               <Legend />
-              <Bar dataKey="New Registration" fill="#8884d8" />
-              <Bar dataKey="Job post" fill="#82ca9d" />
-              <Bar dataKey="Ads post" fill="#ffc658" />
-              <Bar dataKey="Appointment" fill="#ff7300" />
+              <Bar dataKey="Hospital" fill="#8884d8" />
+              <Bar dataKey="healthcare" fill="#82ca9d" />
+              <Bar dataKey="Medical Student" fill="#ffc658" />
+              <Bar dataKey="CountKYC" fill="#ff7300" />
             </BarChart>
           </Card>
         </div>
@@ -246,10 +250,10 @@ const Dashboard: React.FC = () => {
       <div className="mt-6">
         <Card className="shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Sub Admin List</h1>
+            <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
             <span
               className="text-blue-500 cursor-pointer"
-              onClick={() => navigate({ to: "/app/subadmin" })}
+              onClick={() => navigate({ to: "/app/healthcare" })}
             >
               See All →
             </span>
@@ -260,61 +264,74 @@ const Dashboard: React.FC = () => {
                 <tr className="text-left text-gray-600">
                   <th className="py-3 px-4">S No</th>
                   <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Email Address</th>
-                  <th className="py-3 px-4">Phone Number</th>
+                  <th className="py-3 px-4">Degree</th>
+                  <th className="py-3 px-4">Specialization</th>
                   <th className="py-3 px-4">Role</th>
-                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">DOB</th>
+                  <th className="py-3 px-4">Gender</th>
+                  {/* <th className="py-3 px-4">Status</th> */}
                 </tr>
               </thead>
               <tbody>
-                {subAdmin?.data?.length > 0 ? (
-                  subAdmin.data.slice(0, 5).map((admin: any, index: number) => (
-                    <tr key={admin.id} className="border-t">
-                      <td className="py-3 px-4">{index + 1}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {admin.imageUrl ? (
-                            <img
-                              src={admin.imageUrl}
-                              alt={`${admin.first_name} ${admin.last_name}`}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center text-white">
-                              {admin.first_name
-                                ? admin.first_name.charAt(0).toUpperCase()
-                                : "U"}
-                            </div>
-                          )}
-                          <span>{`${admin.first_name || ""} ${
-                            admin.last_name || ""
-                          }`}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">{admin.email}</td>
-                      <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                          {admin.role ?? "N/A"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-sm ${
-                            admin.status === "ACTIVE"
-                              ? "bg-green-100 text-green-600"
-                              : "bg-red-100 text-red-600"
-                          }`}
-                        >
-                          {admin.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                {subAdminHealthCare?.data?.length > 0 ? (
+                  subAdminHealthCare.data
+                    .slice(0, 5)
+                    .map((admin: any, index: number) => (
+                      <tr key={admin.id} className="border-t">
+                        <td className="py-3 px-4">{index + 1}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {admin.imageUrl ? (
+                              <img
+                                src={admin.imageUrl}
+                                alt={`${admin.name ?? ""} 
+                                }`}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <>
+                                <div className="w-10 h-10 flex items-center justify-center p-4 rounded-full bg-button-primary text-white">
+                                  <Avatar className="bg-button-primary text-white">
+                                    {admin.name?.charAt(0)}
+                                  </Avatar>
+                                </div>
+                                <span className="text-sm">{admin.name}</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">
+                          {admin.qualification ?? "N/A"}
+                        </td>
+                        <td className="py-3 px-4">
+                          {admin.specialization ?? "N/A"}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
+                            {admin.role ?? "N/A"}
+                          </span>
+                        </td>
+                        {/* <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm ${
+                              admin.status === "ACTIVE"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            {admin.status}
+                          </span>
+                        </td> */}
+                        <td className="py-3 px-4">
+                          <FormattedDate dateString={admin.dob} format="long" />
+                        </td>
+                        <td className="py-3 px-4">{admin.gender ?? "N/A"}</td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
                     <td colSpan={6} className="py-4 text-center text-gray-500">
-                      No sub-admin data available
+                      No Healthcare Professionals data available
                     </td>
                   </tr>
                 )}
@@ -327,4 +344,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default HospitalDashboard;

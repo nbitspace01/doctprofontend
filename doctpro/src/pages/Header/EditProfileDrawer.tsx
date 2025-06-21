@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { App, Button, Drawer, Form, Input } from "antd";
+import { App, Avatar, Button, Drawer, Form, Input } from "antd";
 import axios from "axios";
 import React from "react";
 import { showError, showSuccess } from "../Common/Notification";
+import { MobileIcon } from "../Common/SVG/svg.functions";
 
 interface EditProfileDrawerProps {
   visible: boolean;
@@ -80,7 +81,11 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       footer={
         <div className="flex justify-end gap-3">
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSubmit}>
+          <Button
+            className="bg-button-primary"
+            type="primary"
+            onClick={handleSubmit}
+          >
             Save Profile
           </Button>
         </div>
@@ -89,16 +94,14 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       <Form form={form} layout="vertical" initialValues={initialValues}>
         <div className="mb-6 flex justify-center">
           <div className="relative">
-            <img
-              src="/default-avatar.png"
-              alt="Profile"
-              className="w-24 h-24 rounded-full"
-            />
+            <Avatar size={64} className="bg-button-primary">
+              {initialValues?.fullName.charAt(0)}
+            </Avatar>
           </div>
         </div>
-        <p className="text-center text-gray-500 text-sm mb-6">
+        {/* <p className="text-center text-gray-500 text-sm mb-6">
           JPG/PNG Format, Max Size 5MB
-        </p>
+        </p> */}
 
         <Form.Item
           label="Full Name"
@@ -129,7 +132,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
           name="phoneNumber"
           rules={[{ required: true, message: "Phone number is required" }]}
         >
-          <Input placeholder="Enter phone number" />
+          <Input placeholder="Enter phone number" prefix={<MobileIcon />} />
         </Form.Item>
 
         <Form.Item label="Role" name="role">

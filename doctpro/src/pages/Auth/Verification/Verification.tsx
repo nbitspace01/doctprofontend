@@ -5,6 +5,7 @@ import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../../Common/SVG/svg.functions";
 import { showMessage } from "../../Common/ResponseMessage";
+import { useAuth } from "../../Common/Context/AuthContext";
 
 const { Title, Link } = Typography;
 
@@ -14,7 +15,7 @@ const Verification = () => {
   const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const navigate = useNavigate();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
+  const { setToken } = useAuth();
   const email = localStorage.getItem("userEmail");
 
   useEffect(() => {
@@ -98,9 +99,12 @@ const Verification = () => {
     onSuccess: async (data) => {
       // Set all localStorage items
       localStorage.setItem("userToken", data.token);
+      setToken(data.token);
       localStorage.setItem("userId", data.user.id);
       localStorage.setItem("roleId", data.user.role.id);
       localStorage.setItem("roleName", data.user.role.name);
+      localStorage.setItem("firstName", data.user.first_name);
+      localStorage.setItem("lastName", data.user.last_name);
 
       // Small delay to ensure localStorage is updated
       await new Promise((resolve) => setTimeout(resolve, 100));

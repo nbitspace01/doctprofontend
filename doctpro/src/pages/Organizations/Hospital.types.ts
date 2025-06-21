@@ -8,4 +8,5 @@ export interface ApiHospitalData {
   created_at: string;
   updated_at: string;
   status: string;
+  address: string;
 }
