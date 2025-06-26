@@ -97,24 +97,67 @@ const Verification = () => {
       return response.data;
     },
     onSuccess: async (data) => {
-      // Set all localStorage items
-      localStorage.setItem("userToken", data.token);
-      setToken(data.token);
-      localStorage.setItem("userId", data.user.id);
-      localStorage.setItem("roleId", data.user.role.id);
-      localStorage.setItem("roleName", data.user.role.name);
-      localStorage.setItem("firstName", data.user.first_name);
-      localStorage.setItem("lastName", data.user.last_name);
+      try {
+        // Set all localStorage items first
+        localStorage.setItem("userToken", data.token);
+        localStorage.setItem("userId", data.user.id);
+        localStorage.setItem("roleId", data.user.role.id);
+        localStorage.setItem("roleName", data.user.role.name);
+        localStorage.setItem("firstName", data.user.first_name);
+        localStorage.setItem("lastName", data.user.last_name);
 
-      // Small delay to ensure localStorage is updated
-      await new Promise((resolve) => setTimeout(resolve, 100));
+        // Update context token
+        setToken(data.token);
 
-      if (data.user.role.name === "admin") {
-        navigate({ to: "/app/dashboard" });
-      } else {
-        navigate({ to: "/app/subadmin/dashboard" });
+        // Wait until the token is available in localStorage (max 1 second)
+        let attempts = 0;
+        const maxAttempts = 10;
+        const delay = 100; // ms
+
+        const waitForTokenAndNavigate = () => {
+          const storedToken = localStorage.getItem("userToken");
+          if (storedToken) {
+            // Token is available, now navigate
+            if (data.user.role.name === "admin") {
+              navigate({ to: "/app/dashboard", replace: true });
+            } else {
+              navigate({ to: "/app/subadmin/dashboard", replace: true });
+            }
+            showMessage.success("Verification successful! ✅");
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(waitForTokenAndNavigate, delay);
+          } else {
+            // Token still not available after waiting
+            message.error(
+              "Verification completed but there was an issue. Please try logging in again."
+            );
+            // Clear any partial data
+            localStorage.removeItem("userToken");
+            localStorage.removeItem("userId");
+            localStorage.removeItem("roleId");
+            localStorage.removeItem("roleName");
+            localStorage.removeItem("firstName");
+            localStorage.removeItem("lastName");
+            navigate({ to: "/auth/login", replace: true });
+          }
+        };
+
+        waitForTokenAndNavigate();
+      } catch (error) {
+        console.error("Error during verification success:", error);
+        message.error(
+          "Verification completed but there was an issue. Please try logging in again."
+        );
+        // Clear any partial data
+        localStorage.removeItem("userToken");
+        localStorage.removeItem("userId");
+        localStorage.removeItem("roleId");
+        localStorage.removeItem("roleName");
+        localStorage.removeItem("firstName");
+        localStorage.removeItem("lastName");
+        navigate({ to: "/auth/login", replace: true });
       }
-      showMessage.success("Verification successful! ✅");
     },
     onError: (error) => {
       message.error("Invalid OTP. Please try again.");

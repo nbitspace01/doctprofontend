@@ -18,7 +18,7 @@ import {
   totalHospital,
   totalStudents,
 } from "../../pages/Common/SVG/svg.functions";
-import { TOKEN } from "../Common/constant.function";
+import { getToken } from "../Common/authUtils";
 import Loader from "../Common/Loader";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
@@ -34,7 +34,7 @@ const Dashboard: React.FC = () => {
   const fetchDashboardCounts = async () => {
     const res = await axios.get(`${API_URL}/api/dashboard/counts`, {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     });
     return res.data;
@@ -43,7 +43,7 @@ const Dashboard: React.FC = () => {
   const fetchKycStats = async () => {
     const res = await axios.get(`${API_URL}/api/dashboard/getKycStatusCounts`, {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     });
     return res.data;
@@ -57,7 +57,7 @@ const Dashboard: React.FC = () => {
   const fetchSubAdmin = async () => {
     const res = await axios.get(`${API_URL}/api/dashboard/sub-admin/list`, {
       headers: {
-        Authorization: `Bearer ${TOKEN}`,
+        Authorization: `Bearer ${getToken()}`,
       },
     });
     console.log(res.data, "res.data");

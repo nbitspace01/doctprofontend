@@ -39,10 +39,10 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const updateProfileMutation = useMutation({
     mutationFn: async (values: any) => {
       const response = await axios.put(`${URL}/api/user/profile/${USER_ID}`, {
-        name: values.fullName,
-        // last_name: values.fullName,
+        first_name: values.fullName.split(" ")[0] || values.fullName,
+        last_name: values.fullName.split(" ").slice(1).join(" ") || "",
+        specialization: values.note || "",
         phone: values.phoneNumber,
-        specialization: values.note,
       });
       return response.data;
     },

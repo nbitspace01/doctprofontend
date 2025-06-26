@@ -3,8 +3,23 @@ import Header from "./Header/Header";
 import { Outlet } from "@tanstack/react-router";
 import { Layout } from "antd";
 import { Content } from "antd/es/layout/layout";
+import { useEffect } from "react";
+import {
+  checkAndRedirectIfNotAuth,
+  isAuthenticated,
+  getToken,
+} from "./Common/authUtils";
 
 const MainLayout = () => {
+  useEffect(() => {
+    console.log("MainLayout mounted, checking authentication...");
+    console.log("Is authenticated:", isAuthenticated());
+    console.log("Token exists:", !!getToken());
+
+    // Check authentication on component mount
+    checkAndRedirectIfNotAuth();
+  }, []);
+
   return (
     <Layout className="">
       <Sidebar />

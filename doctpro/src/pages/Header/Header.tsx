@@ -1,12 +1,11 @@
-import { BellOutlined, SearchOutlined } from "@ant-design/icons";
+import { SearchOutlined } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Badge, Dropdown, Input } from "antd";
+import { Avatar, Dropdown, Input } from "antd";
 import React, { useState } from "react";
 import axiosInstance from "../Common/axiosInstance";
 import { EditIcon, ViewIcon } from "../Common/SVG/svg.functions";
 import EditProfileDrawer from "./EditProfileDrawer";
 import ViewProfileDrawer from "./ViewProfileDrawer";
-import { USER_NAME } from "../Common/constant.function";
 
 // Add this interface for type safety
 interface UserProfile {
@@ -107,9 +106,9 @@ const Header: React.FC = () => {
           {/* Right Side Icons */}
           <div className="flex items-center space-x-6">
             {/* Notifications */}
-            <Badge count={5} className="cursor-pointer">
+            {/* <Badge count={5} className="cursor-pointer">
               <BellOutlined className="text-xl text-gray-600 hover:text-blue-600" />
-            </Badge>
+            </Badge> */}
 
             {/* User Profile */}
             <Dropdown
@@ -119,10 +118,10 @@ const Header: React.FC = () => {
             >
               <div className="flex items-center space-x-3 cursor-pointer">
                 <Avatar size={32} className="bg-button-primary">
-                  {USER_NAME?.charAt(0)}
+                  {userProfile?.name?.charAt(0)}
                 </Avatar>
                 <span className="font-medium text-gray-700">
-                  {USER_NAME ?? "Loading..."}
+                  {userProfile?.name ?? "Loading..."}
                 </span>
               </div>
             </Dropdown>
