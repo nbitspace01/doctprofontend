@@ -40,8 +40,9 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
     mutationFn: async (values: any) => {
       const response = await axios.put(`${URL}/api/user/profile/${USER_ID}`, {
         name: values.fullName,
-        specialization: values.note,
+        // last_name: values.fullName,
         phone: values.phoneNumber,
+        specialization: values.note,
       });
       return response.data;
     },
