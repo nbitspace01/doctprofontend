@@ -1,12 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button, Dropdown, Table } from "antd";
+import { Avatar, Table } from "antd";
 import React, { useState } from "react";
-import Loader from "../../Common/Loader";
-import StudentView from "./StudentView";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
-import { MoreOutlined } from "@ant-design/icons";
-import FormattedDate from "../../Common/FormattedDate";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import FormattedDate from "../../Common/FormattedDate";
+import Loader from "../../Common/Loader";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import StudentView from "./StudentView";
 
 interface Student {
   studentId: string;

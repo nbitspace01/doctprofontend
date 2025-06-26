@@ -1,5 +1,5 @@
 import { UploadOutlined, UserOutlined } from "@ant-design/icons";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import {
   App,
   Button,
@@ -10,12 +10,11 @@ import {
   TimePicker,
   Upload,
   UploadProps,
-  notification,
 } from "antd";
 import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { showError, showSuccess } from "../../Common/Notification";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
+import { showError, showSuccess } from "../../Common/Notification";
 import { MobileIcon } from "../../Common/SVG/svg.functions";
 
 // First, let's add an interface for our form data
@@ -45,10 +44,10 @@ interface HospitalRegistrationData {
   admin_phone: string;
 }
 
-interface UpdateHospitalData {
-  hospital_id: string;
-  logoUrl: string;
-}
+// interface UpdateHospitalData {
+//   hospital_id: string;
+//   logoUrl: string;
+// }
 
 // Add interface for KYC data
 
@@ -91,22 +90,22 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
   });
 
-  const updateHospitalMutation = useMutation({
-    mutationFn: (data: UpdateHospitalData) =>
-      axios.put(`${API_URL}/api/hospital/register/${data.hospital_id}`, {
-        logoUrl: data.logoUrl,
-      }),
-    onSuccess: () => {
-      // Optionally handle success, e.g., show a notification
-    },
-    onError: (error) => {
-      console.error("Updating hospital with logo failed:", error);
-      showError(notification, {
-        message: "Failed to save logo.",
-        description: "Failed to save logo.",
-      });
-    },
-  });
+  // const updateHospitalMutation = useMutation({
+  //   mutationFn: (data: UpdateHospitalData) =>
+  //     axios.put(`${API_URL}/api/hospital/register/${data.hospital_id}`, {
+  //       logoUrl: data.logoUrl,
+  //     }),
+  //   onSuccess: () => {
+  //     // Optionally handle success, e.g., show a notification
+  //   },
+  //   onError: (error) => {
+  //     console.error("Updating hospital with logo failed:", error);
+  //     showError(notification, {
+  //       message: "Failed to save logo.",
+  //       description: "Failed to save logo.",
+  //     });
+  //   },
+  // });
 
   const kycVerificationMutation = useMutation({
     mutationFn: async (data: any) => {

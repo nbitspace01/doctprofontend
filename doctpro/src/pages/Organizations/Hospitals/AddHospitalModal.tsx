@@ -10,12 +10,11 @@ import {
   Upload,
   UploadProps,
 } from "antd";
+import axios from "axios";
 import { useEffect, useState } from "react";
+import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showSuccess } from "../../Common/Notification";
 import { ApiHospitalData } from "../Hospital.types";
-import { USER_ID } from "../../Common/constant.function";
-import axios from "axios";
-import { TOKEN } from "../../Common/constant.function";
 
 // Define the props interface
 interface AddHospitalModalProps {
@@ -87,6 +86,8 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       setImageUrl(""); // Reset image URL when not editing
     }
   }, [isEditing, initialData, isOpen, form]);
+
+  console.log(uploading, "uploading");
 
   const createHospital = async (values: Partial<ApiHospitalData>) => {
     const response = await fetch(`${API_URL}/api/hospital/`, {
