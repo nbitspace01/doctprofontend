@@ -5,9 +5,9 @@ import {
   Input,
   Select,
   Button,
-  message,
   Upload,
   UploadProps,
+  App,
 } from "antd";
 import { registerCollege, CollegeKycPayload } from "../../../api/college";
 import axios from "axios";
@@ -15,6 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { UserOutlined } from "@ant-design/icons";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { MobileIcon } from "../../Common/SVG/svg.functions";
+import { showError, showSuccess } from "../../Common/Notification";
 
 interface CollegeRegistrationProps {
   isOpen: boolean;
@@ -68,6 +69,7 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
   } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("");
+  const { notification } = App.useApp();
 
   const uploadProps: UploadProps = {
     maxCount: 1,
@@ -76,12 +78,16 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
     beforeUpload: (file) => {
       const isImage = file.type.startsWith("image/");
       if (!isImage) {
-        message.error("You can only upload image files!");
+        notification.error({
+          message: "You can only upload image files!",
+        });
         return false;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
-        message.error("Image must be smaller than 2MB!");
+        notification.error({
+          message: "Image must be smaller than 2MB!",
+        });
         return false;
       }
       return true;
@@ -120,11 +126,17 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         form.setFieldsValue({ profile_image: url });
 
         onSuccess?.(response.data);
-        message.success("Image uploaded successfully!");
+        showSuccess(notification, {
+          message: "Image uploaded successfully!",
+          description: "Image uploaded successfully",
+        });
       } catch (error) {
         console.error("Upload error:", error);
         onError?.(error as Error);
-        message.error("Failed to upload image");
+        showError(notification, {
+          message: "Failed to upload image!",
+          description: "Failed to upload image",
+        });
       } finally {
         setUploading(false);
       }
@@ -157,13 +169,19 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         college_id: response.college_id,
         user_id: response.user_id,
       });
-      message.success("College registered successfully");
+      showSuccess(notification, {
+        message: "College registered Successfully",
+        description: response.message ?? "Operation completed successfully",
+      });
+
       setCurrentForm("kyc");
     } catch (error) {
       console.error("Registration failed:", error);
-      message.error(
-        error instanceof Error ? error.message : "Failed to register college"
-      );
+      showError(notification, {
+        message:
+          error instanceof Error ? error.message : "Failed to register college",
+        description: "Failed to register college",
+      });
     }
   };
 
@@ -181,7 +199,10 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         ) as HTMLInputElement;
 
         if (!collegeKycInput?.files?.[0] || !adminKycInput?.files?.[0]) {
-          message.error("Please upload both KYC documents");
+          showError(notification, {
+            message: "Please upload both KYC documents",
+            description: "Please upload both KYC documents",
+          });
           return;
         }
 
@@ -198,15 +219,19 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         };
 
         await uploadCollegeKyc(kycPayload);
-        message.success("KYC uploaded successfully");
+        showSuccess(notification, {
+          message: "KYC uploaded successfully",
+          description: "KYC uploaded successfully",
+        });
         handleCancel();
         queryClient.invalidateQueries({ queryKey: ["colleges"] });
       }
     } catch (error) {
       console.error("Submission failed:", error);
-      message.error(
-        error instanceof Error ? error.message : "Failed to submit"
-      );
+      showError(notification, {
+        message: error instanceof Error ? error.message : "Failed to submit",
+        description: "Operation failed",
+      });
     }
   };
 
@@ -331,7 +356,13 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
       <Form.Item
         name="collegeName"
         label="College Name *"
-        rules={[{ required: true, message: "Please enter college name" }]}
+        rules={[
+          { required: true, message: "Please enter college name" },
+          {
+            pattern: /^[a-zA-Z\s]+$/,
+            message: "Please enter a valid college name",
+          },
+        ]}
       >
         <Select placeholder="Select College Name">
           <Select.Option value="college1">Vel Tech University</Select.Option>

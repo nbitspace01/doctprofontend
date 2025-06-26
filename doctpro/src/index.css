@@ -6,6 +6,15 @@ html {
   overflow: hidden;
 }
 
+.custom-checkbox .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #0dc500 !important;
+  border-color: #0dc500 !important;
+}
+
+.custom-checkbox .ant-checkbox-checked::after {
+  border: 1px solid #0dc500 !important;
+}
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

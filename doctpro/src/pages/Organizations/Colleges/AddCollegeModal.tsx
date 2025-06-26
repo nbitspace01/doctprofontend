@@ -63,7 +63,10 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
     <Modal
       title="Add New College"
       open={visible}
-      onCancel={onClose}
+      onCancel={() => {
+        form.resetFields();
+        onClose();
+      }}
       footer={null}
       width={600}
     >
@@ -76,7 +79,13 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
         <Form.Item
           label="College Name"
           name="name"
-          rules={[{ required: true, message: "Please enter college name" }]}
+          rules={[
+            { required: true, message: "Please enter college name" },
+            {
+              pattern: /^[a-zA-Z\s]+$/,
+              message: "Please enter a valid college name",
+            },
+          ]}
         >
           <Input placeholder="Enter College Name" className="w-full" />
         </Form.Item>
@@ -143,7 +152,14 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
         </Form.Item>
 
         <div className="flex justify-end gap-3 mt-6">
-          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            onClick={() => {
+              form.resetFields();
+              onClose();
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             type="primary"
             htmlType="submit"

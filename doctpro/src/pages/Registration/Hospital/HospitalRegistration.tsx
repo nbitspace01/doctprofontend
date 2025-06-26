@@ -9,7 +9,6 @@ import {
   Select,
   TimePicker,
   Upload,
-  message,
   UploadProps,
   notification,
 } from "antd";
@@ -68,8 +67,8 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   const [userId, setUserId] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("");
-
-  // Replace file states with URL states
+  const { notification } = App.useApp();
+  // State for KYC file objects
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
@@ -102,7 +101,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
     onError: (error) => {
       console.error("Updating hospital with logo failed:", error);
-      message.error("Failed to save logo.");
+      showError(notification, {
+        message: "Failed to save logo.",
+        description: "Failed to save logo.",
+      });
     },
   });
 
@@ -117,14 +119,13 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       formData.append("license_type", data.license_type);
       formData.append("license_number", data.license_number);
 
-      // Add the actual files with correct field names
       if (data.id_proof_file) {
         formData.append("id_proof", data.id_proof_file);
       }
       if (data.license_file) {
         formData.append("license", data.license_file);
       }
-      console.log("formData", formData);
+
       return axios.post(`${API_URL}/api/hospital/upload`, formData, {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -135,16 +136,19 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     onSuccess: (response) => {
       console.log("KYC verification successful:", response.data);
       setCurrentStep(currentStep + 1);
-      message.success("KYC submitted successfully");
+      showSuccess(notification, {
+        message: "KYC submitted successfully",
+        description:
+          response.data.message ?? "Operation completed successfully",
+      });
     },
     onError: (error: any) => {
       console.error("KYC verification failed:", error);
-      console.error("Error response:", error.response?.data);
-      message.error(
-        `Failed to submit KYC: ${
-          error.response?.data?.message ?? error.message
-        }`
-      );
+      showError(notification, {
+        message: "Failed to submit KYC",
+        description:
+          error.response?.data?.message ?? error.message ?? "Operation failed",
+      });
     },
   });
 
@@ -164,12 +168,18 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     beforeUpload: (file) => {
       const isImage = file.type.startsWith("image/");
       if (!isImage) {
-        message.error("You can only upload image files!");
+        showError(notification, {
+          message: "You can only upload image files!",
+          description: "You can only upload image files!",
+        });
         return false;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
-        message.error("Image must be smaller than 2MB!");
+        showError(notification, {
+          message: "Image must be smaller than 2MB!",
+          description: "Image must be smaller than 2MB!",
+        });
         return false;
       }
       return true;
@@ -208,11 +218,17 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         form.setFieldsValue({ logoUrl: url });
 
         onSuccess?.(response.data);
-        message.success("Image uploaded successfully!");
+        showSuccess(notification, {
+          message: "Image uploaded successfully!",
+          description: "Image uploaded successfully",
+        });
       } catch (error) {
         console.error("Upload error:", error);
         onError?.(error as Error);
-        message.error("Failed to upload image");
+        showError(notification, {
+          message: "Failed to upload image",
+          description: "Failed to upload image",
+        });
       } finally {
         setUploading(false);
       }
@@ -710,24 +726,26 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           },
         });
       } else if (currentStep === 2) {
-        // Validate required fields
         if (!userId || !preRegistrationId) {
-          message.error(
-            "Missing required registration data. Please complete step 1 first."
-          );
+          showError(notification, {
+            message:
+              "Missing required registration data. Please complete step 1 first.",
+          });
           return;
         }
-
         if (!values.id_proof_type || !values.id_proof_number || !idProofFile) {
-          message.error("Please fill in all ID proof details");
+          showError(notification, {
+            message: "Please fill in all ID proof details",
+          });
           return;
         }
 
         if (!values.license_type || !values.license_number || !licenseFile) {
-          message.error("Please fill in all license details");
+          showError(notification, {
+            message: "Please fill in all license details",
+          });
           return;
         }
-
         const kycData = {
           user_id: userId,
           hospital_id: preRegistrationId,
@@ -746,7 +764,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       }
     } catch (error) {
       console.error("Form validation failed:", error);
-      message.error("Please fill in all required fields");
+      showError(notification, {
+        message: "Please fill in all required fields",
+      });
     }
   };
 
@@ -764,8 +784,16 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
       console.log("Step 3 payload:", passwordData);
       setPasswordMutation.mutate(passwordData);
+      showSuccess(notification, {
+        message: "Password set successfully",
+        description: "Password set successfully",
+      });
     } catch (error) {
       console.error("Validation failed:", error);
+      showError(notification, {
+        message: "Validation failed",
+        description: "Validation failed",
+      });
     }
   };
 
@@ -781,7 +809,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     if (currentStep === 2 && !preRegistrationId) {
       // Redirect back to step 1 or show error
       setCurrentStep(1);
-      message.error("Please complete step 1 first");
+      showError(notification, {
+        message: "Please complete step 1 first",
+        description: "Please complete step 1 first",
+      });
     }
   }, [currentStep, preRegistrationId]);
 

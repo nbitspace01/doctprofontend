@@ -170,6 +170,7 @@ const DegreeSpecializationList: React.FC = () => {
           onView={() => handleView(record)}
           onEdit={() => handleEdit(record)}
           onDelete={() => {}}
+          showDelete={false}
         />
       ),
     },

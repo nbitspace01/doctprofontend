@@ -74,6 +74,26 @@ const SubAdmin: React.FC = () => {
 
   const subAdmin = subAdminResponse?.data ?? [];
   const totalCount = subAdminResponse?.total ?? 0;
+  console.log("subAdmin", subAdmin);
+
+  const downloadReportCSV = () => {
+    console.log("downloadReportCSV");
+    const csvRows = [];
+    const headers = Object.keys(subAdmin[0]);
+    csvRows.push(headers.join(","));
+    subAdmin.forEach((row) => {
+      const values = headers.map((header) => row[header as keyof SubAdminData]);
+      csvRows.push(values.join(","));
+    });
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "report.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleEdit = (record: SubAdminData) => {
     setEditData({
@@ -215,7 +235,7 @@ const SubAdmin: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton onDownload={downloadReportCSV} />
         <Table
           columns={columns}
           dataSource={subAdmin}
