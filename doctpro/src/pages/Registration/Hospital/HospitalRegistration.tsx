@@ -15,7 +15,6 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
-import { MobileIcon } from "../../Common/SVG/svg.functions";
 import PhoneNumberInput from "../../Common/PhoneNumberInput";
 
 // First, let's add an interface for our form data

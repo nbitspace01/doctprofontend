@@ -1,20 +1,19 @@
-import React, { useState } from "react";
+import { UserOutlined } from "@ant-design/icons";
+import { useQueryClient } from "@tanstack/react-query";
 import {
-  Modal,
+  App,
+  Button,
   Form,
   Input,
+  Modal,
   Select,
-  Button,
   Upload,
   UploadProps,
-  App,
 } from "antd";
-import { registerCollege, CollegeKycPayload } from "../../../api/college";
 import axios from "axios";
-import { useQueryClient } from "@tanstack/react-query";
-import { UserOutlined } from "@ant-design/icons";
+import React, { useState } from "react";
+import { CollegeKycPayload, registerCollege } from "../../../api/college";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
-import { MobileIcon } from "../../Common/SVG/svg.functions";
 import { showError, showSuccess } from "../../Common/Notification";
 import PhoneNumberInput from "../../Common/PhoneNumberInput";
 

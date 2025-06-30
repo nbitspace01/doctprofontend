@@ -1,17 +1,12 @@
-import {
-  DownloadOutlined,
-  FilterOutlined,
-  PlusOutlined,
-  SearchOutlined,
-} from "@ant-design/icons";
+import { PlusOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Input, Space, Table, Tag } from "antd";
+import { Button, Table, Tag } from "antd";
 import axios from "axios";
 import { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
 import ClinicViewDrawer from "./ClinicViewDrawer";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 
 interface Hospital {
   id: string;

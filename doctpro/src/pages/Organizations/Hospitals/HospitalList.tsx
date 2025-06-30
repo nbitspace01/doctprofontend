@@ -12,12 +12,11 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
-import { ApiHospitalData } from "../Hospital.types";
-import AddHospitalModal from "./AddHospitalModal";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
 import { showSuccess } from "../../Common/Notification";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
-import CommonDropdown from "../../Common/CommonActionsDropdown";
-import Loader from "../../Common/Loader";
+import { ApiHospitalData } from "../Hospital.types";
+import AddHospitalModal from "./AddHospitalModal";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 interface ApiResponse {
