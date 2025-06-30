@@ -164,6 +164,8 @@ const ListCollege: React.FC = () => {
           }}
           onEdit={() => {}}
           onDelete={() => {}}
+          showDelete={false}
+          showEdit={false}
         />
       ),
     },

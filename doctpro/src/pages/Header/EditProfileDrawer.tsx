@@ -2,8 +2,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { App, Avatar, Button, Drawer, Form, Input } from "antd";
 import axios from "axios";
 import React from "react";
+import PhoneNumberInput from "../Common/PhoneNumberInput";
 import { showError, showSuccess } from "../Common/Notification";
-import { MobileIcon } from "../Common/SVG/svg.functions";
 
 interface EditProfileDrawerProps {
   visible: boolean;
@@ -128,13 +128,14 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
           <Input disabled className="bg-gray-50" />
         </Form.Item>
 
-        <Form.Item
+        {/* <Form.Item
           label="Phone Number"
           name="phoneNumber"
           rules={[{ required: true, message: "Phone number is required" }]}
         >
           <Input placeholder="Enter phone number" prefix={<MobileIcon />} />
-        </Form.Item>
+        </Form.Item> */}
+        <PhoneNumberInput name="phoneNumber" label="Phone Number" />
 
         <Form.Item label="Role" name="role">
           <Input disabled className="bg-gray-50" />

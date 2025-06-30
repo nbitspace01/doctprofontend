@@ -23,12 +23,17 @@ interface AdsPost {
 const AdsPostList: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(8);
   const queryClient = useQueryClient();
+  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
   const { data: adsData, isLoading } = useQuery({
-    queryKey: ["ads"],
+    queryKey: ["ads", currentPage, pageSize],
     queryFn: async () => {
-      const response = await fetch("http://localhost:3000/api/ads");
+      const response = await fetch(
+        `${API_URL}/api/ads?page=${currentPage}&limit=${pageSize}`
+      );
       console.log(response);
       if (!response.ok) {
         throw new Error("Network response was not ok");
@@ -117,6 +122,8 @@ const AdsPostList: React.FC = () => {
           onView={() => setIsViewDrawerOpen(true)}
           onEdit={() => {}}
           onDelete={() => {}}
+          showDelete={false}
+          showEdit={false}
         />
       ),
     },
@@ -124,6 +131,11 @@ const AdsPostList: React.FC = () => {
   const handleModalClose = () => {
     setIsCreateModalOpen(false);
     queryClient.invalidateQueries({ queryKey: ["ads"] });
+  };
+
+  const handleTableChange = (pagination: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
   };
 
   return (
@@ -143,15 +155,20 @@ const AdsPostList: React.FC = () => {
 
         <Table
           columns={columns}
-          dataSource={adsData}
+          dataSource={adsData?.data || adsData || []}
           loading={isLoading}
           scroll={{ x: "max-content" }}
           pagination={{
-            total: 50,
-            pageSize: 8,
+            current: currentPage,
+            pageSize: pageSize,
+            total: adsData?.total || adsData?.length || 0,
             showSizeChanger: true,
             showQuickJumper: true,
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+            pageSizeOptions: ["8", "16", "24", "32"],
           }}
+          onChange={handleTableChange}
           className="shadow-sm rounded-lg"
         />
       </div>
@@ -160,7 +177,7 @@ const AdsPostList: React.FC = () => {
       <AdsPostViewDrawer
         visible={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}
-        adsId={adsData?.[0]?.id ?? ""}
+        adsId={(adsData?.data?.[0]?.id || adsData?.[0]?.id) ?? ""}
       />
     </div>
   );

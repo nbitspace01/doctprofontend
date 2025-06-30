@@ -109,6 +109,9 @@ const HospitalList: React.FC = () => {
     queryFn: () =>
       selectedHospitalId ? fetchHospitalById(selectedHospitalId) : null,
     enabled: !!selectedHospitalId,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: viewHospital, isLoading: isViewLoading } = useQuery({
@@ -116,13 +119,27 @@ const HospitalList: React.FC = () => {
     queryFn: () => (viewHospitalId ? fetchHospitalById(viewHospitalId) : null),
     enabled: !!viewHospitalId,
     refetchOnMount: true,
+    refetchOnWindowFocus: true,
     staleTime: 0,
   });
 
   const updateHospitalMutation = useMutation({
     mutationFn: updateHospital,
     onSuccess: () => {
+      // Invalidate all hospital-related queries
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+      // Also invalidate the specific hospital query if we're viewing one
+      if (viewHospitalId) {
+        queryClient.invalidateQueries({
+          queryKey: ["hospital", viewHospitalId],
+        });
+      }
+      // Invalidate the selected hospital query if we're editing one
+      if (selectedHospitalId) {
+        queryClient.invalidateQueries({
+          queryKey: ["hospital", selectedHospitalId],
+        });
+      }
     },
     onError: (error) => {
       message.error("Failed to update hospital");
@@ -135,9 +152,22 @@ const HospitalList: React.FC = () => {
   }
 
   const handleSuccess = (message: string) => {
+    // Invalidate all hospital-related queries
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    // Also invalidate the specific hospital query if we're viewing one
+    if (viewHospitalId) {
+      queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
+    }
+    // Invalidate the selected hospital query if we're editing one
+    if (selectedHospitalId) {
+      queryClient.invalidateQueries({
+        queryKey: ["hospital", selectedHospitalId],
+      });
+    }
     console.log("message:", message);
+    // Close the modal after successful update
     setIsModalOpen(false);
+    setSelectedHospitalId(null);
   };
 
   // Pass this function to the modal
@@ -154,6 +184,7 @@ const HospitalList: React.FC = () => {
       showSuccess(notification, {
         message: response.message,
       });
+      // The mutation's onSuccess will handle query invalidation
     } else {
       console.error("No hospital ID selected for update.");
     }
@@ -271,7 +302,7 @@ const HospitalList: React.FC = () => {
             setViewHospitalId(record.key);
             setIsDrawerOpen(true);
           }}
-          onEdit={() => {
+          onEdit={async () => {
             setSelectedHospitalId(record.key);
             setIsModalOpen(true);
           }}
@@ -337,7 +368,7 @@ const HospitalList: React.FC = () => {
       >
         {isViewLoading ? (
           <Skeleton active />
-        ) : viewHospital ? (
+        ) : viewHospital && typeof viewHospital === "object" ? (
           <div className="space-y-6">
             <div className="flex items-center gap-3">
               {(() => {
@@ -407,6 +438,7 @@ const HospitalList: React.FC = () => {
       </Drawer>
 
       <AddHospitalModal
+        key={selectedHospitalId || "new"}
         isOpen={isModalOpen}
         onClose={() => {
           setIsModalOpen(false);

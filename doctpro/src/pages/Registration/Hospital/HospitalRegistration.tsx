@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
 import { MobileIcon } from "../../Common/SVG/svg.functions";
+import PhoneNumberInput from "../../Common/PhoneNumberInput";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -415,13 +416,14 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           <Input placeholder="surya@xyz.com" />
         </Form.Item>
 
-        <Form.Item
+        {/* <Form.Item
           name="phone"
           label="Phone Number"
           rules={[{ required: true, message: "Please enter phone number" }]}
         >
           <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
-        </Form.Item>
+        </Form.Item> */}
+        <PhoneNumberInput name="phone" label="Phone Number" />
       </div>
 
       <Form.List name="operating_hours">
@@ -525,13 +527,14 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           >
             <Input placeholder="surya@xyz.com" />
           </Form.Item>
-          <Form.Item
+          {/* <Form.Item
             name="hr_phone"
             label="Phone Number"
             rules={[{ required: true, message: "Please enter phone number" }]}
           >
             <Input placeholder="+91 99999 99999" />
-          </Form.Item>
+          </Form.Item> */}
+          <PhoneNumberInput name="hr_phone" label="Phone Number" />
         </div>
       </div>
 

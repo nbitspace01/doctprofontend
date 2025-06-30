@@ -16,7 +16,7 @@ import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
-import { MobileIcon } from "../Common/SVG/svg.functions";
+import PhoneNumberInput from "../Common/PhoneNumberInput";
 
 interface SubAdminData {
   id: string;
@@ -153,9 +153,15 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       if (initialData) {
         // Set the image URL state first
         setImageUrl(initialData.profile_image || "");
+
+        // Split the full name into first and last name
+        const nameParts = initialData.first_name.split(" ");
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+
         form.setFieldsValue({
-          first_name: initialData.first_name,
-          last_name: initialData.last_name,
+          first_name: firstName,
+          last_name: lastName,
           email: initialData.email,
           phone: initialData.phone,
           role: initialData.role,
@@ -327,7 +333,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         >
           <Input placeholder="Enter first name" />
         </Form.Item>
-
+        {/* show last name only in add sub admin */}
         <Form.Item
           label="Last Name"
           name="last_name"
@@ -347,13 +353,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Input placeholder="Enter email address" />
         </Form.Item>
 
-        <Form.Item
-          label="Phone Number"
-          name="phone"
-          rules={[{ required: true, message: "Please enter phone number" }]}
-        >
-          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
-        </Form.Item>
+        <PhoneNumberInput name="phone" label="Phone Number" />
 
         <div className="grid grid-cols-2 gap-4">
           <Form.Item

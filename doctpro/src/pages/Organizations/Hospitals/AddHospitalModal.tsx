@@ -70,9 +70,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         isActive: initialData.isActive,
       });
       // Set the image URL for display if editing
-      if (initialData.logoUrl) {
-        setImageUrl(initialData.logoUrl);
-      }
+      setImageUrl(initialData.logoUrl || "");
     } else {
       form.resetFields();
       const emptyData = {
@@ -121,6 +119,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         description: data.message,
       });
       onSuccess();
+      // Close modal for both new hospital creation and updates
       handleClose();
     } catch (error) {
       console.error("Error handling hospital:", error);
@@ -237,12 +236,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-3xl text-gray-400">Logo here</span>
+                  <span className="text-3xl text-center text-gray-400">
+                    Logo here
+                  </span>
                 )}
               </div>
             </Upload>
           </div>
-          <p className="text-center text-gray-500">Logo here</p>
+          {/* <p className="text-center text-gray-500">Logo here</p> */}
 
           {/* Hospital/Clinic Name */}
           <Form.Item

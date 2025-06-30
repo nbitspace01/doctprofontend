@@ -60,6 +60,8 @@ const CollegeList: React.FC = () => {
     queryKey: ["Colleges", currentPage, pageSize],
     queryFn: fetchColleges,
     refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    staleTime: 0,
   });
 
   const columns: ColumnsType<CollegeData> = [

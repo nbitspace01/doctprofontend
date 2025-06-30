@@ -8,8 +8,10 @@ import { useState } from "react";
 
 const SearchFilterDownloadButton = ({
   onDownload,
+  onSearch,
 }: {
   onDownload?: () => void;
+  onSearch?: (value: string) => void;
 }) => {
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>("name");
   const [searchName, setSearchName] = useState("");
@@ -175,7 +177,12 @@ const SearchFilterDownloadButton = ({
 
   return (
     <div className="p-4 flex justify-between items-center border-b">
-      <Input.Search placeholder="Search" className="max-w-xs" allowClear />
+      <Input.Search
+        placeholder="Search"
+        className="max-w-xs"
+        allowClear
+        onChange={(e) => onSearch?.(e.target.value)}
+      />
       <Space>
         {onDownload && (
           <Button

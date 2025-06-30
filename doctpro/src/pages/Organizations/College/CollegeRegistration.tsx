@@ -16,6 +16,7 @@ import { UserOutlined } from "@ant-design/icons";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { MobileIcon } from "../../Common/SVG/svg.functions";
 import { showError, showSuccess } from "../../Common/Notification";
+import PhoneNumberInput from "../../Common/PhoneNumberInput";
 
 interface CollegeRegistrationProps {
   isOpen: boolean;
@@ -358,10 +359,10 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
         label="College Name *"
         rules={[
           { required: true, message: "Please enter college name" },
-          {
-            pattern: /^[a-zA-Z\s]+$/,
-            message: "Please enter a valid college name",
-          },
+          // {
+          //   pattern: /^[a-zA-Z\s]+$/,
+          //   message: "Please enter a valid college name",
+          // },
         ]}
       >
         <Select placeholder="Select College Name">
@@ -427,13 +428,14 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
       </Form.Item>
 
       <div className="grid grid-cols-2 gap-4">
-        <Form.Item
+        {/* <Form.Item
           name="phone"
           label="Phone Number *"
           rules={[{ required: true, message: "Please enter phone number" }]}
         >
           <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
-        </Form.Item>
+        </Form.Item> */}
+        <PhoneNumberInput name="phone" label="Phone Number" />
 
         <Form.Item name="website" label="Website *">
           <Input placeholder="http://www.sample.com" />
@@ -450,9 +452,10 @@ const CollegeRegistration: React.FC<CollegeRegistrationProps> = ({
           <Input placeholder="surya@xyz.com" />
         </Form.Item>
 
-        <Form.Item name="inChargePhone" label="Phone Number">
+        {/* <Form.Item name="inChargePhone" label="Phone Number">
           <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
-        </Form.Item>
+        </Form.Item> */}
+        <PhoneNumberInput name="inChargePhone" label="Phone Number" />
       </div>
     </div>
   );
