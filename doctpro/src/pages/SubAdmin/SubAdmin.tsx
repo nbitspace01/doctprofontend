@@ -36,6 +36,7 @@ const SubAdmin: React.FC = () => {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchValue, setSearchValue] = useState("");
   const queryClient = useQueryClient();
   interface SubAdminResponse {
     data: SubAdminData[];
@@ -46,8 +47,10 @@ const SubAdmin: React.FC = () => {
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+    // seacrh is only if search is true
+    const searchParam = searchValue ? `&search=${searchValue}` : "";
     const res = await ApiRequest.get(
-      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}`
+      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}`
     );
 
     // Return the full response structure with data and total
@@ -61,16 +64,12 @@ const SubAdmin: React.FC = () => {
     SubAdminResponse,
     Error
   >({
-    queryKey: ["subAdmin", currentPage, pageSize],
+    queryKey: ["subAdmin", currentPage, pageSize, searchValue],
     queryFn: fetchSubAdmin,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
-
-  if (isFetching) {
-    return <Loader size="large" />;
-  }
 
   const subAdmin = subAdminResponse?.data ?? [];
   const totalCount = subAdminResponse?.total ?? 0;
@@ -220,6 +219,11 @@ const SubAdmin: React.FC = () => {
     setEditData(null);
   };
 
+  const handleSearch = (value: string) => {
+    console.log("Search value:", value);
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -235,29 +239,41 @@ const SubAdmin: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton onDownload={downloadReportCSV} />
-        <Table
-          columns={columns}
-          dataSource={subAdmin}
-          scroll={{ x: "max-content" }}
-          pagination={false}
-          // onChange={handleTableChange}
-          rowKey="id"
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          onDownload={downloadReportCSV}
+          searchValue={searchValue}
         />
-        <div className="flex justify-end my-2 py-3">
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={totalCount}
-            showSizeChanger
-            showQuickJumper
-            showTotal={(total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`
-            }
-            onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-          />
-        </div>
+        {isFetching ? (
+          <div className="flex justify-center items-center py-8">
+            <Loader size="large" />
+          </div>
+        ) : (
+          <>
+            <Table
+              columns={columns}
+              dataSource={subAdmin}
+              scroll={{ x: "max-content" }}
+              pagination={false}
+              // onChange={handleTableChange}
+              rowKey="id"
+            />
+            <div className="flex justify-end my-2 py-3">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalCount}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+                onChange={handlePageChange}
+                onShowSizeChange={handlePageChange}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <AddSubAdminModal

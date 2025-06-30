@@ -11,6 +11,7 @@ import { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
 import ClinicViewDrawer from "./ClinicViewDrawer";
+import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 
 interface Hospital {
   id: string;
@@ -33,19 +34,26 @@ const ClinicsList = () => {
   const queryClient = useQueryClient();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  const [searchValue, setSearchValue] = useState("");
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const { data: apiResponse, isFetching } = useQuery({
-    queryKey: ["hospitals", currentPage, pageSize],
+    queryKey: ["hospitals", currentPage, pageSize, searchValue],
     queryFn: async () => {
-      const { data } = await axios.get(`${API_URL}/api/hospital/`, {
-        params: {
-          page: currentPage,
-          limit: pageSize,
-        },
-      });
+      const { data } = await axios.get(
+        `${API_URL}/api/hospital${searchParam}`,
+        {
+          params: {
+            page: currentPage,
+            limit: pageSize,
+          },
+        }
+      );
       console.log("API hospital data", data);
       return data as ApiResponse;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const hospitals = apiResponse?.data || [];
@@ -68,6 +76,10 @@ const ClinicsList = () => {
   const handleTableChange = (pagination: any) => {
     setCurrentPage(pagination.current);
     setPageSize(pagination.pageSize);
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
   };
 
   const columns = [
@@ -178,17 +190,10 @@ const ClinicsList = () => {
       )}
 
       <div className="bg-white rounded-lg shadow w-full">
-        <div className="p-4 flex justify-between items-center border-b">
-          <Input
-            prefix={<SearchOutlined className="text-gray-400" />}
-            placeholder="Search"
-            className="max-w-xs"
-          />
-          <Space>
-            <Button icon={<DownloadOutlined />}>Download Report</Button>
-            <Button icon={<FilterOutlined />}>Filter by</Button>
-          </Space>
-        </div>
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}

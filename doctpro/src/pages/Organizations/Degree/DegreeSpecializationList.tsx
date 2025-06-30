@@ -11,7 +11,6 @@ import DegreeAddModal from "./DegreeAddModal";
 import DegreeView from "./DegreeView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import Loader from "../../Common/Loader";
 import FormattedDate from "../../Common/FormattedDate";
 
 interface DegreeData {
@@ -30,11 +29,13 @@ const DegreeSpecializationList: React.FC = () => {
   const [editingDegree, setEditingDegree] = useState<DegreeData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedDegree, setSelectedDegree] = useState<DegreeData | null>(null);
+  const [searchValue, setSearchValue] = useState("");
 
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const fetchDegreeSpecialization = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/degree`);
+      const response = await fetch(`${API_URL}/api/degree${searchParam}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -51,12 +52,12 @@ const DegreeSpecializationList: React.FC = () => {
     DegreeData[],
     Error
   >({
-    queryKey: ["degreeSpecialization"],
+    queryKey: ["degreeSpecialization", searchValue],
     queryFn: fetchDegreeSpecialization,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
-  if (isFetching) {
-    return <Loader size="large" />;
-  }
 
   const handleEdit = (record: DegreeData) => {
     // Ensure we're creating a clean copy of the record with all required fields
@@ -176,6 +177,10 @@ const DegreeSpecializationList: React.FC = () => {
     },
   ];
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <QueryClientProvider client={queryClient}>
       <div className="p-6">
@@ -211,13 +216,17 @@ const DegreeSpecializationList: React.FC = () => {
         />
 
         <div className="bg-white rounded-lg shadow w-full">
-          <SearchFilterDownloadButton />
+          <SearchFilterDownloadButton
+            onSearch={handleSearch}
+            searchValue={searchValue}
+          />
 
           <Table
             columns={columns}
             dataSource={fetchedDegreeSpecialization}
             scroll={{ x: "max-content" }}
             rowKey="id"
+            loading={isFetching}
             pagination={{
               total: fetchedDegreeSpecialization?.length ?? 0,
               pageSize: 10,

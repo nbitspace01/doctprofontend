@@ -47,11 +47,14 @@ const ListCollege: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [collegeId, setCollegeId] = useState<string | null>(null);
-
+  const [searchValue, setSearchValue] = useState("");
   // Updated query to include pagination parameters
   const { data, isLoading, isError, error } = useQuery<CollegeResponse>({
-    queryKey: ["colleges", currentPage, itemsPerPage],
-    queryFn: () => fetchColleges(currentPage, itemsPerPage),
+    queryKey: ["colleges", currentPage, itemsPerPage, searchValue],
+    queryFn: () => fetchColleges(currentPage, itemsPerPage, searchValue),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const getStatusColor = (status: string) => {
@@ -189,6 +192,10 @@ const ListCollege: React.FC = () => {
       sNo: (currentPage - 1) * itemsPerPage + index + 1,
     })) ?? [];
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -212,7 +219,10 @@ const ListCollege: React.FC = () => {
       />
 
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}

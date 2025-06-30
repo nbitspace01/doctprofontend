@@ -5,7 +5,6 @@ import KycViewDrawer from "./KycViewDrawer";
 import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { ApiRequest } from "../Common/constant.function";
-import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
 
 interface KycSubmission {
@@ -30,16 +29,20 @@ const KycList = () => {
   );
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
-
+  const [searchValue, setSearchValue] = useState("");
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   // Place all other hooks before any conditional returns
   const { data: kycData, isFetching } = useQuery({
-    queryKey: ["kyc-submissions"],
+    queryKey: ["kyc-submissions", searchValue],
     queryFn: async () => {
       const response = await ApiRequest.get(
-        `${API_URL}/api/kyc/kyc-submissions`
+        `${API_URL}/api/kyc/kyc-submissions${searchParam}`
       );
       return response.data;
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const deleteMutation = useMutation({
@@ -52,10 +55,6 @@ const KycList = () => {
       setSelectedRecord(null);
     },
   });
-
-  if (isFetching) {
-    return <Loader size="large" />;
-  }
 
   const columns = [
     {
@@ -164,12 +163,19 @@ const KycList = () => {
     }
   };
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}
@@ -182,6 +188,7 @@ const KycList = () => {
             showSizeChanger: true,
             showTotal: (total) => `Total ${total} items`,
           }}
+          loading={isFetching}
         />
       </div>
       <KycViewDrawer

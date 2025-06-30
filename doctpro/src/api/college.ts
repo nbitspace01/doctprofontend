@@ -43,10 +43,15 @@ export interface CollegeKycPayload {
   license: File;
 }
 
-export const fetchColleges = async (page: number = 1, limit: number = 10) => {
+export const fetchColleges = async (
+  page: number = 1,
+  limit: number = 10,
+  searchValue: string = ""
+) => {
   try {
+    const searchParam = searchValue ? `&search=${searchValue}` : "";
     const response = await axios.get(
-      `${URL}/api/college?page=${page}&limit=${limit}`
+      `${URL}/api/college?page=${page}&limit=${limit}${searchParam}`
     );
     return response.data;
   } catch (error) {

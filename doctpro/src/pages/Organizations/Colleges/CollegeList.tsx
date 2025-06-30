@@ -40,14 +40,14 @@ const CollegeList: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  const [searchValue, setSearchValue] = useState("");
   const fetchColleges = async () => {
     setLoading(true);
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
-
+    const searchParam = searchValue ? `&search=${searchValue}` : "";
     const response = await fetch(
-      `${API_URL}/api/college?page=${validPage}&limit=${validLimit}`
+      `${API_URL}/api/college?page=${validPage}&limit=${validLimit}${searchParam}`
     );
     if (!response.ok) {
       throw new Error("Failed to fetch colleges");
@@ -57,7 +57,7 @@ const CollegeList: React.FC = () => {
   };
 
   const { data: fetchedColleges } = useQuery<CollegeResponse, Error>({
-    queryKey: ["Colleges", currentPage, pageSize],
+    queryKey: ["Colleges", currentPage, pageSize, searchValue],
     queryFn: fetchColleges,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -200,39 +200,43 @@ const CollegeList: React.FC = () => {
     setPageSize(pageSize);
   };
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
-      {loading ? (
-        <div className="flex justify-center items-center h-full">
-          <Loader size="large" />
-        </div>
-      ) : (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Colleges</h1>
-            <Button
-              type="primary"
-              className="bg-button-primary hover:!bg-button-primary"
-              onClick={handleAddCollegeClick}
-            >
-              <Plus /> Add New Colleges
-            </Button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Colleges</h1>
+        <Button
+          type="primary"
+          className="bg-button-primary hover:!bg-button-primary"
+          onClick={handleAddCollegeClick}
+        >
+          <Plus /> Add New Colleges
+        </Button>
+      </div>
+
+      <AddCollegeModal visible={isModalVisible} onClose={handleModalClose} />
+
+      <EditCollegeModal
+        visible={isEditModalVisible}
+        onClose={handleEditModalClose}
+        collegeId={selectedCollegeId}
+      />
+
+      <div className="bg-white rounded-lg shadow-sm w-full">
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
+
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader size="large" />
           </div>
-
-          <AddCollegeModal
-            visible={isModalVisible}
-            onClose={handleModalClose}
-          />
-
-          <EditCollegeModal
-            visible={isEditModalVisible}
-            onClose={handleEditModalClose}
-            collegeId={selectedCollegeId}
-          />
-
-          <div className="bg-white rounded-lg shadow-sm w-full">
-            <SearchFilterDownloadButton />
-
+        ) : (
+          <>
             <Table
               columns={columns}
               dataSource={tableData}
@@ -258,15 +262,15 @@ const CollegeList: React.FC = () => {
                 onShowSizeChange={handlePageChange}
               />
             </div>
-          </div>
-          <CollegeViewDrawer
-            open={isOpen}
-            onClose={() => setIsOpen(false)}
-            setOpen={setIsOpen}
-            collegeId={selectedCollegeId ?? ""}
-          />
-        </>
-      )}
+          </>
+        )}
+      </div>
+      <CollegeViewDrawer
+        open={isOpen}
+        onClose={() => setIsOpen(false)}
+        setOpen={setIsOpen}
+        collegeId={selectedCollegeId ?? ""}
+      />
     </div>
   );
 };

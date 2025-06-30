@@ -41,7 +41,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       const response = await axios.put(`${URL}/api/user/profile/${USER_ID}`, {
         first_name: values.fullName.split(" ")[0] || values.fullName,
         last_name: values.fullName.split(" ").slice(1).join(" ") || "",
-        specialization: values.note || "",
+        note: values.note || "",
         phone: values.phoneNumber,
       });
       return response.data;

@@ -27,12 +27,13 @@ const AdsPostList: React.FC = () => {
   const [pageSize, setPageSize] = useState(8);
   const queryClient = useQueryClient();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-
+  const [searchValue, setSearchValue] = useState("");
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const { data: adsData, isLoading } = useQuery({
-    queryKey: ["ads", currentPage, pageSize],
+    queryKey: ["ads", currentPage, pageSize, searchValue],
     queryFn: async () => {
       const response = await fetch(
-        `${API_URL}/api/ads?page=${currentPage}&limit=${pageSize}`
+        `${API_URL}/api/ads?page=${currentPage}&limit=${pageSize}${searchParam}`
       );
       console.log(response);
       if (!response.ok) {
@@ -40,6 +41,9 @@ const AdsPostList: React.FC = () => {
       }
       return response.json();
     },
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const columns: ColumnsType<AdsPost> = [
@@ -138,6 +142,10 @@ const AdsPostList: React.FC = () => {
     setPageSize(pagination.pageSize);
   };
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -151,7 +159,10 @@ const AdsPostList: React.FC = () => {
         </Button>
       </div>
       <div className="bg-white rounded-lg shadow">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}

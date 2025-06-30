@@ -5,7 +5,6 @@ import React, { useState } from "react";
 import HealthCareView from "./HealthCareView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import Loader from "../../Common/Loader";
 import FormattedDate from "../../Common/FormattedDate";
 
 interface HealthcareProfessional {
@@ -42,7 +41,8 @@ const HealthCareList: React.FC = () => {
   >(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  const [searchValue, setSearchValue] = useState("");
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
   const {
@@ -51,17 +51,18 @@ const HealthCareList: React.FC = () => {
     error,
     refetch,
   } = useQuery<HealthcareProfessionalsResponse>({
-    queryKey: ["healthcareProfessionals", currentPage, pageSize],
+    queryKey: ["healthcareProfessionals", currentPage, pageSize, searchValue],
     queryFn: async () => {
       console.log(`Fetching page ${currentPage} with limit ${pageSize}`);
       const response = await axios.get(
-        `${API_URL}/api/healthCare/healthcare-professionals?page=${currentPage}&limit=${pageSize}`
+        `${API_URL}/api/healthCare/healthcare-professionals?page=${currentPage}&limit=${pageSize}${searchParam}`
       );
       console.log("API Response:", response.data);
       return response.data;
     },
-    staleTime: 0, // Always refetch when parameters change
-    refetchOnWindowFocus: false,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const professionals = healthcareData?.data || [];
@@ -184,9 +185,9 @@ const HealthCareList: React.FC = () => {
     return buttons;
   };
 
-  if (isFetching && !healthcareData) {
-    return <Loader size="large" />;
-  }
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
 
   if (error) {
     return (
@@ -206,9 +207,12 @@ const HealthCareList: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">Healthcare professionals</h1>
 
-      <SearchFilterDownloadButton />
+      <SearchFilterDownloadButton
+        onSearch={handleSearch}
+        searchValue={searchValue}
+      />
 
-      <div className="shadow overflow-x-auto shadow-sm rounded-lg">
+      <div className="overflow-x-auto shadow-sm rounded-lg">
         <table className="w-full">
           <thead className="bg-gray-50">
             <tr>

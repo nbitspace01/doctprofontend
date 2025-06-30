@@ -29,12 +29,14 @@ interface ApiResponse {
 
 const fetchHospitals = async (
   currentPage: number,
-  pageSize: number
+  pageSize: number,
+  searchValue: string
 ): Promise<ApiResponse> => {
   const validPage = currentPage || 1;
   const validLimit = pageSize || 10;
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const response = await fetch(
-    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}`
+    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
@@ -98,10 +100,13 @@ const HospitalList: React.FC = () => {
   const { notification } = App.useApp();
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
+  const [searchValue, setSearchValue] = useState("");
   const { data: hospitals, isFetching } = useQuery<ApiResponse, Error>({
-    queryKey: ["hospitals", currentPage, pageSize],
-    queryFn: () => fetchHospitals(currentPage, pageSize),
+    queryKey: ["hospitals", currentPage, pageSize, searchValue],
+    queryFn: () => fetchHospitals(currentPage, pageSize, searchValue),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
   const { data: selectedHospital } = useQuery({
@@ -146,10 +151,6 @@ const HospitalList: React.FC = () => {
       console.error("Update error:", error);
     },
   });
-
-  if (isFetching) {
-    return <Loader size="large" />;
-  }
 
   const handleSuccess = (message: string) => {
     // Invalidate all hospital-related queries
@@ -312,6 +313,10 @@ const HospitalList: React.FC = () => {
     },
   ];
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -331,13 +336,17 @@ const HospitalList: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}
           dataSource={tableData}
           scroll={{ x: "max-content" }}
           pagination={false}
+          loading={isFetching}
           className="shadow-sm rounded-lg"
         />
         <div className="flex justify-end my-2 mx-3 py-3">

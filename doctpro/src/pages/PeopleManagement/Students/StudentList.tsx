@@ -3,7 +3,6 @@ import { Avatar, Table } from "antd";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import FormattedDate from "../../Common/FormattedDate";
-import Loader from "../../Common/Loader";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import StudentView from "./StudentView";
 
@@ -33,11 +32,13 @@ interface PaginatedResponse {
 
 const fetchStudents = async (
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  searchValue: string = ""
 ): Promise<PaginatedResponse> => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const response = await fetch(
-    `${API_URL}/api/student/student/list?page=${page}&limit=${limit}`
+    `${API_URL}/api/student/student/list?page=${page}&limit=${limit}${searchParam}`
   );
   if (!response.ok) {
     throw new Error("Network response was not ok");
@@ -53,19 +54,26 @@ const StudentList: React.FC = () => {
     current: 1,
     pageSize: 10,
   });
+  const [searchValue, setSearchValue] = useState("");
 
   const {
     data: studentsResponse,
     isFetching,
     error,
   } = useQuery({
-    queryKey: ["students", pagination.current, pagination.pageSize],
-    queryFn: () => fetchStudents(pagination.current, pagination.pageSize),
+    queryKey: [
+      "students",
+      pagination.current,
+      pagination.pageSize,
+      searchValue,
+    ],
+    queryFn: () =>
+      fetchStudents(pagination.current, pagination.pageSize, searchValue),
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    staleTime: 0,
   });
 
-  if (isFetching) {
-    return <Loader size="large" />;
-  }
   if (error) {
     return <div>Error fetching students</div>;
   }
@@ -239,6 +247,10 @@ const StudentList: React.FC = () => {
     },
   ];
 
+  const handleSearch = (value: string) => {
+    setSearchValue(value);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -248,7 +260,10 @@ const StudentList: React.FC = () => {
         </Button> */}
       </div>
       <div className="bg-white  rounded-lg">
-        <SearchFilterDownloadButton />
+        <SearchFilterDownloadButton
+          onSearch={handleSearch}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}
@@ -268,6 +283,7 @@ const StudentList: React.FC = () => {
               });
             },
           }}
+          loading={isFetching}
         />
       </div>
 
