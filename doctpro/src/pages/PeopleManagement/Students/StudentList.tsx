@@ -33,12 +33,35 @@ interface PaginatedResponse {
 const fetchStudents = async (
   page: number = 1,
   limit: number = 10,
-  searchValue: string = ""
+  searchValue: string = "",
+  filterValues: Record<string, any> = {}
 ): Promise<PaginatedResponse> => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const searchParam = searchValue ? `&search=${searchValue}` : "";
+
+  // Process filter values to convert checkbox-style filters to proper format
+  const processedFilters: Record<string, any> = {};
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.includes("_")) {
+      // Handle checkbox-style filters like "gender_Male"
+      const [filterKey, filterValue] = key.split("_");
+      if (value === true) {
+        processedFilters[filterKey] = filterValue.toLowerCase();
+      }
+    } else {
+      // Handle regular filters
+      processedFilters[key] = value;
+    }
+  });
+
+  const filterParam = Object.entries(processedFilters)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
   const response = await fetch(
-    `${API_URL}/api/student/student/list?page=${page}&limit=${limit}${searchParam}`
+    `${API_URL}/api/student/student/list?page=${page}&limit=${limit}${searchParam}${
+      filterParam ? `&${filterParam}` : ""
+    }`
   );
   if (!response.ok) {
     throw new Error("Network response was not ok");
@@ -55,7 +78,30 @@ const StudentList: React.FC = () => {
     pageSize: 10,
   });
   const [searchValue, setSearchValue] = useState("");
-
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const filterOptions = [
+    {
+      label: "Degree",
+      key: "degree",
+      type: "text" as const,
+    },
+    {
+      label: "Specialization",
+      key: "specialization",
+      type: "text" as const,
+    },
+    {
+      label: "College",
+      key: "collegeName",
+      type: "text" as const,
+    },
+    {
+      label: "Gender",
+      key: "gender",
+      type: "checkbox" as const,
+      options: ["Male", "Female"],
+    },
+  ];
   const {
     data: studentsResponse,
     isFetching,
@@ -66,9 +112,15 @@ const StudentList: React.FC = () => {
       pagination.current,
       pagination.pageSize,
       searchValue,
+      filterValues,
     ],
     queryFn: () =>
-      fetchStudents(pagination.current, pagination.pageSize, searchValue),
+      fetchStudents(
+        pagination.current,
+        pagination.pageSize,
+        searchValue,
+        filterValues
+      ),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -251,6 +303,11 @@ const StudentList: React.FC = () => {
     setSearchValue(value);
   };
 
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filter values:", filters);
+    setFilterValues(filters);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -263,6 +320,8 @@ const StudentList: React.FC = () => {
         <SearchFilterDownloadButton
           onSearch={handleSearch}
           searchValue={searchValue}
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
         />
 
         <Table

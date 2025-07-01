@@ -1,12 +1,12 @@
 import { SearchOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Avatar, Dropdown, Input } from "antd";
 import React, { useState } from "react";
 import axiosInstance from "../Common/axiosInstance";
 import { EditIcon, ViewIcon } from "../Common/SVG/svg.functions";
 import EditProfileDrawer from "./EditProfileDrawer";
 import ViewProfileDrawer from "./ViewProfileDrawer";
-
+import { searchEntities } from "../../api/searchentities";
 // Add this interface for type safety
 interface UserProfile {
   id: string;
@@ -32,6 +32,7 @@ interface UserProfile {
   idCardUrl: string | null;
   course: string | null;
   type: string;
+  note: string | null;
 }
 
 const Header: React.FC = () => {
@@ -80,9 +81,19 @@ const Header: React.FC = () => {
       userProfile?.type === "Doctor"
         ? `Dr. ${userProfile.name}`
         : userProfile?.name ?? "Loading...",
-    note: userProfile?.specialization ?? "",
+    note: userProfile?.note ?? "",
     email: userProfile?.email ?? "",
     phone: userProfile?.phone ?? "",
+  };
+
+  const searchMutation = useMutation({
+    mutationFn: (keyword: string) => searchEntities({ keyword }),
+  });
+
+  const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      searchMutation.mutate(e.currentTarget.value);
+    }
   };
 
   return (
@@ -100,6 +111,7 @@ const Header: React.FC = () => {
               placeholder="Search..."
               prefix={<SearchOutlined className="text-gray-400" />}
               className="rounded-lg"
+              onPressEnter={handleSearch}
             />
           </div>
 
@@ -140,7 +152,7 @@ const Header: React.FC = () => {
         initialValues={{
           fullName: userProfile?.name ?? "",
           email: userProfile?.email ?? "",
-          note: userProfile?.specialization ?? "",
+          note: userProfile?.note ?? "",
           phoneNumber: userProfile?.phone ?? "",
           role: userProfile?.role ?? "",
         }}

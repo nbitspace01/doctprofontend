@@ -23,6 +23,13 @@ interface DegreeData {
   updated_at: string;
 }
 
+interface PaginatedResponse {
+  total: number;
+  page: number;
+  limit: number;
+  data: DegreeData[];
+}
+
 const DegreeSpecializationList: React.FC = () => {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,29 +37,34 @@ const DegreeSpecializationList: React.FC = () => {
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedDegree, setSelectedDegree] = useState<DegreeData | null>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const fetchDegreeSpecialization = async () => {
+  const fetchDegreeSpecialization = async (): Promise<PaginatedResponse> => {
     try {
-      const response = await fetch(`${API_URL}/api/degree${searchParam}`);
+      const searchParam = searchValue ? `&search=${searchValue}` : "";
+      const response = await fetch(
+        `${API_URL}/api/degree?page=${currentPage}&limit=${pageSize}${searchParam}`
+      );
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      return Array.isArray(data) ? data : [];
+      const responseData = await response.json();
+      return responseData;
     } catch (error) {
       console.error("Fetch error:", error);
-      return [];
+      return { total: 0, page: 1, limit: 10, data: [] };
     }
   };
+
   const { data: fetchedDegreeSpecialization, isFetching } = useQuery<
-    DegreeData[],
+    PaginatedResponse,
     Error
   >({
-    queryKey: ["degreeSpecialization", searchValue],
+    queryKey: ["degreeSpecialization", currentPage, pageSize, searchValue],
     queryFn: fetchDegreeSpecialization,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
@@ -179,7 +191,17 @@ const DegreeSpecializationList: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
+
+  const handleTableChange = (pagination: any) => {
+    setCurrentPage(pagination.current);
+    setPageSize(pagination.pageSize);
+  };
+
+  // Extract data and total from the paginated response
+  const degreeData = fetchedDegreeSpecialization?.data || [];
+  const total = fetchedDegreeSpecialization?.total || 0;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -223,16 +245,20 @@ const DegreeSpecializationList: React.FC = () => {
 
           <Table
             columns={columns}
-            dataSource={fetchedDegreeSpecialization}
+            dataSource={degreeData}
             scroll={{ x: "max-content" }}
             rowKey="id"
             loading={isFetching}
             pagination={{
-              total: fetchedDegreeSpecialization?.length ?? 0,
-              pageSize: 10,
+              current: currentPage,
+              pageSize: pageSize,
+              total: total,
               showSizeChanger: true,
               showQuickJumper: true,
+              showTotal: (total, range) =>
+                `${range[0]}-${range[1]} of ${total} items`,
             }}
+            onChange={handleTableChange}
             className="shadow-sm rounded-lg"
           />
         </div>

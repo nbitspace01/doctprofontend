@@ -30,19 +30,16 @@ const ClinicsList = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchValue, setSearchValue] = useState("");
-  const searchParam = searchValue ? `&search=${searchValue}` : "";
   const { data: apiResponse, isFetching } = useQuery({
     queryKey: ["hospitals", currentPage, pageSize, searchValue],
     queryFn: async () => {
-      const { data } = await axios.get(
-        `${API_URL}/api/hospital${searchParam}`,
-        {
-          params: {
-            page: currentPage,
-            limit: pageSize,
-          },
-        }
-      );
+      const { data } = await axios.get(`${API_URL}/api/hospital`, {
+        params: {
+          page: currentPage,
+          limit: pageSize,
+          ...(searchValue && { search: searchValue }),
+        },
+      });
       console.log("API hospital data", data);
       return data as ApiResponse;
     },
@@ -156,6 +153,8 @@ const ClinicsList = () => {
           }}
           onEdit={() => {}}
           onDelete={() => {}}
+          showDelete={false}
+          showEdit={false}
         />
       ),
     },

@@ -37,11 +37,48 @@ const SubAdmin: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchValue, setSearchValue] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const queryClient = useQueryClient();
   interface SubAdminResponse {
     data: SubAdminData[];
     total: number;
   }
+
+  const filterOptions = [
+    {
+      label: "Name",
+      key: "name",
+      type: "text" as const,
+    },
+    {
+      label: "Role",
+      key: "role",
+      type: "checkbox" as const,
+      options: ["ADMIN", "SUB_ADMIN"],
+    },
+    {
+      label: "Location",
+      key: "location",
+      type: "text" as const,
+    },
+    {
+      label: "Organization Type",
+      key: "organization_type",
+      type: "checkbox" as const,
+      options: ["HOSPITAL", "CLINIC", "PHARMACY"],
+    },
+    {
+      label: "Associated Location",
+      key: "associated_location",
+      type: "text" as const,
+    },
+    {
+      label: "Status",
+      key: "status",
+      type: "checkbox" as const,
+      options: ["ACTIVE", "INACTIVE"],
+    },
+  ];
 
   const fetchSubAdmin = async (): Promise<SubAdminResponse> => {
     const validPage = currentPage || 1;
@@ -49,8 +86,69 @@ const SubAdmin: React.FC = () => {
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
     // seacrh is only if search is true
     const searchParam = searchValue ? `&search=${searchValue}` : "";
+
+    // Build filter parameters only for selected filters
+    const filterParams = [];
+
+    // Add text filter values
+    if (filterValues.name) {
+      filterParams.push(`name=${encodeURIComponent(filterValues.name)}`);
+    }
+    if (filterValues.location) {
+      filterParams.push(
+        `location=${encodeURIComponent(filterValues.location)}`
+      );
+    }
+    if (filterValues.associated_location) {
+      filterParams.push(
+        `associated_location=${encodeURIComponent(
+          filterValues.associated_location
+        )}`
+      );
+    }
+
+    // Add checkbox filter values (only selected options)
+    if (filterValues.role) {
+      const selectedRoles = Object.keys(filterValues).filter(
+        (key) => key.startsWith("role_") && filterValues[key]
+      );
+      if (selectedRoles.length > 0) {
+        filterParams.push(
+          `role=${selectedRoles
+            .map((key) => key.replace("role_", ""))
+            .join(",")}`
+        );
+      }
+    }
+    if (filterValues.organization_type) {
+      const selectedOrgTypes = Object.keys(filterValues).filter(
+        (key) => key.startsWith("organization_type_") && filterValues[key]
+      );
+      if (selectedOrgTypes.length > 0) {
+        filterParams.push(
+          `organization_type=${selectedOrgTypes
+            .map((key) => key.replace("organization_type_", ""))
+            .join(",")}`
+        );
+      }
+    }
+    if (filterValues.status) {
+      const selectedStatuses = Object.keys(filterValues).filter(
+        (key) => key.startsWith("status_") && filterValues[key]
+      );
+      if (selectedStatuses.length > 0) {
+        filterParams.push(
+          `status=${selectedStatuses
+            .map((key) => key.replace("status_", ""))
+            .join(",")}`
+        );
+      }
+    }
+
+    const filterParam =
+      filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
     const res = await ApiRequest.get(
-      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}`
+      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`
     );
 
     // Return the full response structure with data and total
@@ -64,7 +162,7 @@ const SubAdmin: React.FC = () => {
     SubAdminResponse,
     Error
   >({
-    queryKey: ["subAdmin", currentPage, pageSize, searchValue],
+    queryKey: ["subAdmin", currentPage, pageSize, searchValue, filterValues],
     queryFn: fetchSubAdmin,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
@@ -224,6 +322,11 @@ const SubAdmin: React.FC = () => {
     setSearchValue(value);
   };
 
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filter values:", filters);
+    setFilterValues(filters);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -243,6 +346,8 @@ const SubAdmin: React.FC = () => {
           onSearch={handleSearch}
           onDownload={downloadReportCSV}
           searchValue={searchValue}
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
         />
         {isFetching ? (
           <div className="flex justify-center items-center py-8">

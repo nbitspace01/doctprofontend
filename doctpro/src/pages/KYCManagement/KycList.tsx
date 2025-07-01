@@ -1,11 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Modal, Table, Tag } from "antd";
 import { useState } from "react";
-import KycViewDrawer from "./KycViewDrawer";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { ApiRequest } from "../Common/constant.function";
 import FormattedDate from "../Common/FormattedDate";
+import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import KycViewDrawer from "./KycViewDrawer";
 
 interface KycSubmission {
   id: string;
@@ -30,13 +30,19 @@ const KycList = () => {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [selectedKycId, setSelectedKycId] = useState<string | null>(null);
   const [searchValue, setSearchValue] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
   const searchParam = searchValue ? `&search=${searchValue}` : "";
+  const paginationParam = `?page=${currentPage}&limit=${pageSize}`;
+  const fullParam = `${paginationParam}${searchParam}`;
+
   // Place all other hooks before any conditional returns
   const { data: kycData, isFetching } = useQuery({
-    queryKey: ["kyc-submissions", searchValue],
+    queryKey: ["kyc-submissions", searchValue, currentPage, pageSize],
     queryFn: async () => {
       const response = await ApiRequest.get(
-        `${API_URL}/api/kyc/kyc-submissions${searchParam}`
+        `${API_URL}/api/kyc/kyc-submissions${fullParam}`
       );
       return response.data;
     },
@@ -165,6 +171,7 @@ const KycList = () => {
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   return (
@@ -179,14 +186,26 @@ const KycList = () => {
 
         <Table
           columns={columns}
-          dataSource={kycData}
+          dataSource={kycData?.data || kycData || []}
           scroll={{ x: "max-content" }}
           rowKey="id"
           pagination={{
-            total: kycData?.length,
-            pageSize: 10,
+            current: currentPage,
+            pageSize: pageSize,
+            total: kycData?.total || kycData?.length || 0,
             showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`,
+            showQuickJumper: true,
+            pageSizeOptions: ["10", "20", "50", "100"],
+            showTotal: (total, range) =>
+              `${range[0]}-${range[1]} of ${total} items`,
+            onChange: (page, size) => {
+              setCurrentPage(page);
+              setPageSize(size);
+            },
+            onShowSizeChange: ( size) => {
+              setCurrentPage(1);
+              setPageSize(size);
+            },
           }}
           loading={isFetching}
         />

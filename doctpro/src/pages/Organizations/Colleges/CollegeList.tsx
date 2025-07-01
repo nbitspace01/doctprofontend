@@ -101,11 +101,12 @@ const CollegeList: React.FC = () => {
       title: "Associated Hospital",
       dataIndex: "associatedHospital",
       key: "associatedHospital",
+      width: 400,
       render: (associatedHospital: any, record: any) => (
         console.log(associatedHospital),
         (
-          <div className="flex items-center gap-3">
-            <span>
+          <div className="flex items-start gap-3">
+            <span className="text-sm break-words whitespace-normal">
               {record.hospitals && record.hospitals.length > 0
                 ? record.hospitals
                     .map((hospital: any) => hospital.name)

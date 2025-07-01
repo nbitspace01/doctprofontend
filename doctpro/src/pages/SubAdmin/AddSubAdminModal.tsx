@@ -398,7 +398,13 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Form.Item
             label="New Password"
             name="password"
-            rules={[{ required: true, message: "Please enter password" }]}
+            rules={[
+              { required: true, message: "Please enter password" },
+              {
+                min: 8,
+                message: "Password must be at least 8 characters long",
+              },
+            ]}
           >
             <Input.Password placeholder="Enter password" />
           </Form.Item>

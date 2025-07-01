@@ -29,13 +29,36 @@ interface ApiResponse {
 const fetchHospitals = async (
   currentPage: number,
   pageSize: number,
-  searchValue: string
+  searchValue: string,
+  filterValues: Record<string, any>
 ): Promise<ApiResponse> => {
   const validPage = currentPage || 1;
   const validLimit = pageSize || 10;
   const searchParam = searchValue ? `&search=${searchValue}` : "";
+
+  // Process filter values to convert checkbox-style filters to proper format
+  const processedFilters: Record<string, any> = {};
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.includes("_")) {
+      // Handle checkbox-style filters like "status_ACTIVE"
+      const [filterKey, filterValue] = key.split("_");
+      if (value === true) {
+        processedFilters[filterKey] = filterValue.toLowerCase();
+      }
+    } else {
+      // Handle regular filters
+      processedFilters[key] = value;
+    }
+  });
+
+  const filterParam = Object.entries(processedFilters)
+    .map(([key, value]) => `${key}=${value}`)
+    .join("&");
+
   const response = await fetch(
-    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}`
+    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
+      filterParam ? `&${filterParam}` : ""
+    }`
   );
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
@@ -100,9 +123,19 @@ const HospitalList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchValue, setSearchValue] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const filterOptions = [
+    {
+      label: "Status",
+      key: "status",
+      type: "checkbox" as const,
+      options: ["ACTIVE", "INACTIVE"],
+    },
+  ];
   const { data: hospitals, isFetching } = useQuery<ApiResponse, Error>({
-    queryKey: ["hospitals", currentPage, pageSize, searchValue],
-    queryFn: () => fetchHospitals(currentPage, pageSize, searchValue),
+    queryKey: ["hospitals", currentPage, pageSize, searchValue, filterValues],
+    queryFn: () =>
+      fetchHospitals(currentPage, pageSize, searchValue, filterValues),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     staleTime: 0,
@@ -316,6 +349,11 @@ const HospitalList: React.FC = () => {
     setSearchValue(value);
   };
 
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filter values:", filters);
+    setFilterValues(filters);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -338,6 +376,8 @@ const HospitalList: React.FC = () => {
         <SearchFilterDownloadButton
           onSearch={handleSearch}
           searchValue={searchValue}
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
         />
 
         <Table
