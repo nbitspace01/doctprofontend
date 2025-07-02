@@ -32,14 +32,55 @@ const KycList = () => {
   const [searchValue, setSearchValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [selectedFilters, setSelectedFilters] = useState<any>({});
 
-  const searchParam = searchValue ? `&search=${searchValue}` : "";
+  const filterOptions = [
+    {
+      label: "KYC Status",
+      key: "kyc_status",
+      type: "checkbox" as const,
+      options: ["pending", "approved", "rejected"],
+    },
+  ];
+
+  // Convert filters object to URL parameters
+  const filterParams = Object.entries(selectedFilters)
+    .filter(
+      ([_, value]) =>
+        value !== "" && value !== false && value !== null && value !== undefined
+    )
+    .map(([key, value]) => {
+      if (typeof value === "boolean" && value) {
+        // Handle compound keys like "kyc_status_rejected" -> "status=rejected"
+        if (key.includes("_")) {
+          const [filterKey, filterValue] = key.split("_", 2);
+          // For kyc_status_rejected, we want status=rejected
+          if (filterKey === "kyc" && filterValue === "status") {
+            const statusValue = key.split("_").slice(2).join("_");
+            return `&status=${encodeURIComponent(statusValue)}`;
+          }
+        }
+        return `&${key}=true`;
+      }
+      return `&${key}=${encodeURIComponent(String(value))}`;
+    })
+    .join("");
+
+  const searchParam = searchValue
+    ? `&search=${encodeURIComponent(searchValue)}`
+    : "";
   const paginationParam = `?page=${currentPage}&limit=${pageSize}`;
-  const fullParam = `${paginationParam}${searchParam}`;
+  const fullParam = `${paginationParam}${searchParam}${filterParams}`;
 
   // Place all other hooks before any conditional returns
   const { data: kycData, isFetching } = useQuery({
-    queryKey: ["kyc-submissions", searchValue, currentPage, pageSize],
+    queryKey: [
+      "kyc-submissions",
+      searchValue,
+      currentPage,
+      pageSize,
+      selectedFilters,
+    ],
     queryFn: async () => {
       const response = await ApiRequest.get(
         `${API_URL}/api/kyc/kyc-submissions${fullParam}`
@@ -174,6 +215,11 @@ const KycList = () => {
     setCurrentPage(1); // Reset to first page when searching
   };
 
+  const handleFilterChange = (filters: any) => {
+    setSelectedFilters(filters);
+    setCurrentPage(1);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
@@ -182,6 +228,8 @@ const KycList = () => {
         <SearchFilterDownloadButton
           onSearch={handleSearch}
           searchValue={searchValue}
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
         />
 
         <Table
@@ -202,7 +250,7 @@ const KycList = () => {
               setCurrentPage(page);
               setPageSize(size);
             },
-            onShowSizeChange: ( size) => {
+            onShowSizeChange: (size) => {
               setCurrentPage(1);
               setPageSize(size);
             },

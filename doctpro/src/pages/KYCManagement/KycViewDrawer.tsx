@@ -1,8 +1,10 @@
-import { Avatar, Button, Drawer, Image, Modal } from "antd";
+import { App, Avatar, Button, Drawer, Image, Modal } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import Loader from "../Common/Loader";
 import { useState } from "react";
+import { ApiRequest } from "../Common/constant.function";
+import { showSuccess } from "../Common/Notification";
 
 interface KycDocument {
   document_number: string | null;
@@ -18,6 +20,7 @@ interface KycDetails {
   phone: string;
   created_on: string;
   documents: KycDocument[];
+  kyc_status: string;
 }
 
 interface KycViewDrawerProps {
@@ -50,6 +53,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   const [rejectRemarks, setRejectRemarks] = useState("");
   const queryClient = useQueryClient();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const { notification } = App.useApp();
 
   const { data: kycDetails, isLoading } = useQuery({
     queryKey: ["kycDetails", kycId],
@@ -59,26 +63,41 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/reject`, {
-        reason: rejectReason,
-        remarks: rejectRemarks,
-      });
+      const response = await ApiRequest.post(
+        `${API_URL}/api/kyc/kyc-submissions/${id}/reject`,
+        {
+          reason: rejectReason,
+          remarks: rejectRemarks,
+        }
+      );
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
       setRejectModalVisible(false);
       onClose();
+      showSuccess(notification, {
+        message: "KYC Rejected Successfully",
+        description: data?.message || "KYC has been rejected successfully",
+      });
     },
   });
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      await axios.post(`${API_URL}/api/kyc/kyc-submissions/${id}/approve`);
+      const response = await ApiRequest.post(
+        `${API_URL}/api/kyc/kyc-submissions/${id}/approve`
+      );
+      return response.data;
     },
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
       setApproveModalVisible(false);
       onClose();
+      showSuccess(notification, {
+        message: "KYC Approved Successfully",
+        description: data?.message || "KYC has been approved successfully",
+      });
     },
   });
 
@@ -189,6 +208,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
               >
                 Cancel
               </Button>
+
               <Button
                 onClick={handleApprove}
                 disabled={approveMutation.isPending}

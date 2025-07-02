@@ -6,6 +6,7 @@ import HealthCareView from "./HealthCareView";
 import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import FormattedDate from "../../Common/FormattedDate";
+import Loader from "../../Common/Loader";
 
 interface HealthcareProfessional {
   id: string;
@@ -249,9 +250,11 @@ const HealthCareList: React.FC = () => {
             {professionals.length === 0 ? (
               <tr>
                 <td colSpan={9} className="px-6 py-4 text-center text-gray-500">
-                  {isFetching
-                    ? "Loading..."
-                    : "No healthcare professionals found"}
+                  {isFetching ? (
+                    <Loader size="large" />
+                  ) : (
+                    "No healthcare professionals found"
+                  )}
                 </td>
               </tr>
             ) : (
