@@ -20,7 +20,6 @@ import {
 } from "../../pages/Common/SVG/svg.functions";
 import { getToken } from "../Common/authUtils";
 import Loader from "../Common/Loader";
-import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
@@ -154,24 +153,6 @@ const Dashboard: React.FC = () => {
     return true;
   }) || [];
 
-  const filterOptions = [
-    { label: "Name", key: "name", type: "text" as const },
-    { label: "Email Address", key: "email", type: "text" as const },
-    { label: "Phone Number", key: "phone", type: "text" as const },
-    { label: "Role", key: "role", type: "checkbox" as const, options: ["ADMIN", "SUB_ADMIN", "In charge"] },
-    { label: "Location", key: "location", type: "text" as const },
-    { label: "Organization Type", key: "organization_type", type: "checkbox" as const, options: ["HOSPITAL", "CLINIC", "PHARMACY", "College", "Hospital", "Company"] },
-    { label: "Status", key: "status", type: "checkbox" as const, options: ["ACTIVE", "INACTIVE"] },
-  ];
-
-  const handleDownload = (format: "excel" | "csv") => {
-    console.log(`Downloading as ${format}`);
-    // Implement download logic here
-  };
-
-  const handleFilterChange = (filters: Record<string, any>) => {
-    setFilterValues(filters);
-  };
 
   const data1 = [
     {
@@ -222,7 +203,7 @@ const Dashboard: React.FC = () => {
     <div className="">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <span className="text-blue-500 cursor-pointer">See All →</span>
+        {/* <span className="text-blue-500 cursor-pointer">See All →</span> */}
       </div>
 
       {/* Stats Cards */}
@@ -237,7 +218,7 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
-                  const key = Object.keys(data).find(k => 
+                  const key = Object.keys(data).find(k =>
                     k.toLowerCase().includes('college')
                   );
                   return key ? (data as any)[key] : 0;
@@ -256,7 +237,7 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
-                  const key = Object.keys(data).find(k => 
+                  const key = Object.keys(data).find(k =>
                     k.toLowerCase().includes('hospital')
                   );
                   return key ? (data as any)[key] : 0;
@@ -275,7 +256,7 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
-                  const key = Object.keys(data).find(k => 
+                  const key = Object.keys(data).find(k =>
                     k.toLowerCase().includes('student')
                   );
                   return key ? (data as any)[key] : 0;
@@ -294,8 +275,8 @@ const Dashboard: React.FC = () => {
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
-                  const key = Object.keys(data).find(k => 
-                    k.toLowerCase().includes('professional') || 
+                  const key = Object.keys(data).find(k =>
+                    k.toLowerCase().includes('professional') ||
                     k.toLowerCase().includes('healthcare')
                   );
                   return key ? (data as any)[key] : 0;
@@ -308,7 +289,7 @@ const Dashboard: React.FC = () => {
 
       {/* Reports Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* <div className="lg:col-span-2">
           <Card className="shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Reports</h2>
@@ -335,10 +316,10 @@ const Dashboard: React.FC = () => {
               <Bar dataKey="Appointment" fill="#ffc658" />
             </BarChart>
           </Card>
-        </div>
+        </div> */}
 
         {/* Employees Section */}
-        <div>
+        {/* <div>
           <Card className="shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Employees</h2>
             <div className="flex justify-center">
@@ -367,28 +348,20 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </div> */}
       </div>
-
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Sub-Admin List</h1>
+        <span
+          className="text-blue-500 cursor-pointer"
+          onClick={() => navigate({ to: "/app/subadmin" })}
+        >
+          See All →
+        </span>
+      </div>
       {/* Sub Admin Section */}
       <div className="mt-6">
         <Card className="shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Sub-Admin List</h1>
-            <span
-              className="text-blue-500 cursor-pointer"
-              onClick={() => navigate({ to: "/app/subadmin" })}
-            >
-              See All →
-            </span>
-          </div>
-          <DownloadFilterButton
-            onSearch={(value) => setSearchValue(value)}
-            searchValue={searchValue}
-            onDownload={handleDownload}
-            filterOptions={filterOptions}
-            onFilterChange={handleFilterChange}
-          />
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
@@ -429,9 +402,8 @@ const Dashboard: React.FC = () => {
                                   : "U"}
                               </Avatar>
                             )}
-                            <span>{`${admin.first_name || ""} ${
-                              admin.last_name || ""
-                            }`.trim() || "N/A"}</span>
+                            <span>{`${admin.first_name || ""} ${admin.last_name || ""
+                              }`.trim() || "N/A"}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">{admin.email ?? "N/A"}</td>
@@ -445,20 +417,19 @@ const Dashboard: React.FC = () => {
                         <td className="py-3 px-4">{admin.organization_type ?? "N/A"}</td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              admin.status === "ACTIVE"
+                            className={`px-2 py-1 rounded-full text-sm ${admin.status === "ACTIVE"
                                 ? "bg-green-100 text-green-600"
                                 : "bg-red-100 text-red-600"
-                            }`}
+                              }`}
                           >
                             {admin.status ?? "N/A"}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           <CommonDropdown
-                            onView={() => {}}
-                            onEdit={() => {}}
-                            onDelete={() => {}}
+                            onView={() => { }}
+                            onEdit={() => { }}
+                            onDelete={() => { }}
                           />
                         </td>
                       </tr>

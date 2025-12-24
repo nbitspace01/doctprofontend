@@ -7,7 +7,7 @@ import { ApiRequest } from "../Common/constant.function";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ViewSubAdmin from "./ViewSubAdmin";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";
 import CommonPagination from "../Common/CommonPagination";
@@ -49,34 +49,28 @@ const SubAdmin: React.FC = () => {
     {
       label: "Name",
       key: "name",
-      type: "text" as const,
     },
     {
       label: "Role",
       key: "role",
-      type: "checkbox" as const,
       options: ["ADMIN", "SUB_ADMIN"],
     },
     {
       label: "Location",
       key: "location",
-      type: "text" as const,
     },
     {
       label: "Organization Type",
       key: "organization_type",
-      type: "checkbox" as const,
       options: ["HOSPITAL", "CLINIC", "PHARMACY"],
     },
     {
       label: "Associated Location",
       key: "associated_location",
-      type: "text" as const,
     },
     {
       label: "Status",
       key: "status",
-      type: "checkbox" as const,
       options: ["ACTIVE", "INACTIVE"],
     },
   ];
@@ -174,22 +168,55 @@ const SubAdmin: React.FC = () => {
   const totalCount = subAdminResponse?.total ?? 0;
   console.log("subAdmin", subAdmin);
 
-  const downloadReportCSV = () => {
-    console.log("downloadReportCSV");
-    const csvRows = [];
-    const headers = Object.keys(subAdmin[0]);
-    csvRows.push(headers.join(","));
-    subAdmin.forEach((row) => {
-      const values = headers.map((header) => row[header as keyof SubAdminData]);
-      csvRows.push(values.join(","));
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!subAdmin || subAdmin.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    // Define headers based on the data structure
+    const headers = [
+      "S No",
+      "Name",
+      "Email Address",
+      "Phone Number",
+      "Role",
+      "Location",
+      "Organization Type",
+      "Status",
+      "Associated Location",
+    ];
+
+    // Create rows
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    subAdmin.forEach((row, index) => {
+      const values = [
+        (currentPage - 1) * pageSize + index + 1,
+        `"${`${row.first_name || ""} ${row.last_name || ""}`.trim()}"`,
+        `"${row.email || "N/A"}"`,
+        `"${row.phone || "N/A"}"`,
+        `"${row.role || "N/A"}"`,
+        `"${row.location || "N/A"}"`,
+        `"${row.organization_type || "N/A"}"`,
+        `"${row.status || "N/A"}"`,
+        `"${row.associated_location || "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
     });
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "report.csv";
+    a.download = `subadmin-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -213,10 +240,12 @@ const SubAdmin: React.FC = () => {
     setIsViewDrawerOpen(true);
   };
 
-  const handlePageChange = (page: number, pageSize: number) => {
+  const handlePageChange = (page: number, pageSize?: number) => {
     console.log("Page changed to:", page, "Page size:", pageSize);
     setCurrentPage(page);
-    setPageSize(pageSize);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   const columns: ColumnsType<SubAdminData> = [
@@ -343,9 +372,9 @@ const SubAdmin: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
-          onDownload={downloadReportCSV}
+          onDownload={handleDownload}
           searchValue={searchValue}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}

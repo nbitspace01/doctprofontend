@@ -48,7 +48,7 @@ const CommonPagination: React.FC<CommonPaginationProps> = ({
         total={total}
         showSizeChanger={showSizeChanger}
         showQuickJumper={showQuickJumper}
-        showTotal={showTotal}
+        showTotal={typeof showTotal === 'function' ? showTotal : undefined}
         pageSizeOptions={pageSizeOptions}
         onChange={handleChange}
         onShowSizeChange={handleShowSizeChange}
@@ -96,4 +96,5 @@ export const getTablePaginationConfig = (
 };
 
 export default CommonPagination;
+
 

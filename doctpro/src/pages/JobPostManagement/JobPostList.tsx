@@ -3,7 +3,7 @@ import { Table, Button, Tag, Modal, Pagination } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import CreateJobPost from "./CreateJobPost";
 import JobPostViewDrawer from "./JobPostViewDrawer";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusOutlined } from "@ant-design/icons";
@@ -37,23 +37,19 @@ const JobPostList: React.FC = () => {
     {
       label: "Job Title",
       key: "jobTitle",
-      type: "text" as const,
     },
     {
       label: "Location",
       key: "location",
-      type: "text" as const,
     },
     {
       label: "Status",
       key: "status",
-      type: "checkbox" as const,
       options: ["Active", "Expired", "Expiring Soon", "Pending"],
     },
     {
       label: "Employment Type",
       key: "employmentType",
-      type: "checkbox" as const,
       options: ["Full Time", "Part Time", "Contract"],
     },
   ];
@@ -226,30 +222,44 @@ const JobPostList: React.FC = () => {
     setFilterValues(filters);
   };
 
-  const downloadReportCSV = () => {
-    const csvRows = [];
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!mockData || mockData.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    // Define headers
     const headers = ["S No", "Job Title", "Exp Required", "Location", "Specialization", "Employment Type", "No of Applications", "Status"];
-    csvRows.push(headers.join(","));
+    
+    // Create rows
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
     mockData.forEach((row, index) => {
       const values = [
         index + 1,
-        row.jobTitle,
-        row.expRequired,
-        row.location,
-        row.specialization,
-        row.employmentType,
-        row.noOfApplications,
-        row.status,
+        `"${row.jobTitle || "N/A"}"`,
+        `"${row.expRequired || "N/A"}"`,
+        `"${row.location || "N/A"}"`,
+        `"${row.specialization || "N/A"}"`,
+        `"${row.employmentType || "N/A"}"`,
+        row.noOfApplications || 0,
+        `"${row.status || "N/A"}"`,
       ];
-      csvRows.push(values.join(","));
+      rows.push(values.join(format === "csv" ? "," : "\t"));
     });
-    const csvContent = csvRows.join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv" });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "job-posts-report.csv";
+    a.download = `job-posts-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
@@ -267,9 +277,9 @@ const JobPostList: React.FC = () => {
         </Button>
       </div>
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
-          onDownload={downloadReportCSV}
+          onDownload={handleDownload}
           searchValue={searchValue}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}

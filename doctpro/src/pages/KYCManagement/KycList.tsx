@@ -4,7 +4,7 @@ import { useState } from "react";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { ApiRequest } from "../Common/constant.function";
 import FormattedDate from "../Common/FormattedDate";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
 import KycViewDrawer from "./KycViewDrawer";
 
 interface KycSubmission {
@@ -38,39 +38,9 @@ const KycList = () => {
     {
       label: "KYC Status",
       key: "kyc_status",
-      type: "checkbox" as const,
       options: ["pending", "approved", "rejected"],
     },
   ];
-
-  // Convert filters object to URL parameters
-  const filterParams = Object.entries(selectedFilters)
-    .filter(
-      ([_, value]) =>
-        value !== "" && value !== false && value !== null && value !== undefined
-    )
-    .map(([key, value]) => {
-      if (typeof value === "boolean" && value) {
-        // Handle compound keys like "kyc_status_rejected" -> "status=rejected"
-        if (key.includes("_")) {
-          const [filterKey, filterValue] = key.split("_", 2);
-          // For kyc_status_rejected, we want status=rejected
-          if (filterKey === "kyc" && filterValue === "status") {
-            const statusValue = key.split("_").slice(2).join("_");
-            return `&status=${encodeURIComponent(statusValue)}`;
-          }
-        }
-        return `&${key}=true`;
-      }
-      return `&${key}=${encodeURIComponent(String(value))}`;
-    })
-    .join("");
-
-  const searchParam = searchValue
-    ? `&search=${encodeURIComponent(searchValue)}`
-    : "";
-  const paginationParam = `?page=${currentPage}&limit=${pageSize}`;
-  const fullParam = `${paginationParam}${searchParam}${filterParams}`;
 
   // Place all other hooks before any conditional returns
   const { data: kycData, isFetching } = useQuery({
@@ -82,6 +52,47 @@ const KycList = () => {
       selectedFilters,
     ],
     queryFn: async () => {
+      const validPage = currentPage || 1;
+      const validLimit = pageSize || 10;
+      
+      // Convert filters object to URL parameters
+      const filterParamsArray: string[] = [];
+      
+      // Collect all selected status values
+      const selectedStatuses: string[] = [];
+      Object.entries(selectedFilters).forEach(([key, value]) => {
+        if (typeof value === "boolean" && value && key.startsWith("kyc_status_")) {
+          const statusValue = key.replace("kyc_status_", "");
+          selectedStatuses.push(statusValue);
+        }
+      });
+
+      // Add status parameter if any statuses are selected
+      if (selectedStatuses.length > 0) {
+        filterParamsArray.push(`status=${selectedStatuses.map(s => encodeURIComponent(s)).join(",")}`);
+      }
+
+      // Handle other filter types (text filters, etc.)
+      Object.entries(selectedFilters).forEach(([key, value]) => {
+        // Skip status filters as they're already handled above
+        if (key.startsWith("kyc_status_")) {
+          return;
+        }
+        
+        if (value !== "" && value !== false && value !== null && value !== undefined) {
+          if (typeof value === "boolean" && value) {
+            filterParamsArray.push(`${key}=true`);
+          } else {
+            filterParamsArray.push(`${key}=${encodeURIComponent(String(value))}`);
+          }
+        }
+      });
+
+      const filterParams = filterParamsArray.length > 0 ? `&${filterParamsArray.join("&")}` : "";
+      const searchParam = searchValue ? `&search=${encodeURIComponent(searchValue)}` : "";
+      const paginationParam = `?page=${validPage}&limit=${validLimit}`;
+      const fullParam = `${paginationParam}${searchParam}${filterParams}`;
+
       const response = await ApiRequest.get(
         `${API_URL}/api/kyc/kyc-submissions${fullParam}`
       );
@@ -220,14 +231,66 @@ const KycList = () => {
     setCurrentPage(1);
   };
 
+  const handleDownload = (format: "excel" | "csv") => {
+    const data = kycData?.data || kycData || [];
+    if (!data || data.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    // Define headers
+    const headers = [
+      "S No",
+      "Full Name",
+      "Email Address",
+      "Phone Number",
+      "Role",
+      "ID Proof No.",
+      "Created On",
+      "KYC Status",
+    ];
+
+    // Create rows
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    data.forEach((row: KycSubmission, index: number) => {
+      const values = [
+        index + 1,
+        `"${row.name || "N/A"}"`,
+        `"${row.email || "N/A"}"`,
+        `"${row.phone || "N/A"}"`,
+        `"${row.role || "N/A"}"`,
+        `"${row.kycId || "N/A"}"`,
+        `"${row.created_on ? new Date(row.created_on).toLocaleDateString() : "N/A"}"`,
+        `"${row.kyc_status || "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
+    });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `kyc-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">KYC Management</h1>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
+          onDownload={handleDownload}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}
         />
