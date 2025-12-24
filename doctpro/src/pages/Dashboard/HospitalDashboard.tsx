@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Avatar, Card, Progress, Select } from "antd";
 import axios from "axios";
-import React from "react";
+import React, { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -21,6 +21,7 @@ import {
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -32,6 +33,7 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 const HospitalDashboard: React.FC = () => {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const [searchValue, setSearchValue] = useState("");
   const fetchDashboardCounts = async () => {
     const res = await axios.get(
       `${API_URL}/api/dashboard/sub-admin/dashboard-status`,
@@ -54,7 +56,7 @@ const HospitalDashboard: React.FC = () => {
   };
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["dashboardCounts"],
+    queryKey: ["hospitalDashboardCounts"],
     queryFn: fetchDashboardCounts,
   });
 
@@ -76,7 +78,7 @@ const HospitalDashboard: React.FC = () => {
     isLoading: subAdminHealthCareLoading,
     isError: subAdminHealthCareError,
   } = useQuery({
-    queryKey: ["subAdmin"],
+    queryKey: ["subAdminHealthCare"],
     queryFn: fetchSubAdminHealthCare,
   });
 
@@ -86,7 +88,7 @@ const HospitalDashboard: React.FC = () => {
     isError: kycStatsError,
     error: kycStatsErrorObj,
   } = useQuery({
-    queryKey: ["kycStats"],
+    queryKey: ["hospitalKycStats"],
     queryFn: fetchKycStats,
   });
 
@@ -94,6 +96,34 @@ const HospitalDashboard: React.FC = () => {
     return <Loader size="large" />;
   if (isError || kycStatsError || subAdminHealthCareError)
     return <div>Error: {kycStatsErrorObj?.message ?? "An error occurred"}</div>;
+
+  // Filter healthcare data based on search
+  const filteredHealthCare = subAdminHealthCare?.data?.filter((item: any) => {
+    if (!searchValue) return true;
+    const searchLower = searchValue.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(searchLower) ||
+      item.qualification?.toLowerCase().includes(searchLower) ||
+      item.specialization?.toLowerCase().includes(searchLower)
+    );
+  }) || [];
+
+  const filterOptions = [
+    { label: "Full name", key: "name" },
+    { label: "Degree", key: "degree" },
+    { label: "Specialisation", key: "specialization" },
+    { label: "Gender", key: "gender", options: ["Male", "Female"] },
+  ];
+
+  const handleDownload = (format: "excel" | "csv") => {
+    console.log(`Downloading as ${format}`);
+    // Implement download logic here
+  };
+
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filters changed:", filters);
+    // Implement filter logic here
+  };
 
   const data1 = [
     {
@@ -149,37 +179,58 @@ const HospitalDashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Object.entries(data)
-          .filter(([key]) =>
-            [
-              "totalDoctors",
-              "totalHospitals",
-              "totalStudents",
-              "pendingKycCount",
-            ].includes(key)
-          )
-          .map(([key, value]) => (
-            <Card key={key} className="shadow-sm bg-white p-2">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full text-white`}>
-                  {(key === "totalHospitals" &&
-                    (totalHospital() as React.ReactNode)) ||
-                    (key === "totalDoctors" &&
-                      (totalCollege() as React.ReactNode)) ||
-                    (key === "totalStudents" &&
-                      (totalStudents() as React.ReactNode)) ||
-                    (key === "pendingKycCount" &&
-                      (totalHealthCare() as React.ReactNode))}{" "}
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">
-                    {key.replace(/([A-Z])/g, " $1").replace("total ", "Total ")}
-                  </p>
-                  <p className="text-2xl font-bold">{value as number}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalHospital() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Appointments</p>
+              <p className="text-2xl font-bold">
+                {data?.totalAppointments ?? data?.totalAppointment ?? 0}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalCollege() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Post</p>
+              <p className="text-2xl font-bold">
+                {data?.totalPost ?? data?.totalPosts ?? 0}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalStudents() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Campaigns</p>
+              <p className="text-2xl font-bold">
+                {data?.totalCampaigns ?? data?.totalCampaign ?? 0}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalHealthCare() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Job Post</p>
+              <p className="text-2xl font-bold">
+                {data?.totalJobPost ?? data?.totalJobPosts ?? 0}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Reports Section */}
@@ -206,9 +257,9 @@ const HospitalDashboard: React.FC = () => {
               <Tooltip />
               <Legend />
               <Bar dataKey="Hospital" fill="#8884d8" />
-              <Bar dataKey="healthcare" fill="#82ca9d" />
-              <Bar dataKey="Medical Student" fill="#ffc658" />
-              <Bar dataKey="CountKYC" fill="#ff7300" />
+              <Bar dataKey="healthcare" fill="#ff9800" />
+              <Bar dataKey="Medical Student" fill="#82ca9d" />
+              <Bar dataKey="CountKYC" fill="#ffc658" />
             </BarChart>
           </Card>
         </div>
@@ -246,91 +297,126 @@ const HospitalDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Sub Admin Section */}
+      {/* Healthcare Professionals Section */}
       <div className="mt-6">
         <Card className="shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
-            <span
-              className="text-blue-500 cursor-pointer"
-              onClick={() => navigate({ to: "/app/healthcare" })}
-            >
-              See All →
-            </span>
           </div>
+          <DownloadFilterButton
+            onSearch={(value) => setSearchValue(value)}
+            searchValue={searchValue}
+            onDownload={handleDownload}
+            filterOptions={filterOptions}
+            onFilterChange={handleFilterChange}
+          />
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="text-left text-gray-600">
                   <th className="py-3 px-4">S No</th>
-                  <th className="py-3 px-4">Name</th>
+                  <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Degree</th>
-                  <th className="py-3 px-4">Specialization</th>
-                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Specialisation</th>
+                  <th className="py-3 px-4">Start Year</th>
+                  <th className="py-3 px-4">End Year</th>
                   <th className="py-3 px-4">DOB</th>
                   <th className="py-3 px-4">Gender</th>
-                  {/* <th className="py-3 px-4">Status</th> */}
                 </tr>
               </thead>
               <tbody>
-                {subAdminHealthCare?.data?.length > 0 ? (
-                  subAdminHealthCare.data
-                    .slice(0, 5)
+                {filteredHealthCare.length > 0 ? (
+                  filteredHealthCare
+                    .slice(0, 10)
                     .map((admin: any, index: number) => (
-                      <tr key={admin.id} className="border-t">
+                      <tr key={admin.id || index} className="border-t">
                         <td className="py-3 px-4">{index + 1}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            {admin.imageUrl ? (
+                            {admin.imageUrl || admin.profile_image ? (
                               <img
-                                src={admin.imageUrl}
-                                alt={`${admin.name ?? ""} 
-                                }`}
+                                src={admin.imageUrl || admin.profile_image}
+                                alt={admin.name ?? ""}
                                 className="w-8 h-8 rounded-full"
                               />
                             ) : (
-                              <>
-                                <div className="w-10 h-10 flex items-center justify-center p-4 rounded-full bg-button-primary text-white">
-                                  <Avatar className="bg-button-primary text-white">
-                                    {admin.name?.charAt(0)}
-                                  </Avatar>
-                                </div>
-                                <span className="text-sm">{admin.name}</span>
-                              </>
+                              <Avatar
+                                className="bg-button-primary text-white"
+                                size={32}
+                              >
+                                {admin.name?.charAt(0)?.toUpperCase() || "N"}
+                              </Avatar>
                             )}
+                            <span className="text-sm">{admin.name ?? "N/A"}</span>
                           </div>
                         </td>
                         <td className="py-3 px-4">
-                          {admin.qualification ?? "N/A"}
+                          {admin.qualification ?? admin.degree ?? "N/A"}
                         </td>
                         <td className="py-3 px-4">
                           {admin.specialization ?? "N/A"}
                         </td>
                         <td className="py-3 px-4">
-                          <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                            {admin.role ?? "N/A"}
-                          </span>
+                          {admin.startYear
+                            ? (() => {
+                                try {
+                                  if (typeof admin.startYear === "string") {
+                                    return new Date(admin.startYear).toLocaleDateString(
+                                      "en-GB",
+                                      { day: "2-digit", month: "short", year: "numeric" }
+                                    );
+                                  } else if (typeof admin.startYear === "number") {
+                                    const date = new Date(admin.startYear, 0, 1);
+                                    return date.toLocaleDateString("en-GB", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    });
+                                  }
+                                  return admin.startYear.toString();
+                                } catch {
+                                  return admin.startYear.toString();
+                                }
+                              })()
+                            : "N/A"}
                         </td>
-                        {/* <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              admin.status === "ACTIVE"
-                                ? "bg-green-100 text-green-600"
-                                : "bg-red-100 text-red-600"
-                            }`}
-                          >
-                            {admin.status}
-                          </span>
-                        </td> */}
                         <td className="py-3 px-4">
-                          <FormattedDate dateString={admin.dob} format="long" />
+                          {admin.endYear
+                            ? (() => {
+                                try {
+                                  if (typeof admin.endYear === "string") {
+                                    return new Date(admin.endYear).toLocaleDateString(
+                                      "en-GB",
+                                      { day: "2-digit", month: "short", year: "numeric" }
+                                    );
+                                  } else if (typeof admin.endYear === "number") {
+                                    const date = new Date(admin.endYear, 0, 1);
+                                    return date.toLocaleDateString("en-GB", {
+                                      day: "2-digit",
+                                      month: "short",
+                                      year: "numeric",
+                                    });
+                                  }
+                                  return admin.endYear.toString();
+                                } catch {
+                                  return admin.endYear.toString();
+                                }
+                              })()
+                            : "N/A"}
+                        </td>
+                        <td className="py-3 px-4">
+                          {admin.dob ? (
+                            <FormattedDate dateString={admin.dob} format="long" />
+                          ) : (
+                            "N/A"
+                          )}
                         </td>
                         <td className="py-3 px-4">{admin.gender ?? "N/A"}</td>
                       </tr>
                     ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                    <td colSpan={8} className="py-4 text-center text-gray-500">
                       No Healthcare Professionals data available
                     </td>
                   </tr>

@@ -32,6 +32,7 @@ import ChangePassword from "./pages/Auth/ChangePassword";
 import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 import { AuthProvider } from "./pages/Common/Context/AuthContext";
 import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
+import JobPostList from "./pages/JobPostManagement/JobPostList";
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -183,6 +184,12 @@ const hospitalDashboardRoute = createRoute({
   component: () => <HospitalDashboard />,
 });
 
+const jobPostRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "job-post",
+  component: () => <JobPostList />,
+});
+
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   authLayoutRoute.addChildren([
@@ -209,6 +216,7 @@ const routeTree = rootRoute.addChildren([
     campaignRoute,
     postManagementRoute,
     hospitalDashboardRoute,
+    jobPostRoute,
   ]),
 ]);
 

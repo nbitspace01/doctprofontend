@@ -1,4 +1,4 @@
-import { Avatar, Button, Image, Pagination, Table } from "antd";
+import { Avatar, Button, Image, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
@@ -10,6 +10,7 @@ import ViewSubAdmin from "./ViewSubAdmin";
 import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";
+import CommonPagination from "../Common/CommonPagination";
 
 interface SubAdminData {
   id: string;
@@ -363,20 +364,13 @@ const SubAdmin: React.FC = () => {
               // onChange={handleTableChange}
               rowKey="id"
             />
-            <div className="flex justify-end my-2 py-3">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={totalCount}
-                showSizeChanger
-                showQuickJumper
-                showTotal={(total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`
-                }
-                onChange={handlePageChange}
-                onShowSizeChange={handlePageChange}
-              />
-            </div>
+            <CommonPagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={totalCount}
+              onChange={handlePageChange}
+              onShowSizeChange={handlePageChange}
+            />
           </>
         )}
       </div>

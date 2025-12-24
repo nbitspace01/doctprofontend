@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Card, Progress, Select } from "antd";
+import { Avatar, Card, Progress, Select } from "antd";
 import axios from "axios";
-import React from "react";
+import React, { useState } from "react";
 import {
   Bar,
   BarChart,
@@ -20,6 +20,8 @@ import {
 } from "../../pages/Common/SVG/svg.functions";
 import { getToken } from "../Common/authUtils";
 import Loader from "../Common/Loader";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
+import CommonDropdown from "../Common/CommonActionsDropdown";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -31,6 +33,8 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const [searchValue, setSearchValue] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const fetchDashboardCounts = async () => {
     const res = await axios.get(`${API_URL}/api/dashboard/counts`, {
       headers: {
@@ -90,6 +94,85 @@ const Dashboard: React.FC = () => {
   if (isError || kycStatsError || subAdminError)
     return <div>Error: {kycStatsErrorObj?.message ?? "An error occurred"}</div>;
 
+  // Filter sub-admin data based on search and filters
+  const filteredSubAdmin = subAdmin?.data?.filter((item: any) => {
+    // Apply search filter
+    if (searchValue) {
+      const searchLower = searchValue.toLowerCase();
+      const fullName = `${item.first_name || ""} ${item.last_name || ""}`.toLowerCase();
+      const matchesSearch =
+        fullName.includes(searchLower) ||
+        item.email?.toLowerCase().includes(searchLower) ||
+        item.phone?.toLowerCase().includes(searchLower) ||
+        item.location?.toLowerCase().includes(searchLower) ||
+        item.organization_type?.toLowerCase().includes(searchLower);
+      if (!matchesSearch) return false;
+    }
+
+    // Apply text filters
+    if (filterValues.name) {
+      const fullName = `${item.first_name || ""} ${item.last_name || ""}`.toLowerCase();
+      if (!fullName.includes(filterValues.name.toLowerCase())) return false;
+    }
+    if (filterValues.email) {
+      if (!item.email?.toLowerCase().includes(filterValues.email.toLowerCase())) return false;
+    }
+    if (filterValues.phone) {
+      if (!item.phone?.toLowerCase().includes(filterValues.phone.toLowerCase())) return false;
+    }
+    if (filterValues.location) {
+      if (!item.location?.toLowerCase().includes(filterValues.location.toLowerCase())) return false;
+    }
+
+    // Apply checkbox filters (role)
+    const selectedRoles = Object.keys(filterValues).filter(
+      (key) => key.startsWith("role_") && filterValues[key]
+    );
+    if (selectedRoles.length > 0) {
+      const roles = selectedRoles.map((key) => key.replace("role_", "").toLowerCase());
+      if (!roles.includes(item.role?.toLowerCase())) return false;
+    }
+
+    // Apply checkbox filters (organization_type)
+    const selectedOrgTypes = Object.keys(filterValues).filter(
+      (key) => key.startsWith("organization_type_") && filterValues[key]
+    );
+    if (selectedOrgTypes.length > 0) {
+      const orgTypes = selectedOrgTypes.map((key) => key.replace("organization_type_", "").toLowerCase());
+      if (!orgTypes.includes(item.organization_type?.toLowerCase())) return false;
+    }
+
+    // Apply checkbox filters (status)
+    const selectedStatuses = Object.keys(filterValues).filter(
+      (key) => key.startsWith("status_") && filterValues[key]
+    );
+    if (selectedStatuses.length > 0) {
+      const statuses = selectedStatuses.map((key) => key.replace("status_", "").toLowerCase());
+      if (!statuses.includes(item.status?.toLowerCase())) return false;
+    }
+
+    return true;
+  }) || [];
+
+  const filterOptions = [
+    { label: "Name", key: "name", type: "text" as const },
+    { label: "Email Address", key: "email", type: "text" as const },
+    { label: "Phone Number", key: "phone", type: "text" as const },
+    { label: "Role", key: "role", type: "checkbox" as const, options: ["ADMIN", "SUB_ADMIN", "In charge"] },
+    { label: "Location", key: "location", type: "text" as const },
+    { label: "Organization Type", key: "organization_type", type: "checkbox" as const, options: ["HOSPITAL", "CLINIC", "PHARMACY", "College", "Hospital", "Company"] },
+    { label: "Status", key: "status", type: "checkbox" as const, options: ["ACTIVE", "INACTIVE"] },
+  ];
+
+  const handleDownload = (format: "excel" | "csv") => {
+    console.log(`Downloading as ${format}`);
+    // Implement download logic here
+  };
+
+  const handleFilterChange = (filters: Record<string, any>) => {
+    setFilterValues(filters);
+  };
+
   const data1 = [
     {
       date: "1 Mar",
@@ -144,38 +227,83 @@ const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Object.entries(data)
-          .filter(([key]) =>
-            [
-              "totalColleges",
-              "totalHospitals",
-              "totalStudents",
-              "totalProfessionals",
-            ].includes(key)
-          )
-          .map(([key, value]) => (
-            <Card key={key} className="shadow-sm bg-white p-2">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full text-white`}>
-                  {(key === "totalHospitals" &&
-                    (totalHospital() as React.ReactNode)) ||
-                    (key === "totalColleges" &&
-                      (totalCollege() as React.ReactNode)) ||
-                    (key === "totalStudents" &&
-                      (totalStudents() as React.ReactNode)) ||
-                    (key === "totalProfessionals" &&
-                      (totalHealthCare() as React.ReactNode))}{" "}
-                  ||
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">
-                    {key.replace(/([A-Z])/g, " $1").replace("total ", "Total ")}
-                  </p>
-                  <p className="text-2xl font-bold">{value as number}</p>
-                </div>
-              </div>
-            </Card>
-          ))}
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalCollege() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Colleges</p>
+              <p className="text-2xl font-bold">
+                {(() => {
+                  if (!data) return 0;
+                  const key = Object.keys(data).find(k => 
+                    k.toLowerCase().includes('college')
+                  );
+                  return key ? (data as any)[key] : 0;
+                })()}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalHospital() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Hospitals</p>
+              <p className="text-2xl font-bold">
+                {(() => {
+                  if (!data) return 0;
+                  const key = Object.keys(data).find(k => 
+                    k.toLowerCase().includes('hospital')
+                  );
+                  return key ? (data as any)[key] : 0;
+                })()}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalStudents() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Students</p>
+              <p className="text-2xl font-bold">
+                {(() => {
+                  if (!data) return 0;
+                  const key = Object.keys(data).find(k => 
+                    k.toLowerCase().includes('student')
+                  );
+                  return key ? (data as any)[key] : 0;
+                })()}
+              </p>
+            </div>
+          </div>
+        </Card>
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">
+              {totalHealthCare() as React.ReactNode}
+            </div>
+            <div>
+              <p className="text-gray-600 text-sm">Total Healthcare Professionals</p>
+              <p className="text-2xl font-bold">
+                {(() => {
+                  if (!data) return 0;
+                  const key = Object.keys(data).find(k => 
+                    k.toLowerCase().includes('professional') || 
+                    k.toLowerCase().includes('healthcare')
+                  );
+                  return key ? (data as any)[key] : 0;
+                })()}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* Reports Section */}
@@ -202,9 +330,9 @@ const Dashboard: React.FC = () => {
               <Tooltip />
               <Legend />
               <Bar dataKey="New Registration" fill="#8884d8" />
-              <Bar dataKey="Job post" fill="#82ca9d" />
-              <Bar dataKey="Ads post" fill="#ffc658" />
-              <Bar dataKey="Appointment" fill="#ff7300" />
+              <Bar dataKey="Job post" fill="#ff9800" />
+              <Bar dataKey="Ads post" fill="#82ca9d" />
+              <Bar dataKey="Appointment" fill="#ffc658" />
             </BarChart>
           </Card>
         </div>
@@ -246,7 +374,7 @@ const Dashboard: React.FC = () => {
       <div className="mt-6">
         <Card className="shadow-sm">
           <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Sub Admin List</h1>
+            <h1 className="text-2xl font-bold">Sub-Admin List</h1>
             <span
               className="text-blue-500 cursor-pointer"
               onClick={() => navigate({ to: "/app/subadmin" })}
@@ -254,6 +382,13 @@ const Dashboard: React.FC = () => {
               See All →
             </span>
           </div>
+          <DownloadFilterButton
+            onSearch={(value) => setSearchValue(value)}
+            searchValue={searchValue}
+            onDownload={handleDownload}
+            filterOptions={filterOptions}
+            onFilterChange={handleFilterChange}
+          />
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
@@ -263,57 +398,74 @@ const Dashboard: React.FC = () => {
                   <th className="py-3 px-4">Email Address</th>
                   <th className="py-3 px-4">Phone Number</th>
                   <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Location</th>
+                  <th className="py-3 px-4">Organization Type</th>
                   <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {subAdmin?.data?.length > 0 ? (
-                  subAdmin.data.slice(0, 5).map((admin: any, index: number) => (
-                    <tr key={admin.id} className="border-t">
-                      <td className="py-3 px-4">{index + 1}</td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-2">
-                          {admin.imageUrl ? (
-                            <img
-                              src={admin.imageUrl}
-                              alt={`${admin.first_name} ${admin.last_name}`}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 rounded-full bg-button-primary flex items-center justify-center text-white">
-                              {admin.first_name
-                                ? admin.first_name.charAt(0).toUpperCase()
-                                : "U"}
-                            </div>
-                          )}
-                          <span>{`${admin.first_name || ""} ${
-                            admin.last_name || ""
-                          }`}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">{admin.email}</td>
-                      <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
-                      <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                          {admin.role ?? "N/A"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <span
-                          className={`px-2 py-1 rounded-full text-sm ${
-                            admin.status === "ACTIVE"
-                              ? "bg-green-100 text-green-600"
-                              : "bg-red-100 text-red-600"
-                          }`}
-                        >
-                          {admin.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                {filteredSubAdmin.length > 0 ? (
+                  filteredSubAdmin
+                    .slice(0, 5)
+                    .map((admin: any, index: number) => (
+                      <tr key={admin.id || index} className="border-t">
+                        <td className="py-3 px-4">{index + 1}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            {admin.imageUrl || admin.image_url || admin.profile_image ? (
+                              <img
+                                src={admin.imageUrl || admin.image_url || admin.profile_image}
+                                alt={`${admin.first_name || ""} ${admin.last_name || ""}`}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <Avatar
+                                className="bg-button-primary text-white"
+                                size={32}
+                              >
+                                {admin.first_name
+                                  ? admin.first_name.charAt(0).toUpperCase()
+                                  : "U"}
+                              </Avatar>
+                            )}
+                            <span>{`${admin.first_name || ""} ${
+                              admin.last_name || ""
+                            }`.trim() || "N/A"}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4">{admin.email ?? "N/A"}</td>
+                        <td className="py-3 px-4">{admin.phone ?? "N/A"}</td>
+                        <td className="py-3 px-4">
+                          <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
+                            {admin.role ?? "N/A"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">{admin.location ?? "N/A"}</td>
+                        <td className="py-3 px-4">{admin.organization_type ?? "N/A"}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`px-2 py-1 rounded-full text-sm ${
+                              admin.status === "ACTIVE"
+                                ? "bg-green-100 text-green-600"
+                                : "bg-red-100 text-red-600"
+                            }`}
+                          >
+                            {admin.status ?? "N/A"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <CommonDropdown
+                            onView={() => {}}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
+                          />
+                        </td>
+                      </tr>
+                    ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                    <td colSpan={9} className="py-4 text-center text-gray-500">
                       No sub-admin data available
                     </td>
                   </tr>

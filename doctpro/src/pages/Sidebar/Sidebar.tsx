@@ -3,8 +3,10 @@ import { Layout } from "antd";
 import {
   Building,
   Building2,
+  Briefcase,
   FileText,
   House,
+  LayoutDashboard,
   LogOut,
   MessageCircleQuestion,
   Settings,
@@ -46,7 +48,7 @@ const Sidebar: React.FC = () => {
             setExpandedMenus((prev) => [...prev, item.id]);
           }
         });
-      } else if (currentPath.includes(item.id)) {
+      } else if (currentPath.includes(item.id) || (item.id === "hospital-dashboard" && currentPath.includes("hospital/dashboard")) || (item.id === "job-post" && currentPath.includes("job-post"))) {
         setSelectedItem(item.id);
       }
     });
@@ -77,6 +79,16 @@ const Sidebar: React.FC = () => {
       },
     },
     {
+      id: "hospital-dashboard",
+      label: "Hospital Dashboard",
+      icon: <Building2 />,
+      onClick: () => {
+        setSelectedItem("hospital-dashboard");
+        setExpandedMenus([]);
+        navigate({ to: "/app/hospital/dashboard" });
+      },
+    },
+    {
       id: "sub-admin",
       label: "Sub-Admin List",
       icon: <ShieldUser />,
@@ -84,6 +96,16 @@ const Sidebar: React.FC = () => {
         setSelectedItem("sub-admin");
         setExpandedMenus([]);
         navigate({ to: "/app/subadmin" });
+      },
+    },
+    {
+      id: "sub-admin-dashboard",
+      label: "Sub-Admin Dashboard",
+      icon: <LayoutDashboard />,
+      onClick: () => {
+        setSelectedItem("sub-admin-dashboard");
+        setExpandedMenus([]);
+        navigate({ to: "/app/subadmin/dashboard" });
       },
     },
     {
@@ -187,6 +209,16 @@ const Sidebar: React.FC = () => {
           },
         },
       ],
+    },
+    {
+      id: "job-post",
+      label: "Job post Management",
+      icon: <Briefcase />,
+      onClick: () => {
+        setSelectedItem("job-post");
+        setExpandedMenus([]);
+        navigate({ to: "/app/job-post" });
+      },
     },
     {
       id: "ad-management",
