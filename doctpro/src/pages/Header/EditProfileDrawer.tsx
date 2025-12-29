@@ -52,7 +52,8 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         description: data.message,
       });
       // Invalidate and refetch userProfile query
-      queryClient.invalidateQueries({ queryKey: ["userProfile"] });
+      const currentUserId = localStorage.getItem("userId");
+      queryClient.invalidateQueries({ queryKey: ["userProfile", currentUserId] });
       onSave(data);
       onClose();
     },

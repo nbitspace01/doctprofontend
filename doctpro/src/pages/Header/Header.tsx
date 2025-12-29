@@ -42,15 +42,20 @@ const Header: React.FC = () => {
     useState(false);
   const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const USER_ID = localStorage.getItem("userId");
+  const firstName = localStorage.getItem("firstName");
+  const lastName = localStorage.getItem("lastName");
+  const roleName = localStorage.getItem("roleName");
+  const userEmail = localStorage.getItem("userEmail");
 
   const { data: userProfile } = useQuery<UserProfile>({
-    queryKey: ["userProfile"],
+    queryKey: ["userProfile", USER_ID],
     queryFn: async () => {
       const response = await axiosInstance.get(
         `${URL}/api/user/profile/${USER_ID}`
       );
       return response.data;
     },
+    enabled: !!USER_ID,
   });
 
   const userMenuItems = [
@@ -73,17 +78,22 @@ const Header: React.FC = () => {
   ];
 
   // Replace the hardcoded profileData with the fetched data
+  const displayName = userProfile?.name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || "");
+  const displayRole = userProfile?.role || (roleName ? roleName.charAt(0).toUpperCase() + roleName.slice(1) : "");
+  const displayEmail = userProfile?.email || userEmail || "";
+  const displayPhone = userProfile?.phone || "";
+  
   const profileData = {
-    name: userProfile?.name ?? "Loading...",
+    name: displayName || "Loading...",
     avatar: "https://i.pravatar.cc/150?img=3",
-    role: userProfile?.role ?? "Loading...",
+    role: displayRole || "Loading...",
     title:
       userProfile?.type === "Doctor"
-        ? `Dr. ${userProfile.name}`
-        : userProfile?.name ?? "Loading...",
+        ? `Dr. ${displayName}`
+        : displayName || "Loading...",
     note: userProfile?.note ?? "",
-    email: userProfile?.email ?? "",
-    phone: userProfile?.phone ?? "",
+    email: displayEmail,
+    phone: displayPhone,
   };
 
   const searchMutation = useMutation({
@@ -130,10 +140,10 @@ const Header: React.FC = () => {
             >
               <div className="flex items-center space-x-3 cursor-pointer">
                 <Avatar size={32} className="bg-button-primary">
-                  {userProfile?.name?.charAt(0)}
+                  {userProfile?.name?.charAt(0) || firstName?.charAt(0)?.toUpperCase() || "U"}
                 </Avatar>
                 <span className="font-medium text-gray-700">
-                  {userProfile?.name ?? "Loading..."}
+                  {userProfile?.name || (firstName && lastName ? `${firstName} ${lastName}` : firstName || lastName || "Loading...")}
                 </span>
               </div>
             </Dropdown>
@@ -150,11 +160,11 @@ const Header: React.FC = () => {
         onClose={() => setEditProfileDrawerVisible(false)}
         onSave={() => {}}
         initialValues={{
-          fullName: userProfile?.name ?? "",
-          email: userProfile?.email ?? "",
+          fullName: displayName || "",
+          email: displayEmail || "",
           note: userProfile?.note ?? "",
-          phoneNumber: userProfile?.phone ?? "",
-          role: userProfile?.role ?? "",
+          phoneNumber: displayPhone || "",
+          role: displayRole || "",
         }}
       />
     </>

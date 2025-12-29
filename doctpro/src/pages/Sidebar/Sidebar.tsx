@@ -15,6 +15,7 @@ import {
   UserRoundCog,
 } from "lucide-react";
 import React from "react";
+import { getUserInfo } from "../Common/authUtils";
 
 const { Sider } = Layout;
 
@@ -29,6 +30,9 @@ const Sidebar: React.FC = () => {
   const [selectedSubMenu, setSelectedSubMenu] = React.useState<string>(
     () => localStorage.getItem("selectedSubMenu") ?? ""
   );
+  
+  const userInfo = getUserInfo();
+  const roleName = userInfo.roleName;
 
   React.useEffect(() => {
     localStorage.setItem("selectedItem", selectedItem);
@@ -39,7 +43,7 @@ const Sidebar: React.FC = () => {
   React.useEffect(() => {
     const currentPath = window.location.pathname;
 
-    menuItems.forEach((item) => {
+    allMenuItems.forEach((item) => {
       if (item.subMenu) {
         item.subMenu.forEach((subItem) => {
           if (currentPath.includes(subItem.id)) {
@@ -66,7 +70,7 @@ const Sidebar: React.FC = () => {
     navigate({ to: "/auth/login" });
   };
 
-  const menuItems = [
+  const allMenuItems = [
     {
       id: "dashboard",
       label: "Dashboard",
@@ -258,6 +262,71 @@ const Sidebar: React.FC = () => {
     },
   ];
 
+  // Filter menu items based on user role
+  const getFilteredMenuItems = () => {
+    if (roleName === "hospital") {
+      // Hospital admin sees only: Hospital Dashboard, Job Post Management, and Healthcare Professionals
+      const hospitalDashboard = allMenuItems.find((item) => item.id === "hospital-dashboard");
+      const jobPost = allMenuItems.find((item) => item.id === "job-post");
+      const peopleMenu = allMenuItems.find((item) => item.id === "people");
+      const healthcareSubItem = peopleMenu && "subMenu" in peopleMenu 
+        ? peopleMenu.subMenu?.find((subItem: any) => subItem.id === "healthcare")
+        : null;
+      
+      // Create Healthcare Professionals as a direct menu item
+      const healthcareMenuItem = healthcareSubItem ? {
+        id: "healthcare",
+        label: "Healthcare Professionals",
+        icon: <Building />,
+        onClick: () => {
+          setSelectedItem("healthcare");
+          setExpandedMenus([]);
+          navigate({ to: "/app/healthcare" });
+        },
+      } : null;
+
+      // Return filtered menu items
+      const filteredItems: any[] = [];
+      if (hospitalDashboard) filteredItems.push(hospitalDashboard);
+      if (jobPost) filteredItems.push(jobPost);
+      if (healthcareMenuItem) filteredItems.push(healthcareMenuItem);
+      
+      return filteredItems;
+    } else if (roleName === "subadmin") {
+      // Subadmin sees: Sub-Admin Dashboard, Sub-Admin List, and Healthcare Professionals
+      const subAdminDashboard = allMenuItems.find((item) => item.id === "sub-admin-dashboard");
+      const subAdminList = allMenuItems.find((item) => item.id === "sub-admin");
+      const peopleMenu = allMenuItems.find((item) => item.id === "people");
+      const healthcareSubItem = peopleMenu && "subMenu" in peopleMenu 
+        ? peopleMenu.subMenu?.find((subItem: any) => subItem.id === "healthcare")
+        : null;
+      
+      // Create Healthcare Professionals as a direct menu item
+      const healthcareMenuItem = healthcareSubItem ? {
+        id: "healthcare",
+        label: "Healthcare Professionals",
+        icon: <Building />,
+        onClick: () => {
+          setSelectedItem("healthcare");
+          setExpandedMenus([]);
+          navigate({ to: "/app/healthcare" });
+        },
+      } : null;
+
+      // Return filtered menu items
+      const filteredItems: any[] = [];
+      if (subAdminDashboard) filteredItems.push(subAdminDashboard);
+      if (subAdminList) filteredItems.push(subAdminList);
+      if (healthcareMenuItem) filteredItems.push(healthcareMenuItem);
+      
+      return filteredItems;
+    }
+    // Super admin (admin) sees all menu items
+    return allMenuItems;
+  };
+
+  const menuItems = getFilteredMenuItems();
+
   return (
     <Sider
       width={200}
@@ -286,7 +355,7 @@ const Sidebar: React.FC = () => {
             </div>
             {item.subMenu && expandedMenus.includes(item.id) && (
               <div className="ml-8">
-                {item.subMenu.map((subItem) => (
+                {item.subMenu.map((subItem: any) => (
                   <div
                     key={subItem.id}
                     className={`flex items-center h-[40px] mb-2 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${

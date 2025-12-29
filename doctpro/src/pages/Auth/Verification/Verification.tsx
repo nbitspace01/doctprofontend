@@ -105,6 +105,9 @@ const Verification = () => {
         localStorage.setItem("roleName", data.user.role.name);
         localStorage.setItem("firstName", data.user.first_name);
         localStorage.setItem("lastName", data.user.last_name);
+        if (data.user.email) {
+          localStorage.setItem("userEmail", data.user.email);
+        }
 
         // Update context token
         setToken(data.token);

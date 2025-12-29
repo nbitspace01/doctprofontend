@@ -173,7 +173,7 @@ const SubAdminDashboard: React.FC = () => {
   return (
     <div className="">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">Subadmin Dashboard</h1>
         <span className="text-blue-500 cursor-pointer">See All →</span>
       </div>
 
@@ -235,7 +235,7 @@ const SubAdminDashboard: React.FC = () => {
 
       {/* Reports Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* <div className="lg:col-span-2">
           <Card className="shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Reports</h2>
@@ -262,10 +262,10 @@ const SubAdminDashboard: React.FC = () => {
               <Bar dataKey="CountKYC" fill="#ffc658" />
             </BarChart>
           </Card>
-        </div>
+        </div> */}
 
         {/* Employees Section */}
-        <div>
+        {/* <div>
           <Card className="shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Employees</h2>
             <div className="flex justify-center">
@@ -294,7 +294,7 @@ const SubAdminDashboard: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </div> */}
       </div>
 
       {/* Healthcare Professionals Section */}
@@ -302,6 +302,14 @@ const SubAdminDashboard: React.FC = () => {
         <Card className="shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
+            {filteredHealthCare.length > 5 && (
+              <span
+                className="text-blue-500 cursor-pointer"
+                onClick={() => navigate({ to: "/app/healthcare" })}
+              >
+                See All →
+              </span>
+            )}
           </div>
           <DownloadFilterButton
             onSearch={(value) => setSearchValue(value)}
@@ -327,7 +335,7 @@ const SubAdminDashboard: React.FC = () => {
               <tbody>
                 {filteredHealthCare.length > 0 ? (
                   filteredHealthCare
-                    .slice(0, 10)
+                    .slice(0, 5)
                     .map((admin: any, index: number) => (
                       <tr key={admin.id || index} className="border-t">
                         <td className="py-3 px-4">{index + 1}</td>

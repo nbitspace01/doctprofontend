@@ -178,14 +178,14 @@ const HospitalDashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">
+            <div className="p-3 rounded-full text-white flex-shrink-0">
               {totalHospital() as React.ReactNode}
             </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Appointments</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-gray-600 text-sm break-words">Total Healthcare Professionals</p>
               <p className="text-2xl font-bold">
                 {data?.totalAppointments ?? data?.totalAppointment ?? 0}
               </p>
@@ -194,18 +194,18 @@ const HospitalDashboard: React.FC = () => {
         </Card>
         <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">
+            <div className="p-3 rounded-full text-white flex-shrink-0">
               {totalCollege() as React.ReactNode}
             </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Post</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-gray-600 text-sm break-words">Total Students</p>
               <p className="text-2xl font-bold">
                 {data?.totalPost ?? data?.totalPosts ?? 0}
               </p>
             </div>
           </div>
         </Card>
-        <Card className="shadow-sm bg-white p-2">
+        {/* <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full text-white">
               {totalStudents() as React.ReactNode}
@@ -217,14 +217,14 @@ const HospitalDashboard: React.FC = () => {
               </p>
             </div>
           </div>
-        </Card>
+        </Card> */}
         <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">
+            <div className="p-3 rounded-full text-white flex-shrink-0">
               {totalHealthCare() as React.ReactNode}
             </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Job Post</p>
+            <div className="flex-1 min-w-0">
+              <p className="text-gray-600 text-sm break-words">Total Job Post</p>
               <p className="text-2xl font-bold">
                 {data?.totalJobPost ?? data?.totalJobPosts ?? 0}
               </p>
@@ -235,7 +235,7 @@ const HospitalDashboard: React.FC = () => {
 
       {/* Reports Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* <div className="lg:col-span-2">
           <Card className="shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Reports</h2>
@@ -262,10 +262,10 @@ const HospitalDashboard: React.FC = () => {
               <Bar dataKey="CountKYC" fill="#ffc658" />
             </BarChart>
           </Card>
-        </div>
+        </div> */}
 
         {/* Employees Section */}
-        <div>
+        {/* <div>
           <Card className="shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Employees</h2>
             <div className="flex justify-center">
@@ -294,7 +294,7 @@ const HospitalDashboard: React.FC = () => {
               </div>
             </div>
           </Card>
-        </div>
+        </div> */}
       </div>
 
       {/* Healthcare Professionals Section */}
