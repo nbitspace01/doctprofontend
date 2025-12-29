@@ -173,7 +173,7 @@ const HospitalDashboard: React.FC = () => {
   return (
     <div className="">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">Hospital Dashboard</h1>
         <span className="text-blue-500 cursor-pointer">See All →</span>
       </div>
 

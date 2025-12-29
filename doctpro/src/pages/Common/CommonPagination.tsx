@@ -98,3 +98,4 @@ export const getTablePaginationConfig = (
 export default CommonPagination;
 
 
+

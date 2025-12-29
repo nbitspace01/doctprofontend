@@ -43,7 +43,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
   const { data: collegesData } = useQuery({
     queryKey: ["colleges"],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/college/list`, {
+      const response = await axios.get(`${API_URL}/api/college?page=1&limit=10`, {
         headers: { Authorization: `Bearer ${TOKEN}` },
       });
       return response.data?.data || [];
@@ -53,7 +53,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
   const { data: degreesData } = useQuery({
     queryKey: ["degrees"],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/degree/list`, {
+      const response = await axios.get(`${API_URL}/api/degree?page=1&limit=10`, {
         headers: { Authorization: `Bearer ${TOKEN}` },
       });
       return response.data?.data || [];
@@ -150,7 +150,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
         currentlyWorking: values.currentlyWorking || false,
         profile_image: imageUrl || "",
       };
-      return axios.post(`${API_URL}/api/healthCare/healthcare-professionals`, payload, {
+      return axios.post(`${API_URL}/api/professinal/create`, payload, {
         headers: { Authorization: `Bearer ${TOKEN}` },
       });
     },
