@@ -9,8 +9,9 @@ import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import DegreeAddModal from "./DegreeAddModal";
 import DegreeView from "./DegreeView";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import CommonPagination from "../../Common/CommonPagination";
 import FormattedDate from "../../Common/FormattedDate";
 
 interface DegreeData {
@@ -194,9 +195,67 @@ const DegreeSpecializationList: React.FC = () => {
     setCurrentPage(1); // Reset to first page when searching
   };
 
-  const handleTableChange = (pagination: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
+  const filterOptions = [
+    {
+      label: "Status",
+      key: "status",
+      options: ["active", "inactive"],
+    },
+  ];
+
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filter values:", filters);
+  };
+
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!degreeData || degreeData.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    const headers = [
+      "S No",
+      "Degree Name",
+      "Level",
+      "Specializations",
+      "Status",
+      "Created on",
+    ];
+
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    degreeData.forEach((row, index) => {
+      const values = [
+        (currentPage - 1) * pageSize + index + 1,
+        `"${row.name || "N/A"}"`,
+        `"${row.graduation_level || "N/A"}"`,
+        `"${row.specialization || "N/A"}"`,
+        `"${row.status || "N/A"}"`,
+        `"${row.created_at ? new Date(row.created_at).toLocaleDateString() : "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
+    });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `degree-specialization-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   // Extract data and total from the paginated response
@@ -238,9 +297,12 @@ const DegreeSpecializationList: React.FC = () => {
         />
 
         <div className="bg-white rounded-lg shadow w-full">
-          <SearchFilterDownloadButton
+          <DownloadFilterButton
             onSearch={handleSearch}
             searchValue={searchValue}
+            filterOptions={filterOptions}
+            onFilterChange={handleFilterChange}
+            onDownload={handleDownload}
           />
 
           <Table
@@ -249,17 +311,15 @@ const DegreeSpecializationList: React.FC = () => {
             scroll={{ x: "max-content" }}
             rowKey="id"
             loading={isFetching}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: total,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) =>
-                `${range[0]}-${range[1]} of ${total} items`,
-            }}
-            onChange={handleTableChange}
+            pagination={false}
             className="shadow-sm rounded-lg"
+          />
+          <CommonPagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            onChange={handlePageChange}
+            onShowSizeChange={handlePageChange}
           />
         </div>
       </div>

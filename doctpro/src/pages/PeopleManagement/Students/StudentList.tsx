@@ -3,7 +3,8 @@ import { Avatar, Table } from "antd";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import FormattedDate from "../../Common/FormattedDate";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
+import CommonPagination from "../../Common/CommonPagination";
 import StudentView from "./StudentView";
 
 interface Student {
@@ -83,22 +84,18 @@ const StudentList: React.FC = () => {
     {
       label: "Degree",
       key: "degree",
-      type: "text" as const,
     },
     {
       label: "Specialization",
       key: "specialization",
-      type: "text" as const,
     },
     {
       label: "College",
       key: "collegeName",
-      type: "text" as const,
     },
     {
       label: "Gender",
       key: "gender",
-      type: "checkbox" as const,
       options: ["Male", "Female"],
     },
   ];
@@ -308,6 +305,62 @@ const StudentList: React.FC = () => {
     setFilterValues(filters);
   };
 
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!students || students.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    const headers = [
+      "S No",
+      "Student Name",
+      "Student ID",
+      "Email Address",
+      "Phone Number",
+      "Gender",
+      "DOB",
+      "College",
+      "Degree",
+      "Specialisation",
+      "KYC Status",
+      "Account Status",
+    ];
+
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    students.forEach((row, index) => {
+      const values = [
+        (pagination.current - 1) * pagination.pageSize + index + 1,
+        `"${row.studentName || "N/A"}"`,
+        `"${row.studentId || "N/A"}"`,
+        `"${row.email || "N/A"}"`,
+        `"${row.phone || "N/A"}"`,
+        `"${row.gender || "N/A"}"`,
+        `"${row.dob ? new Date(row.dob).toLocaleDateString() : "N/A"}"`,
+        `"${row.college || "N/A"}"`,
+        `"${row.degree || "N/A"}"`,
+        `"${row.specialization || "N/A"}"`,
+        `"${row.kycStatus ? "Verified" : "Pending"}"`,
+        `"${row.userStatus || "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
+    });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `students-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -317,11 +370,12 @@ const StudentList: React.FC = () => {
         </Button> */}
       </div>
       <div className="bg-white  rounded-lg">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}
+          onDownload={handleDownload}
         />
 
         <Table
@@ -329,20 +383,25 @@ const StudentList: React.FC = () => {
           dataSource={students}
           rowKey="studentId"
           scroll={{ x: "max-content" }}
-          pagination={{
-            current: pagination.current,
-            pageSize: pagination.pageSize,
-            total: total,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} items`,
-            onChange: (page, pageSize) => {
-              setPagination({
-                current: page,
-                pageSize: pageSize || 10,
-              });
-            },
-          }}
+          pagination={false}
           loading={isFetching}
+        />
+        <CommonPagination
+          current={pagination.current}
+          pageSize={pagination.pageSize}
+          total={total}
+          onChange={(page, pageSize) => {
+            setPagination({
+              current: page,
+              pageSize: pageSize || 10,
+            });
+          }}
+          onShowSizeChange={(current, size) => {
+            setPagination({
+              current: 1,
+              pageSize: size,
+            });
+          }}
         />
       </div>
 

@@ -25,12 +25,14 @@ interface AddHealthcareProfessionalProps {
   open: boolean;
   onCancel: () => void;
   onSuccess?: () => void;
+  initialData?: any | null;
 }
 
 const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
   open,
   onCancel,
   onSuccess,
+  initialData,
 }) => {
   const [form] = Form.useForm();
   const [currentStep, setCurrentStep] = useState(1);
@@ -53,7 +55,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
   const { data: degreesData } = useQuery({
     queryKey: ["degrees"],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/degree?page=1&limit=10`, {
+      const response = await axios.get(`${API_URL}/api/degree?page=1&limit=1000`, {
         headers: { Authorization: `Bearer ${TOKEN}` },
       });
       return response.data?.data || [];
@@ -124,38 +126,106 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
       form.resetFields();
       setImageUrl("");
       setCurrentStep(1);
+    } else if (initialData) {
+      // Pre-fill form with initial data for edit
+      const startFromDate = initialData.startMonth && initialData.startYearExp 
+        ? dayjs(`${initialData.startMonth} ${initialData.startYearExp}`, "MMM YYYY")
+        : null;
+      
+      form.setFieldsValue({
+        firstName: initialData.firstName || "",
+        lastName: initialData.lastName || "",
+        email: initialData.email || "",
+        phone: initialData.phone || "",
+        dob: initialData.dob ? dayjs(initialData.dob) : null,
+        gender: initialData.gender || "",
+        cityTown: initialData.city || "",
+        state: initialData.state || "",
+        country: initialData.country || "",
+        collegeName: initialData.college?.name || "",
+        degree: initialData.degree || "",
+        specialization: initialData.specialization || "",
+        startYear: initialData.startYear ? dayjs(`${initialData.startYear}-01`, "YYYY-MM") : null,
+        endYear: initialData.endYear ? dayjs(`${initialData.endYear}-01`, "YYYY-MM") : null,
+        hospitalName: initialData.hospital?.name || "",
+        role: initialData.role || "",
+        startFrom: startFromDate,
+        endTo: initialData.endMonth && initialData.endYearExp 
+          ? dayjs(`${initialData.endMonth} ${initialData.endYearExp}`, "MMM YYYY")
+          : null,
+        currentlyWorking: initialData.currentlyWorking || false,
+        profile_image: initialData.profilePicture || "",
+      });
+      setImageUrl(initialData.profilePicture || "");
     }
-  }, [open, form]);
+  }, [open, form, initialData]);
 
   const createHealthcareProfessionalMutation = useMutation({
     mutationFn: (values: any) => {
-      const payload = {
-        name: `${values.firstName} ${values.lastName}`,
+      const selectedCollege = collegesData?.find((college: any) => college.name === values.collegeName);
+      const selectedHospital = hospitalsData?.find((hospital: any) => hospital.name === values.hospitalName);
+      const startFromDate = values.startFrom ? dayjs(values.startFrom) : null;
+
+      if (!selectedCollege?.id) {
+        throw new Error("College not found. Please select a valid college.");
+      }
+      if (!selectedHospital?.id) {
+        throw new Error("Hospital not found. Please select a valid hospital.");
+      }
+
+      const payload: any = {
+        firstName: values.firstName,
+        lastName: values.lastName,
         email: values.email,
         phone: values.phone,
-        dob: values.dob ? dayjs(values.dob).format("YYYY-MM-DD") : undefined,
+        dob: values.dob ? dayjs(values.dob).format("YYYY-MM-DD") : "",
         gender: values.gender,
-        location: values.cityTown,
+        city: values.cityTown,
         state: values.state,
         country: values.country,
-        collegeName: values.collegeName,
         degree: values.degree,
         specialization: values.specialization,
-        startYear: values.startYear ? dayjs(values.startYear).format("YYYY") : undefined,
-        endYear: values.endYear ? dayjs(values.endYear).format("YYYY") : undefined,
-        hospitalName: values.hospitalName,
+        startYear: values.startYear ? dayjs(values.startYear).format("YYYY") : "",
+        endYear: values.endYear ? dayjs(values.endYear).format("YYYY") : "",
+        collegeId: selectedCollege.id,
         role: values.role,
-        startFrom: values.startFrom ? dayjs(values.startFrom).format("YYYY-MM") : undefined,
-        endTo: values.endTo ? dayjs(values.endTo).format("YYYY-MM") : undefined,
+        startMonth: startFromDate ? startFromDate.format("MMM") : "",
+        startYearExp: startFromDate ? startFromDate.format("YYYY") : "",
         currentlyWorking: values.currentlyWorking || false,
-        profile_image: imageUrl || "",
+        hospitalId: selectedHospital.id,
       };
-      return axios.post(`${API_URL}/api/professinal/create`, payload, {
-        headers: { Authorization: `Bearer ${TOKEN}` },
+
+      // Remove empty string fields to match exact payload structure
+      Object.keys(payload).forEach(key => {
+        if (payload[key] === "" || payload[key] === null || payload[key] === undefined) {
+          delete payload[key];
+        }
       });
+
+      if (initialData?.id) {
+        // Update existing professional
+        return axios.put(`${API_URL}/api/professinal/update/${initialData.id}`, payload, {
+          headers: { 
+            Authorization: `Bearer ${TOKEN}`,
+            "Content-Type": "application/json"
+          },
+        });
+      } else {
+        // Create new professional
+        return axios.post(`${API_URL}/api/professinal/create`, payload, {
+          headers: { 
+            Authorization: `Bearer ${TOKEN}`,
+            "Content-Type": "application/json"
+          },
+        });
+      }
     },
     onSuccess: () => {
-      showSuccess(notification, { message: "Healthcare Professional Created Successfully" });
+      showSuccess(notification, { 
+        message: initialData?.id 
+          ? "Healthcare Professional Updated Successfully" 
+          : "Healthcare Professional Created Successfully" 
+      });
       form.resetFields();
       setImageUrl("");
       setCurrentStep(1);
@@ -186,8 +256,19 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
 
   const handleSubmit = async () => {
     try {
-      const values = await form.validateFields();
-      createHealthcareProfessionalMutation.mutate(values);
+      // Validate all fields from both steps
+      await form.validateFields();
+      
+      // Explicitly get all field values by name to ensure we get values from both steps
+      const allFieldNames = [
+        'firstName', 'lastName', 'email', 'phone', 'dob', 'gender', 'cityTown', 'state', 'country',
+        'collegeName', 'degree', 'specialization', 'startYear', 'endYear',
+        'hospitalName', 'role', 'startFrom', 'endTo', 'currentlyWorking'
+      ];
+      
+      const allValues = form.getFieldsValue(allFieldNames);
+      
+      createHealthcareProfessionalMutation.mutate(allValues);
     } catch (error) {
       console.error("Validation failed:", error);
     }
@@ -290,7 +371,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
         </Form.Item>
         <Form.Item label="Specialisations" name="specialization" rules={[{ required: true, message: "Please select specialisation" }]}>
           <Select placeholder="Select Specialisations" showSearch>
-            {degreesData?.flatMap((degree: any) => degree.specialization || []).map((spec: string, index: number) => (
+            {Array.from(new Set(degreesData?.map((degree: any) => degree.specialization).filter((spec: any) => spec && typeof spec === 'string' && spec.trim() !== ""))).map((spec: any, index: number) => (
               <Select.Option key={index} value={spec}>
                 {spec}
               </Select.Option>
@@ -343,7 +424,7 @@ const AddHealthcareProfessional: React.FC<AddHealthcareProfessionalProps> = ({
     <Modal
       title={
         <span>
-          Add New <span className="text-black">Healthcare Professionals</span>
+          {initialData?.id ? "Edit" : "Add New"} <span className="text-black">Healthcare Professionals</span>
         </span>
       }
       open={open}

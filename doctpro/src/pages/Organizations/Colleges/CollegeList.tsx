@@ -1,13 +1,14 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Avatar, Button, Table, Tag, Pagination } from "antd";
+import { Avatar, Button, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import Loader from "../../Common/Loader";
 import AddCollegeModal from "./AddCollegeModal";
 import EditCollegeModal from "./EditCollegeModal";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import CommonPagination from "../../Common/CommonPagination";
 import CollegeViewDrawer from "./CollegeViewDrawer";
 
 interface CollegeData {
@@ -196,13 +197,71 @@ const CollegeList: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["Colleges"] });
   };
 
-  const handlePageChange = (page: number, pageSize: number) => {
+  const handlePageChange = (page: number, pageSize?: number) => {
     setCurrentPage(page);
-    setPageSize(pageSize);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
+  };
+
+  const filterOptions = [
+    {
+      label: "Status",
+      key: "status",
+      options: ["Active", "Pending", "Unactive"],
+    },
+  ];
+
+  const handleFilterChange = (filters: Record<string, any>) => {
+    console.log("Filter values:", filters);
+  };
+
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!tableData || tableData.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    const headers = [
+      "S No",
+      "College Name",
+      "Location",
+      "Associated Hospital",
+      "Created On",
+      "Status",
+    ];
+
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    tableData.forEach((row) => {
+      const values = [
+        row.sNo,
+        `"${row.collegeName || "N/A"}"`,
+        `"${row.location || "N/A"}"`,
+        `"${row.hospitals?.map((h: any) => h.name).join(", ") || "N/A"}"`,
+        `"${row.createdOn || "N/A"}"`,
+        `"${row.status || "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
+    });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `colleges-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -227,9 +286,12 @@ const CollegeList: React.FC = () => {
       />
 
       <div className="bg-white rounded-lg shadow-sm w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
+          filterOptions={filterOptions}
+          onFilterChange={handleFilterChange}
+          onDownload={handleDownload}
         />
 
         {loading ? (
@@ -248,21 +310,13 @@ const CollegeList: React.FC = () => {
                 emptyText: "No colleges available",
               }}
             />
-
-            <div className="flex justify-end my-2 py-3">
-              <Pagination
-                current={currentPage}
-                pageSize={pageSize}
-                total={fetchedColleges?.total ?? 0}
-                showSizeChanger
-                showQuickJumper
-                showTotal={(total, range) =>
-                  `${range[0]}-${range[1]} of ${total} items`
-                }
-                onChange={handlePageChange}
-                onShowSizeChange={handlePageChange}
-              />
-            </div>
+            <CommonPagination
+              current={currentPage}
+              pageSize={pageSize}
+              total={fetchedColleges?.total ?? 0}
+              onChange={handlePageChange}
+              onShowSizeChange={handlePageChange}
+            />
           </>
         )}
       </div>

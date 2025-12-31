@@ -3,7 +3,8 @@ import { Avatar, Button, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
+import CommonPagination from "../../Common/CommonPagination";
 import CollegeRegistration from "./CollegeRegistration";
 import CollegeViewDrawer from "./CollegeViewDrawer";
 import { useQuery } from "@tanstack/react-query";
@@ -196,6 +197,13 @@ const ListCollege: React.FC = () => {
     setSearchValue(value);
   };
 
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    if (pageSize) {
+      setItemsPerPage(pageSize);
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -219,7 +227,7 @@ const ListCollege: React.FC = () => {
       />
 
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
         />
@@ -227,21 +235,16 @@ const ListCollege: React.FC = () => {
         <Table
           columns={columns}
           dataSource={tableData}
-          pagination={{
-            current: currentPage,
-            pageSize: itemsPerPage,
-            total: data?.total ?? 0,
-            onChange: (page, pageSize) => {
-              setCurrentPage(page);
-              setItemsPerPage(pageSize);
-            },
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
+          pagination={false}
           scroll={{ x: "max-content" }}
           className="mt-4"
+        />
+        <CommonPagination
+          current={currentPage}
+          pageSize={itemsPerPage}
+          total={data?.total ?? 0}
+          onChange={handlePageChange}
+          onShowSizeChange={handlePageChange}
         />
       </div>
     </div>

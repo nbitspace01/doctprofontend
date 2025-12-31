@@ -5,6 +5,7 @@ import CommonDropdown from "../Common/CommonActionsDropdown";
 import { ApiRequest } from "../Common/constant.function";
 import FormattedDate from "../Common/FormattedDate";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
+import CommonPagination from "../Common/CommonPagination";
 import KycViewDrawer from "./KycViewDrawer";
 
 interface KycSubmission {
@@ -300,25 +301,24 @@ const KycList = () => {
           dataSource={kycData?.data || kycData || []}
           scroll={{ x: "max-content" }}
           rowKey="id"
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: kycData?.total || kycData?.length || 0,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            pageSizeOptions: ["10", "20", "50", "100"],
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-            onChange: (page, size) => {
-              setCurrentPage(page);
-              setPageSize(size);
-            },
-            onShowSizeChange: (size) => {
-              setCurrentPage(1);
-              setPageSize(size);
-            },
-          }}
+          pagination={false}
           loading={isFetching}
+        />
+        <CommonPagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={kycData?.total || kycData?.length || 0}
+          onChange={(page, size) => {
+            setCurrentPage(page);
+            if (size) {
+              setPageSize(size);
+            }
+          }}
+          onShowSizeChange={(current, size) => {
+            setCurrentPage(1);
+            setPageSize(size);
+          }}
+          pageSizeOptions={["10", "20", "50", "100"]}
         />
       </div>
       <KycViewDrawer

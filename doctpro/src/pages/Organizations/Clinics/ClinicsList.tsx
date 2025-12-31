@@ -4,7 +4,8 @@ import { Button, Table, Tag } from "antd";
 import axios from "axios";
 import { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
+import CommonPagination from "../../Common/CommonPagination";
 import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
 import ClinicViewDrawer from "./ClinicViewDrawer";
 
@@ -65,9 +66,11 @@ const ClinicsList = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
   };
 
-  const handleTableChange = (pagination: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
+  const handlePageChange = (page: number, pageSize?: number) => {
+    setCurrentPage(page);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   const handleSearch = (value: string) => {
@@ -184,7 +187,7 @@ const ClinicsList = () => {
       )}
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
         />
@@ -194,17 +197,15 @@ const ClinicsList = () => {
           dataSource={hospitals}
           loading={isFetching}
           scroll={{ x: "max-content" }}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          onChange={handleTableChange}
+          pagination={false}
           className="w-full"
+        />
+        <CommonPagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={total}
+          onChange={handlePageChange}
+          onShowSizeChange={handlePageChange}
         />
       </div>
 

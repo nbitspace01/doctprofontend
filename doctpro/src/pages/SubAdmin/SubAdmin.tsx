@@ -1,11 +1,11 @@
-import { Avatar, Button, Image, Table } from "antd";
+import { Avatar, Button, Image, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import ViewSubAdmin from "./ViewSubAdmin";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
@@ -230,9 +230,22 @@ const SubAdmin: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+      await ApiRequest.delete(`${API_URL}/api/user/delete-sub-admin/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
+      message.success("Sub-admin deleted successfully");
+    },
+    onError: () => {
+      message.error("Failed to delete sub-admin");
+    },
+  });
+
   const handleDelete = (record: SubAdminData) => {
-    console.log("Delete:", record);
-    // Add your delete logic here
+    deleteMutation.mutate(record.id);
   };
 
   const handleViewSubAdmin = (subAdmin: SubAdminData) => {

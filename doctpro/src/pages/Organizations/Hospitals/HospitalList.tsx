@@ -5,7 +5,6 @@ import {
   Button,
   Drawer,
   message,
-  Pagination,
   Skeleton,
   Table,
   Tag,
@@ -14,7 +13,8 @@ import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import { showSuccess } from "../../Common/Notification";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../../Common/DownloadFilterButton";
+import CommonPagination from "../../Common/CommonPagination";
 import { ApiHospitalData } from "../Hospital.types";
 import AddHospitalModal from "./AddHospitalModal";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
@@ -128,7 +128,6 @@ const HospitalList: React.FC = () => {
     {
       label: "Status",
       key: "status",
-      type: "checkbox" as const,
       options: ["ACTIVE", "INACTIVE"],
     },
   ];
@@ -223,9 +222,11 @@ const HospitalList: React.FC = () => {
     }
   };
 
-  const handlePageChange = (page: number, pageSize: number) => {
+  const handlePageChange = (page: number, pageSize?: number) => {
     setCurrentPage(page);
-    setPageSize(pageSize);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   const tableData: HospitalData[] =
@@ -354,6 +355,46 @@ const HospitalList: React.FC = () => {
     setFilterValues(filters);
   };
 
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!tableData || tableData.length === 0) {
+      console.log("No data to download");
+      return;
+    }
+
+    const headers = [
+      "S No",
+      "Hospital/Clinic Name",
+      "Branch Location",
+      "Status",
+    ];
+
+    const rows = [];
+    rows.push(headers.join(format === "csv" ? "," : "\t"));
+
+    tableData.forEach((row) => {
+      const values = [
+        row.sNo,
+        `"${row.name || "N/A"}"`,
+        `"${row.branchLocation || "N/A"}"`,
+        `"${row.status || "N/A"}"`,
+      ];
+      rows.push(values.join(format === "csv" ? "," : "\t"));
+    });
+
+    const content = rows.join("\n");
+    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const fileExtension = format === "csv" ? "csv" : "xls";
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -373,11 +414,12 @@ const HospitalList: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
+        <DownloadFilterButton
           onSearch={handleSearch}
           searchValue={searchValue}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}
+          onDownload={handleDownload}
         />
 
         <Table
@@ -388,20 +430,13 @@ const HospitalList: React.FC = () => {
           loading={isFetching}
           className="shadow-sm rounded-lg"
         />
-        <div className="flex justify-end my-2 mx-3 py-3">
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={hospitals?.total ?? 0}
-            showSizeChanger
-            showQuickJumper
-            showTotal={(total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`
-            }
-            onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-          />
-        </div>
+        <CommonPagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={hospitals?.total ?? 0}
+          onChange={handlePageChange}
+          onShowSizeChange={handlePageChange}
+        />
       </div>
 
       <Drawer

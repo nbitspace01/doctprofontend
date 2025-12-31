@@ -18,7 +18,7 @@ import {
   totalHospital,
   totalStudents,
 } from "../../pages/Common/SVG/svg.functions";
-import { TOKEN } from "../Common/constant.function";
+import { TOKEN, ApiRequest } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
@@ -62,15 +62,11 @@ const SubAdminDashboard: React.FC = () => {
   });
 
   const fetchSubAdminHealthCare = async () => {
-    const res = await axios.get(
-      `${API_URL}/api/healthCare/healthcare-professionals`,
-      {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      }
+    const res = await ApiRequest.get(
+      `${API_URL}/api/professinal`
     );
-    return res.data;
+    const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+    return { data: data };
   };
 
   const {
@@ -92,6 +88,20 @@ const SubAdminDashboard: React.FC = () => {
     queryFn: fetchKycStats,
   });
 
+  const fetchLocationStatus = async () => {
+    const res = await ApiRequest.get(
+      `${API_URL}/api/hospitaldashboard/dashboard-status/location`
+    );
+    return res.data;
+  };
+
+  const {
+    data: locationStatusData,
+  } = useQuery({
+    queryKey: ["subAdminLocationStatus"],
+    queryFn: fetchLocationStatus,
+  });
+
   if (isLoading || kycStatsLoading || subAdminHealthCareLoading)
     return <Loader size="large" />;
   if (isError || kycStatsError || subAdminHealthCareError)
@@ -101,9 +111,13 @@ const SubAdminDashboard: React.FC = () => {
   const filteredHealthCare = subAdminHealthCare?.data?.filter((item: any) => {
     if (!searchValue) return true;
     const searchLower = searchValue.toLowerCase();
+    const fullName = item.firstName && item.lastName 
+      ? `${item.firstName} ${item.lastName}` 
+      : item.firstName || item.lastName || item.name || "";
     return (
-      item.name?.toLowerCase().includes(searchLower) ||
+      fullName?.toLowerCase().includes(searchLower) ||
       item.qualification?.toLowerCase().includes(searchLower) ||
+      item.degree?.toLowerCase().includes(searchLower) ||
       item.specialization?.toLowerCase().includes(searchLower)
     );
   }) || [];
@@ -302,14 +316,12 @@ const SubAdminDashboard: React.FC = () => {
         <Card className="shadow-sm">
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
-            {filteredHealthCare.length > 5 && (
-              <span
-                className="text-blue-500 cursor-pointer"
-                onClick={() => navigate({ to: "/app/healthcare" })}
-              >
-                See All →
-              </span>
-            )}
+            <span
+              className="text-blue-500 cursor-pointer hover:text-blue-700"
+              onClick={() => navigate({ to: "/app/healthcare" })}
+            >
+              See All →
+            </span>
           </div>
           <DownloadFilterButton
             onSearch={(value) => setSearchValue(value)}
@@ -326,107 +338,103 @@ const SubAdminDashboard: React.FC = () => {
                   <th className="py-3 px-4">Full Name</th>
                   <th className="py-3 px-4">Degree</th>
                   <th className="py-3 px-4">Specialisation</th>
+                  <th className="py-3 px-4">Gender</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">DOB</th>
+                  <th className="py-3 px-4">Phone number</th>
+                  <th className="py-3 px-4">Email Address</th>
+                  <th className="py-3 px-4">Hospital Name</th>
                   <th className="py-3 px-4">Start Year</th>
                   <th className="py-3 px-4">End Year</th>
-                  <th className="py-3 px-4">DOB</th>
-                  <th className="py-3 px-4">Gender</th>
+                  <th className="py-3 px-4">Current working</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredHealthCare.length > 0 ? (
                   filteredHealthCare
                     .slice(0, 5)
-                    .map((admin: any, index: number) => (
-                      <tr key={admin.id || index} className="border-t">
-                        <td className="py-3 px-4">{index + 1}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {admin.imageUrl || admin.profile_image ? (
-                              <img
-                                src={admin.imageUrl || admin.profile_image}
-                                alt={admin.name ?? ""}
-                                className="w-8 h-8 rounded-full"
-                              />
+                    .map((admin: any, index: number) => {
+                      const fullName = admin.firstName && admin.lastName 
+                        ? `${admin.firstName} ${admin.lastName}` 
+                        : admin.firstName || admin.lastName || admin.name || "-";
+                      const hospitalName = admin.hospital?.name || admin.hospitalName || admin.hospital_name || 
+                        (admin.experience && typeof admin.experience === 'object' ? admin.experience.organization : "") || "-";
+                      
+                      return (
+                        <tr key={admin.id || index} className="border-t">
+                          <td className="py-3 px-4 text-sm">{index + 1}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              {admin.imageUrl || admin.profile_image ? (
+                                <img
+                                  src={admin.imageUrl || admin.profile_image}
+                                  alt={fullName}
+                                  className="w-8 h-8 rounded-full"
+                                />
+                              ) : (
+                                <Avatar
+                                  className="bg-button-primary text-white"
+                                  size={32}
+                                >
+                                  {fullName.charAt(0) !== "-" ? fullName.charAt(0).toUpperCase() : "N"}
+                                </Avatar>
+                              )}
+                              <span className="text-sm">{fullName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.qualification ?? admin.degree ?? "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.specialization ?? "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.gender ?? "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.role ?? "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.dob ? (
+                              <FormattedDate dateString={admin.dob} format="long" />
                             ) : (
-                              <Avatar
-                                className="bg-button-primary text-white"
-                                size={32}
-                              >
-                                {admin.name?.charAt(0)?.toUpperCase() || "N"}
-                              </Avatar>
+                              "-"
                             )}
-                            <span className="text-sm">{admin.name ?? "N/A"}</span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.qualification ?? admin.degree ?? "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.specialization ?? "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.startYear
-                            ? (() => {
-                                try {
-                                  if (typeof admin.startYear === "string") {
-                                    return new Date(admin.startYear).toLocaleDateString(
-                                      "en-GB",
-                                      { day: "2-digit", month: "short", year: "numeric" }
-                                    );
-                                  } else if (typeof admin.startYear === "number") {
-                                    // If it's just a year number, create a date for that year
-                                    const date = new Date(admin.startYear, 0, 1);
-                                    return date.toLocaleDateString("en-GB", {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    });
-                                  }
-                                  return admin.startYear.toString();
-                                } catch {
-                                  return admin.startYear.toString();
-                                }
-                              })()
-                            : "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.endYear
-                            ? (() => {
-                                try {
-                                  if (typeof admin.endYear === "string") {
-                                    return new Date(admin.endYear).toLocaleDateString(
-                                      "en-GB",
-                                      { day: "2-digit", month: "short", year: "numeric" }
-                                    );
-                                  } else if (typeof admin.endYear === "number") {
-                                    // If it's just a year number, create a date for that year
-                                    const date = new Date(admin.endYear, 0, 1);
-                                    return date.toLocaleDateString("en-GB", {
-                                      day: "2-digit",
-                                      month: "short",
-                                      year: "numeric",
-                                    });
-                                  }
-                                  return admin.endYear.toString();
-                                } catch {
-                                  return admin.endYear.toString();
-                                }
-                              })()
-                            : "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.dob ? (
-                            <FormattedDate dateString={admin.dob} format="long" />
-                          ) : (
-                            "N/A"
-                          )}
-                        </td>
-                        <td className="py-3 px-4">{admin.gender ?? "N/A"}</td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.phone || admin.phoneNumber || "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.email || "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {hospitalName}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.startYear ? admin.startYear.toString() : "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.endYear ? admin.endYear.toString() : "-"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {admin.status ? (
+                              <span className={`px-3 py-1 rounded-full text-xs ${
+                                admin.status.toLowerCase() === "active" 
+                                  ? "bg-green-100 text-green-600" 
+                                  : "bg-red-100 text-red-600"
+                              }`}>
+                                {admin.status}
+                              </span>
+                            ) : admin.currentlyWorking !== undefined ? (
+                              admin.currentlyWorking ? "Yes" : "No"
+                            ) : "-"}
+                          </td>
+                        </tr>
+                      );
+                    })
                 ) : (
                   <tr>
-                    <td colSpan={8} className="py-4 text-center text-gray-500">
+                    <td colSpan={13} className="py-4 text-center text-gray-500">
                       No Healthcare Professionals data available
                     </td>
                   </tr>

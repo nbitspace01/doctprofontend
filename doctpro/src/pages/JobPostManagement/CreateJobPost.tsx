@@ -58,8 +58,8 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
   const createJobPostMutation = useMutation({
     mutationFn: (jobData: any) => {
       const url = editingJob?.id 
-        ? `${API_URL}/api/job-posts/${editingJob.id}`
-        : `${API_URL}/api/job-posts`;
+        ? `${API_URL}/api/job/jobs${editingJob.id}`
+        : `${API_URL}/api/job/jobs`;
       const method = editingJob?.id ? "put" : "post";
       return axios[method](url, jobData, {
         headers: {

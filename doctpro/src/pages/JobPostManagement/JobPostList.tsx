@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { Table, Button, Tag, Modal, Pagination } from "antd";
+import { Table, Button, Tag, Modal } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import CreateJobPost from "./CreateJobPost";
 import JobPostViewDrawer from "./JobPostViewDrawer";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
+import CommonPagination from "../Common/CommonPagination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusOutlined } from "@ant-design/icons";
+import { ApiRequest } from "../Common/constant.function";
+import Loader from "../Common/Loader";
 
 interface JobPost {
   key: string;
@@ -54,57 +57,33 @@ const JobPostList: React.FC = () => {
     },
   ];
 
-  // Mock data - replace with actual API call
-  const mockData: JobPost[] = [
-    {
-      key: "1",
-      sNo: 1,
-      jobTitle: "Senior Consultant",
-      expRequired: "5-8 Yrs",
-      location: "Chennai",
-      specialization: "BDS-Dental Tec..",
-      employmentType: "Full Time",
-      noOfApplications: 3350,
-      status: "Active",
-      id: "1",
-    },
-    {
-      key: "2",
-      sNo: 2,
-      jobTitle: "Physiotherapist",
-      expRequired: "5-8 Yrs",
-      location: "Chennai",
-      specialization: "Bachelor of Physi.",
-      employmentType: "Part Time",
-      noOfApplications: 3350,
-      status: "Expiring Soon",
-      id: "2",
-    },
-    {
-      key: "3",
-      sNo: 3,
-      jobTitle: "Jr Consultant Dentist",
-      expRequired: "3-5 Yrs",
-      location: "Chennai",
-      specialization: "BDS-Dental Tec..",
-      employmentType: "Part Time",
-      noOfApplications: 3350,
-      status: "Expired",
-      id: "3",
-    },
-    {
-      key: "4",
-      sNo: 4,
-      jobTitle: "Physiotherapist",
-      expRequired: "5-8 Yrs",
-      location: "Chennai",
-      specialization: "Bachelor of Physi.",
-      employmentType: "Full Time",
-      noOfApplications: 3250,
-      status: "Pending",
-      id: "4",
-    },
-  ];
+  const fetchJobs = async () => {
+    const res = await ApiRequest.get(`${API_URL}/api/job/jobs`);
+    const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
+    return data;
+  };
+
+  const {
+    data: jobsData,
+    isLoading: jobsLoading,
+    isError: jobsError,
+  } = useQuery({
+    queryKey: ["jobPosts", currentPage, pageSize, searchValue, filterValues],
+    queryFn: fetchJobs,
+  });
+
+  const jobsList: JobPost[] = (jobsData || []).map((job: any, index: number) => ({
+    key: job.id || job._id || index.toString(),
+    sNo: index + 1,
+    jobTitle: job.jobTitle || job.title || "-",
+    expRequired: job.expRequired || job.experienceRequired || "-",
+    location: job.location || "-",
+    specialization: job.specialization || "-",
+    employmentType: job.employmentType || job.employment_type || "-",
+    noOfApplications: job.noOfApplications || job.no_of_applications || job.applicationsCount || 0,
+    status: job.status || "Pending",
+    id: job.id || job._id || index.toString(),
+  }));
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -209,9 +188,11 @@ const JobPostList: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
   };
 
-  const handlePageChange = (page: number, pageSize: number) => {
+  const handlePageChange = (page: number, pageSize?: number) => {
     setCurrentPage(page);
-    setPageSize(pageSize);
+    if (pageSize) {
+      setPageSize(pageSize);
+    }
   };
 
   const handleSearch = (value: string) => {
@@ -223,7 +204,7 @@ const JobPostList: React.FC = () => {
   };
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!mockData || mockData.length === 0) {
+    if (!jobsList || jobsList.length === 0) {
       console.log("No data to download");
       return;
     }
@@ -235,7 +216,7 @@ const JobPostList: React.FC = () => {
     const rows = [];
     rows.push(headers.join(format === "csv" ? "," : "\t"));
 
-    mockData.forEach((row, index) => {
+    jobsList.forEach((row, index) => {
       const values = [
         index + 1,
         `"${row.jobTitle || "N/A"}"`,
@@ -263,6 +244,14 @@ const JobPostList: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (jobsLoading) {
+    return <Loader size="large" />;
+  }
+
+  if (jobsError) {
+    return <div className="p-6">Error loading job posts</div>;
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
@@ -286,25 +275,18 @@ const JobPostList: React.FC = () => {
         />
         <Table
           columns={columns}
-          dataSource={mockData}
+          dataSource={jobsList}
           scroll={{ x: "max-content" }}
           pagination={false}
           rowKey="id"
         />
-        <div className="flex justify-end my-2 py-3">
-          <Pagination
-            current={currentPage}
-            pageSize={pageSize}
-            total={mockData.length}
-            showSizeChanger
-            showQuickJumper
-            showTotal={(total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`
-            }
-            onChange={handlePageChange}
-            onShowSizeChange={handlePageChange}
-          />
-        </div>
+        <CommonPagination
+          current={currentPage}
+          pageSize={pageSize}
+          total={jobsList.length}
+          onChange={handlePageChange}
+          onShowSizeChange={handlePageChange}
+        />
       </div>
 
       <CreateJobPost open={isCreateModalOpen} onClose={handleModalClose} editingJob={editingJob} />

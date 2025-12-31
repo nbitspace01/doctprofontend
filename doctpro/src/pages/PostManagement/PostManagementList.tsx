@@ -3,7 +3,8 @@ import { Avatar, Button, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import CommonDropdown from "../Common/CommonActionsDropdown";
-import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
+import DownloadFilterButton from "../Common/DownloadFilterButton";
+import CommonPagination from "../Common/CommonPagination";
 
 interface CollegeData {
   key: string;
@@ -23,6 +24,7 @@ const PostManagementList: React.FC = () => {
   const [itemsPerPage, setItemsPerPage] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   // const getStatusColor = (status: string) => {
   //   switch (status) {
@@ -185,21 +187,32 @@ const PostManagementList: React.FC = () => {
       /> */}
 
       <div className="bg-white rounded-lg shadow-sm p-6">
-        <SearchFilterDownloadButton />
+        <DownloadFilterButton
+          onSearch={(value) => setSearchValue(value)}
+          searchValue={searchValue}
+        />
 
         <Table
           columns={columns}
           dataSource={data}
           scroll={{ x: "max-content" }}
-          pagination={{
-            current: currentPage,
-            pageSize: itemsPerPage,
-            total: data.length,
-            onChange: (page) => setCurrentPage(page),
-            showSizeChanger: true,
-            onShowSizeChange: (_, size) => setItemsPerPage(size),
-          }}
+          pagination={false}
           className="mt-4"
+        />
+        <CommonPagination
+          current={currentPage}
+          pageSize={itemsPerPage}
+          total={data.length}
+          onChange={(page, pageSize) => {
+            setCurrentPage(page);
+            if (pageSize) {
+              setItemsPerPage(pageSize);
+            }
+          }}
+          onShowSizeChange={(current, size) => {
+            setCurrentPage(1);
+            setItemsPerPage(size);
+          }}
         />
       </div>
     </div>
