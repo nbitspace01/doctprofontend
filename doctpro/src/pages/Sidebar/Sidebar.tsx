@@ -52,7 +52,7 @@ const Sidebar: React.FC = () => {
             setExpandedMenus((prev) => [...prev, item.id]);
           }
         });
-      } else if (currentPath.includes(item.id) || (item.id === "hospital-dashboard" && currentPath.includes("hospital/dashboard")) || (item.id === "job-post" && currentPath.includes("job-post"))) {
+      } else if (currentPath.includes(item.id) || (item.id === "hospital-dashboard" && currentPath.includes("hospital/dashboard")) || (item.id === "job-post" && currentPath.includes("job-post")) || (item.id === "hospital-admin" && currentPath.includes("hospital-admin"))) {
         setSelectedItem(item.id);
       }
     });
@@ -73,7 +73,7 @@ const Sidebar: React.FC = () => {
   const allMenuItems = [
     {
       id: "dashboard",
-      label: "Dashboard",
+      label: "Super admin Dashboard",
       icon: <House />,
       className: "text-white",
       onClick: () => {
@@ -100,6 +100,16 @@ const Sidebar: React.FC = () => {
         setSelectedItem("sub-admin");
         setExpandedMenus([]);
         navigate({ to: "/app/subadmin" });
+      },
+    },
+    {
+      id: "hospital-admin",
+      label: "Hospital Admin List",
+      icon: <ShieldUser />,
+      onClick: () => {
+        setSelectedItem("hospital-admin");
+        setExpandedMenus([]);
+        navigate({ to: "/app/hospital-admin" });
       },
     },
     {

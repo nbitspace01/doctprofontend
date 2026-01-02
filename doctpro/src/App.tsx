@@ -15,6 +15,7 @@ import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SubAdmin from "./pages/SubAdmin/SubAdmin";
+import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
 import HospitalList from "./pages/Organizations/Hospitals/HospitalList";
 import CollegeList from "./pages/Organizations/Colleges/CollegeList";
 import DegreeSpecializationList from "./pages/Organizations/Degree/DegreeSpecializationList";
@@ -112,6 +113,12 @@ const subAdminRoute = createRoute({
   component: () => <SubAdmin />,
 });
 
+const hospitalAdminRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "hospital-admin",
+  component: () => <HospitalAdmin />,
+});
+
 const hospitalsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "hospitals",
@@ -204,6 +211,7 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     subadminDashboardRoute,
     subAdminRoute,
+    hospitalAdminRoute,
     hospitalsRoute,
     collegesRoute,
     collegeListRoute,

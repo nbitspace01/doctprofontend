@@ -18,6 +18,9 @@ const ForgotPassword: React.FC = () => {
         email: values.email,
       });
 
+      // Save email to localStorage so it's available in the verify OTP page
+      localStorage.setItem("userEmail", values.email);
+      
       message.success("Password reset link has been sent to your email");
       navigate({ to: "/auth/forgot-password/verify-otp", replace: true });
     } catch (error) {

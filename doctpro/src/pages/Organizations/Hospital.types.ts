@@ -7,6 +7,7 @@ export interface ApiHospitalData {
   isHeadBranch: boolean;
   created_at: string;
   updated_at: string;
+  updatedAt?: string; // API returns camelCase
   status: string;
   address: string;
 }

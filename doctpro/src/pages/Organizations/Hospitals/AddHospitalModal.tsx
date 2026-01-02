@@ -5,8 +5,6 @@ import {
   message,
   Modal,
   notification,
-  Select,
-  Switch,
   Upload,
   UploadProps,
 } from "antd";
@@ -265,23 +263,10 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
             label="Branch Location"
             rules={[{ required: true }]}
           >
-            <Select
-              placeholder="Select Location"
-              onChange={(value) =>
-                setHospitalData({ ...hospitalData, branchLocation: value })
-              }
-            >
-              <Select.Option value="location1">Location 1</Select.Option>
-              <Select.Option value="location2">Location 2</Select.Option>
-              <Select.Option value="location3">Location 3</Select.Option>
-            </Select>
-          </Form.Item>
-
-          {/* Head Branch Toggle */}
-          <Form.Item name="isHeadBranch" label="Head Branch">
-            <Switch
-              onChange={(checked) =>
-                setHospitalData({ ...hospitalData, isHeadBranch: checked })
+            <Input
+              placeholder="Enter Location"
+              onChange={(e) =>
+                setHospitalData({ ...hospitalData, branchLocation: e.target.value })
               }
             />
           </Form.Item>

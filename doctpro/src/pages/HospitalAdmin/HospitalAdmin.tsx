@@ -6,13 +6,13 @@ import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import ViewSubAdmin from "./ViewSubAdmin";
+import ViewSubAdmin from "../SubAdmin/ViewSubAdmin";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";
 import CommonPagination from "../Common/CommonPagination";
 
-interface SubAdminData {
+interface HospitalAdminData {
   id: string;
   first_name: string;
   last_name: string;
@@ -28,11 +28,11 @@ interface SubAdminData {
   profile_image: string;
 }
 
-const SubAdmin: React.FC = () => {
+const HospitalAdmin: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editData, setEditData] = useState<SubAdminData | null>(null);
+  const [editData, setEditData] = useState<HospitalAdminData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedSubAdmin, setSelectedSubAdmin] = useState<SubAdminData | null>(
+  const [selectedHospitalAdmin, setSelectedHospitalAdmin] = useState<HospitalAdminData | null>(
     null
   );
   const [currentPage, setCurrentPage] = useState(1);
@@ -40,8 +40,8 @@ const SubAdmin: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const queryClient = useQueryClient();
-  interface SubAdminResponse {
-    data: SubAdminData[];
+  interface HospitalAdminResponse {
+    data: HospitalAdminData[];
     total: number;
   }
 
@@ -79,17 +79,14 @@ const SubAdmin: React.FC = () => {
     },
   ];
 
-  const fetchSubAdmin = async (): Promise<SubAdminResponse> => {
+  const fetchHospitalAdmin = async (): Promise<HospitalAdminResponse> => {
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-    // seacrh is only if search is true
     const searchParam = searchValue ? `&search=${searchValue}` : "";
 
-    // Build filter parameters only for selected filters
     const filterParams = [];
 
-    // Add text filter values
     if (filterValues.name && String(filterValues.name).trim()) {
       filterParams.push(`name=${encodeURIComponent(String(filterValues.name).trim())}`);
     }
@@ -107,7 +104,6 @@ const SubAdmin: React.FC = () => {
       );
     }
 
-    // Add checkbox filter values (only selected options)
     const selectedRoles = Object.keys(filterValues).filter(
       (key) => key.startsWith("role_") && filterValues[key]
     );
@@ -151,7 +147,6 @@ const SubAdmin: React.FC = () => {
       (key) => key.startsWith("status_") && filterValues[key] === true
     );
     if (selectedStatuses.length > 0) {
-      // Send status exactly as stored in database (ACTIVE, INACTIVE)
       const statusValues = selectedStatuses.map((key) => {
         const filterValue = key.replace("status_", "");
         return encodeURIComponent(filterValue);
@@ -162,38 +157,37 @@ const SubAdmin: React.FC = () => {
     const filterParam =
       filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
     
-    const fullUrl = `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
-    console.log("SubAdmin API URL:", fullUrl);
-    console.log("SubAdmin Filter params:", filterParams);
-    console.log("SubAdmin Filter values:", filterValues);
+    const fullUrl = `${API_URL}/api/dashboard/hospital-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
+    console.log("HospitalAdmin API URL:", fullUrl);
+    console.log("HospitalAdmin Filter params:", filterParams);
+    console.log("HospitalAdmin Filter values:", filterValues);
     
     const res = await ApiRequest.get(fullUrl);
 
-    // Return the full response structure with data and total
     return {
       data: res.data.data ?? [],
       total: res.data.total ?? 0,
     };
   };
 
-  const { data: subAdminResponse, isFetching } = useQuery<
-    SubAdminResponse,
+  const { data: hospitalAdminResponse, isFetching } = useQuery<
+    HospitalAdminResponse,
     Error
   >({
-    queryKey: ["subAdmin", currentPage, pageSize, searchValue, filterValues],
-    queryFn: fetchSubAdmin,
+    queryKey: ["hospitalAdmin", currentPage, pageSize, searchValue, filterValues],
+    queryFn: fetchHospitalAdmin,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
 
   // Apply client-side filtering for email and phone if API doesn't support them
-  let filteredSubAdmin = subAdminResponse?.data ?? [];
+  let filteredHospitalAdmin = hospitalAdminResponse?.data ?? [];
   const emailFilter = filterValues.email;
   const phoneFilter = filterValues.phone;
   
   if (emailFilter || phoneFilter) {
-    filteredSubAdmin = filteredSubAdmin.filter((admin: SubAdminData) => {
+    filteredHospitalAdmin = filteredHospitalAdmin.filter((admin: HospitalAdminData) => {
       const matchesEmail = !emailFilter || 
         (admin.email && admin.email.toLowerCase().includes(String(emailFilter).toLowerCase().trim()));
       const matchesPhone = !phoneFilter || 
@@ -202,20 +196,18 @@ const SubAdmin: React.FC = () => {
     });
   }
 
-  const subAdmin = filteredSubAdmin;
+  const hospitalAdmin = filteredHospitalAdmin;
   // Use filtered count if client-side filtering is applied, otherwise use API total
   const totalCount = (emailFilter || phoneFilter) 
-    ? filteredSubAdmin.length 
-    : (subAdminResponse?.total ?? 0);
-  console.log("subAdmin", subAdmin);
+    ? filteredHospitalAdmin.length 
+    : (hospitalAdminResponse?.total ?? 0);
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!subAdmin || subAdmin.length === 0) {
+    if (!hospitalAdmin || hospitalAdmin.length === 0) {
       console.log("No data to download");
       return;
     }
 
-    // Define headers based on the data structure
     const headers = [
       "S No",
       "Name",
@@ -227,11 +219,10 @@ const SubAdmin: React.FC = () => {
       "Status",
     ];
 
-    // Create rows
     const rows = [];
     rows.push(headers.join(format === "csv" ? "," : "\t"));
 
-    subAdmin.forEach((row, index) => {
+    hospitalAdmin.forEach((row, index) => {
       const values = [
         (currentPage - 1) * pageSize + index + 1,
         `"${`${row.first_name || ""} ${row.last_name || ""}`.trim()}"`,
@@ -252,14 +243,14 @@ const SubAdmin: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `subadmin-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    a.download = `hospital-admin-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
-  const handleEdit = (record: SubAdminData) => {
+  const handleEdit = (record: HospitalAdminData) => {
     setEditData({
       ...record,
       role: record.role || "",
@@ -275,32 +266,31 @@ const SubAdmin: React.FC = () => {
       await ApiRequest.delete(`${API_URL}/api/user/delete-sub-admin/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
-      message.success("Sub-admin deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["hospitalAdmin"] });
+      message.success("Hospital admin deleted successfully");
     },
     onError: () => {
-      message.error("Failed to delete sub-admin");
+      message.error("Failed to delete hospital admin");
     },
   });
 
-  const handleDelete = (record: SubAdminData) => {
+  const handleDelete = (record: HospitalAdminData) => {
     deleteMutation.mutate(record.id);
   };
 
-  const handleViewSubAdmin = (subAdmin: SubAdminData) => {
-    setSelectedSubAdmin(subAdmin);
+  const handleViewHospitalAdmin = (hospitalAdmin: HospitalAdminData) => {
+    setSelectedHospitalAdmin(hospitalAdmin);
     setIsViewDrawerOpen(true);
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
-    console.log("Page changed to:", page, "Page size:", pageSize);
     setCurrentPage(page);
     if (pageSize) {
       setPageSize(pageSize);
     }
   };
 
-  const columns: ColumnsType<SubAdminData> = [
+  const columns: ColumnsType<HospitalAdminData> = [
     {
       title: "S No",
       key: "sNo",
@@ -317,7 +307,7 @@ const SubAdmin: React.FC = () => {
               src={record.profile_image}
               width={40}
               height={40}
-              alt="Sub Admin"
+              alt="Hospital Admin"
               className="rounded-full"
             />
           ) : (
@@ -380,7 +370,7 @@ const SubAdmin: React.FC = () => {
       key: "actions",
       render: (_, record) => (
         <CommonDropdown
-          onView={() => handleViewSubAdmin(record)}
+          onView={() => handleViewHospitalAdmin(record)}
           onEdit={() => handleEdit(record)}
           onDelete={() => handleDelete(record)}
         />
@@ -388,19 +378,18 @@ const SubAdmin: React.FC = () => {
     },
   ];
 
-  const handleAddSubAdmin = (values: any) => {
+  const handleAddHospitalAdmin = (values: any) => {
     if (editData) {
-      console.log("Updating Sub Admin:", values);
+      console.log("Updating Hospital Admin:", values);
     } else {
-      console.log("New Sub Admin:", values);
+      console.log("New Hospital Admin:", values);
     }
-    queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
+    queryClient.invalidateQueries({ queryKey: ["hospitalAdmin"] });
     setIsModalOpen(false);
     setEditData(null);
   };
 
   const handleSearch = (value: string) => {
-    console.log("Search value:", value);
     setSearchValue(value);
   };
 
@@ -428,21 +417,20 @@ const SubAdmin: React.FC = () => {
     console.log("Filter values received:", filters);
     console.log("Cleaned filter values:", cleanedFilters);
     setFilterValues(cleanedFilters);
-    // Reset to first page when filters change
     setCurrentPage(1);
   };
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Sub-Admin List</h1>
+        <h1 className="text-2xl font-semibold">Hospital Admin List</h1>
         <Button
           type="primary"
           icon={<Plus />}
           className="bg-button-primary hover:!bg-button-primary"
           onClick={() => setIsModalOpen(true)}
         >
-          Add New Sub Admin
+          Add New Hospital Admin
         </Button>
       </div>
 
@@ -462,10 +450,9 @@ const SubAdmin: React.FC = () => {
           <>
             <Table
               columns={columns}
-              dataSource={subAdmin}
+              dataSource={hospitalAdmin}
               scroll={{ x: "max-content" }}
               pagination={false}
-              // onChange={handleTableChange}
               rowKey="id"
             />
             <CommonPagination
@@ -485,19 +472,20 @@ const SubAdmin: React.FC = () => {
           setIsModalOpen(false);
           setEditData(null);
         }}
-        onSubmit={handleAddSubAdmin}
+        onSubmit={handleAddHospitalAdmin}
         initialData={editData}
       />
 
-      {selectedSubAdmin && (
+      {selectedHospitalAdmin && (
         <ViewSubAdmin
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
-          subAdminData={selectedSubAdmin}
+          subAdminData={selectedHospitalAdmin}
         />
       )}
     </div>
   );
 };
 
-export default SubAdmin;
+export default HospitalAdmin;
+

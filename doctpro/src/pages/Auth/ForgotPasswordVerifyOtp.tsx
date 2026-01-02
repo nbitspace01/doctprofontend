@@ -92,14 +92,43 @@ const ForgotPasswordVerifyOtp = () => {
 
   const mutation = useMutation({
     mutationFn: async (payload: { email: string; otp: string }) => {
-      const response = await axios.post(
-        `${URL}/api/user/forgot-password/verify-otp`,
-        payload
-      );
-      return response.data;
+      console.log("Mutation function called with payload:", payload);
+      console.log("Making POST request to:", `${URL}/api/user/verify-otp`);
+      
+      try {
+        const response = await axios.post(
+          `${URL}/api/user/verify-otp`,
+          payload,
+          {
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+        console.log("API response received:", response.data);
+        return response.data;
+      } catch (error: any) {
+        console.error("API call failed:", error);
+        console.error("Error response data:", error.response?.data);
+        console.error("Error status:", error.response?.status);
+        throw error;
+      }
     },
     onSuccess: async (data) => {
-      localStorage.setItem("userIdForgotPassword", data.userId);
+      console.log("OTP verification response:", data);
+      // Store userId - check different possible response structures
+      const userId = data.userId || data.user?.id || data.id || data.data?.userId || data.data?.user?.id;
+      console.log("Extracted userId:", userId);
+      
+      if (userId) {
+        localStorage.setItem("userIdForgotPassword", String(userId));
+        console.log("userId saved to localStorage:", localStorage.getItem("userIdForgotPassword"));
+      } else {
+        console.error("No userId found in response:", data);
+        message.error("User ID not found in response. Please try again.");
+        return;
+      }
+      
       navigate({
         to: "/auth/change-password",
         replace: true,
@@ -114,13 +143,21 @@ const ForgotPasswordVerifyOtp = () => {
   });
 
   const handleVerify = () => {
+    console.log("Verify Now button clicked");
+    console.log("Email from localStorage:", email);
+    console.log("OTP values:", otp);
+    
     if (!email) {
+      console.error("Email is missing from localStorage");
       message.error("Email is required");
       return;
     }
 
     const otpString = otp.join("");
+    console.log("OTP string:", otpString);
+    
     if (otpString.length !== 6) {
+      console.error("OTP is incomplete. Length:", otpString.length);
       message.error("Please enter a complete OTP");
       return;
     }
@@ -130,7 +167,19 @@ const ForgotPasswordVerifyOtp = () => {
       otp: otpString,
     };
 
-    mutation.mutate(payload);
+    console.log("Calling API /api/user/verify-otp with payload:", payload);
+    console.log("Full API URL:", `${URL}/api/user/verify-otp`);
+    
+    mutation.mutate(payload, {
+      onError: (error) => {
+        console.error("Mutation error:", error);
+        console.error("Error response:", error.response);
+        console.error("Error message:", error.message);
+      },
+      onSuccess: (data) => {
+        console.log("API call successful:", data);
+      },
+    });
   };
 
   const handleResend = () => {
@@ -146,15 +195,6 @@ const ForgotPasswordVerifyOtp = () => {
           <Logo />
         </div>
 
-        <div className="my-6">
-          <label
-            htmlFor="email"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Email
-          </label>
-          <Input id="email" value={email ?? ""} disabled className="mb-4" />
-        </div>
         <div className="mb-8">
           <label
             htmlFor="otp"

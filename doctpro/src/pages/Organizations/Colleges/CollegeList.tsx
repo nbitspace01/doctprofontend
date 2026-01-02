@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Avatar, Button, Table, Tag } from "antd";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Avatar, Button, Table, Tag, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
@@ -42,23 +42,74 @@ const CollegeList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [searchValue, setSearchValue] = useState("");
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const fetchColleges = async () => {
     setLoading(true);
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
     const searchParam = searchValue ? `&search=${searchValue}` : "";
-    const response = await fetch(
-      `${API_URL}/api/college?page=${validPage}&limit=${validLimit}${searchParam}`
-    );
+    
+    // Process filter values
+    const processedFilters: Record<string, any> = {};
+    const statusFilters: string[] = [];
+    
+    Object.entries(filterValues).forEach(([key, value]) => {
+      // Skip empty values
+      if (!value || value === "" || value === null || value === undefined) {
+        return;
+      }
+      
+      if (key.includes("_")) {
+        // Handle checkbox-style filters like "status_Active"
+        const [filterKey, filterValue] = key.split("_");
+        if (value === true && filterKey === "status") {
+          statusFilters.push(filterValue);
+        }
+      } else {
+        // Handle regular text filters (name, location, associatedHospital)
+        const trimmedValue = String(value).trim();
+        if (trimmedValue) {
+          processedFilters[key] = trimmedValue;
+        }
+      }
+    });
+    
+    // Build filter parameters
+    const filterParams: string[] = [];
+    
+    // Add text filters
+    Object.entries(processedFilters).forEach(([key, value]) => {
+      filterParams.push(`${key}=${encodeURIComponent(value)}`);
+    });
+    
+    // Don't send status filter to API - we'll filter client-side instead
+    // This ensures we get all data and can filter it properly
+    // if (statusFilters.length > 0) {
+    //   filterParams.push(`status=${encodeURIComponent(statusFilters.join(","))}`);
+    // }
+    
+    const filterParam = filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
+    const fullUrl = `${API_URL}/api/college?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
+    
+    console.log("College API URL:", fullUrl);
+    console.log("College API - Filter values:", filterValues);
+    console.log("College API - Status filters (will filter client-side):", statusFilters);
+    
+    const response = await fetch(fullUrl);
     if (!response.ok) {
       throw new Error("Failed to fetch colleges");
     }
     setLoading(false);
-    return response.json();
+    const data = await response.json();
+    console.log("College API Response - Total:", data?.total, "Data count:", data?.data?.length);
+    if (data?.data?.length > 0) {
+      console.log("College API Response - Sample statuses:", data.data.slice(0, 3).map((c: any) => c.status));
+    }
+    return data;
   };
 
   const { data: fetchedColleges } = useQuery<CollegeResponse, Error>({
-    queryKey: ["Colleges", currentPage, pageSize, searchValue],
+    queryKey: ["Colleges", currentPage, pageSize, searchValue, filterValues],
     queryFn: fetchColleges,
     refetchOnWindowFocus: false,
     refetchOnMount: true,
@@ -154,7 +205,7 @@ const CollegeList: React.FC = () => {
             setSelectedCollegeId(record.id);
             setIsEditModalVisible(true);
           }}
-          onDelete={() => {}}
+          onDelete={() => handleDelete(record)}
         />
       ),
     },
@@ -178,9 +229,92 @@ const CollegeList: React.FC = () => {
         }) ?? "N/A",
       status: college.status ?? "Pending",
     })) ?? [];
+  
+  console.log("College transform - Raw API data count:", fetchedColleges?.data?.length);
+  console.log("College transform - Transformed data count:", transformedData.length);
+  if (transformedData.length > 0) {
+    console.log("College transform - Sample statuses in transformed data:", transformedData.slice(0, 3).map(c => c.status));
+  }
 
-  // Use transformed data or empty array
-  const tableData = transformedData.length > 0 ? transformedData : [];
+  // Apply client-side filtering if needed
+  let filteredTableData = transformedData;
+  const statusFilters: string[] = [];
+  const nameFilter = filterValues.name;
+  const locationFilter = filterValues.location;
+  const associatedHospitalFilter = filterValues.associatedHospital;
+  
+  // Collect status filters from filterValues
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.includes("_") && value === true) {
+      const [filterKey, filterValue] = key.split("_");
+      if (filterKey === "status") {
+        statusFilters.push(filterValue);
+        console.log(`College filter - Added status: ${filterValue}`);
+      }
+    }
+  });
+  
+  console.log(`College filter - Total status filters: ${statusFilters.length}`, statusFilters);
+  
+  console.log("College filter - Status filters collected:", statusFilters);
+  console.log("College filter - Filter values:", filterValues);
+  console.log("College filter - Total data before filter:", transformedData.length);
+  
+  console.log("College filter - Status filters:", statusFilters);
+  console.log("College filter - Filter values:", filterValues);
+  console.log("College filter - Data count before filter:", transformedData.length);
+  
+  // Always apply client-side filtering for status to ensure it works
+  // Apply all filters
+  if (nameFilter || locationFilter || associatedHospitalFilter || statusFilters.length > 0) {
+    filteredTableData = transformedData.filter((college: CollegeData) => {
+      // Name filter
+      const matchesName = !nameFilter || 
+        (college.collegeName && college.collegeName.toLowerCase().includes(String(nameFilter).toLowerCase().trim()));
+      
+      // Location filter
+      const matchesLocation = !locationFilter || 
+        (college.location && college.location.toLowerCase().includes(String(locationFilter).toLowerCase().trim()));
+      
+      // Associated Hospital filter
+      const matchesHospital = !associatedHospitalFilter || 
+        (college.hospitals && college.hospitals.some((h: any) => 
+          h.name && h.name.toLowerCase().includes(String(associatedHospitalFilter).toLowerCase().trim())
+        )) || false;
+      
+      // Status filter - always apply client-side for reliability
+      const matchesStatus = statusFilters.length === 0 || (() => {
+        const collegeStatus = String(college.status || "").trim();
+        if (!collegeStatus) return false;
+        
+        const collegeStatusLower = collegeStatus.toLowerCase();
+        const matches = statusFilters.some(status => {
+          const statusLower = String(status).toLowerCase().trim();
+          // Match case-insensitively
+          const result = statusLower === collegeStatusLower;
+          return result;
+        });
+        
+        // Debug for troubleshooting
+        if (transformedData.indexOf(college) < 2 && statusFilters.length > 0) {
+          console.log(`College status filter: "${collegeStatus}" (${collegeStatusLower}) vs filters [${statusFilters.map(s => s.toLowerCase()).join(", ")}] = ${matches}`);
+        }
+        
+        return matches;
+      })();
+      
+      return matchesName && matchesLocation && matchesHospital && matchesStatus;
+    });
+    
+    console.log("College filter - Total data after filter:", filteredTableData.length);
+  }
+
+  // Use filtered data or empty array
+  const tableData = filteredTableData.length > 0 ? filteredTableData : [];
+  
+  // Calculate total for pagination - use filtered count if client-side filtering is applied
+  const hasClientSideFilters = nameFilter || locationFilter || associatedHospitalFilter || statusFilters.length > 0;
+  const displayTotal = hasClientSideFilters ? filteredTableData.length : (fetchedColleges?.total ?? 0);
 
   const handleAddCollegeClick = () => {
     setIsModalVisible(true);
@@ -197,6 +331,35 @@ const CollegeList: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["Colleges"] });
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`${API_URL}/api/college/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["Colleges"] });
+      message.success("College deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("Delete error:", error);
+      message.error("Failed to delete college");
+    },
+  });
+
+  const handleDelete = (record: CollegeData) => {
+    deleteMutation.mutate(record.id);
+  };
+
   const handlePageChange = (page: number, pageSize?: number) => {
     setCurrentPage(page);
     if (pageSize) {
@@ -206,9 +369,22 @@ const CollegeList: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
+    setCurrentPage(1);
   };
 
   const filterOptions = [
+    {
+      label: "College Name",
+      key: "name",
+    },
+    {
+      label: "Location",
+      key: "location",
+    },
+    {
+      label: "Associated Hospital",
+      key: "associatedHospital",
+    },
     {
       label: "Status",
       key: "status",
@@ -217,7 +393,30 @@ const CollegeList: React.FC = () => {
   ];
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    console.log("Filter values:", filters);
+    // Clean up empty values from filters
+    const cleanedFilters: Record<string, any> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      // Only keep non-empty values
+      if (value !== "" && value !== null && value !== undefined) {
+        // For checkboxes, only keep if true
+        if (key.includes("_")) {
+          if (value === true) {
+            cleanedFilters[key] = value;
+          }
+        } else {
+          // For text inputs, trim and keep if not empty
+          const trimmed = String(value).trim();
+          if (trimmed) {
+            cleanedFilters[key] = trimmed;
+          }
+        }
+      }
+    });
+    
+    console.log("Filter values received:", filters);
+    console.log("Cleaned filter values:", cleanedFilters);
+    setFilterValues(cleanedFilters);
+    setCurrentPage(1);
   };
 
   const handleDownload = (format: "excel" | "csv") => {
@@ -313,7 +512,7 @@ const CollegeList: React.FC = () => {
             <CommonPagination
               current={currentPage}
               pageSize={pageSize}
-              total={fetchedColleges?.total ?? 0}
+              total={displayTotal}
               onChange={handlePageChange}
               onShowSizeChange={handlePageChange}
             />

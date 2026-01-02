@@ -39,27 +39,58 @@ const fetchHospitals = async (
   // Process filter values to convert checkbox-style filters to proper format
   const processedFilters: Record<string, any> = {};
   Object.entries(filterValues).forEach(([key, value]) => {
+    // Skip empty values
+    if (!value || value === "" || value === null || value === undefined) {
+      return;
+    }
+    
     if (key.includes("_")) {
-      // Handle checkbox-style filters like "status_ACTIVE"
+      // Handle checkbox-style filters like "status_Active"
       const [filterKey, filterValue] = key.split("_");
       if (value === true) {
-        processedFilters[filterKey] = filterValue.toLowerCase();
+        // For status filters, collect all selected statuses
+        if (!processedFilters[filterKey]) {
+          processedFilters[filterKey] = [];
+        }
+        if (Array.isArray(processedFilters[filterKey])) {
+          processedFilters[filterKey].push(filterValue);
+        } else {
+          processedFilters[filterKey] = [processedFilters[filterKey], filterValue];
+        }
       }
     } else {
-      // Handle regular filters
-      processedFilters[key] = value;
+      // Handle regular text filters (name, branchLocation)
+      // Trim whitespace and only add if not empty after trim
+      const trimmedValue = String(value).trim();
+      if (trimmedValue) {
+        // Use the key as-is, but ensure proper encoding
+        processedFilters[key] = trimmedValue;
+      }
     }
   });
 
-  const filterParam = Object.entries(processedFilters)
-    .map(([key, value]) => `${key}=${value}`)
-    .join("&");
+  // Build filter parameters
+  const filterParams: string[] = [];
+  Object.entries(processedFilters).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      // For arrays (multiple status selections), join with comma
+      filterParams.push(`${key}=${encodeURIComponent(value.join(","))}`);
+    } else {
+      filterParams.push(`${key}=${encodeURIComponent(value)}`);
+    }
+  });
 
-  const response = await fetch(
-    `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
-      filterParam ? `&${filterParam}` : ""
-    }`
-  );
+  const filterParam = filterParams.length > 0 ? filterParams.join("&") : "";
+  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
+    filterParam ? `&${filterParam}` : ""
+  }`;
+  
+  console.log("API Request URL:", fullUrl);
+  console.log("Filter values:", filterValues);
+  console.log("Processed filters:", processedFilters);
+  console.log("Filter params array:", filterParams);
+
+  const response = await fetch(fullUrl);
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
   }
@@ -126,9 +157,17 @@ const HospitalList: React.FC = () => {
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const filterOptions = [
     {
+      label: "Name",
+      key: "name",
+    },
+    {
+      label: "Branch Location",
+      key: "branchLocation",
+    },
+    {
       label: "Status",
       key: "status",
-      options: ["ACTIVE", "INACTIVE"],
+      options: ["Active", "Inactive", "Pending"],
     },
   ];
   const { data: hospitals, isFetching } = useQuery<ApiResponse, Error>({
@@ -229,21 +268,41 @@ const HospitalList: React.FC = () => {
     }
   };
 
+  // Apply client-side filtering if API doesn't support name/branchLocation filters
+  let filteredHospitals = hospitals?.data || [];
+  const nameFilter = filterValues.name;
+  const branchLocationFilter = filterValues.branchLocation;
+  
+  if (nameFilter || branchLocationFilter) {
+    filteredHospitals = filteredHospitals.filter((hospital: ApiHospitalData) => {
+      const matchesName = !nameFilter || 
+        hospital.name?.toLowerCase().includes(String(nameFilter).toLowerCase().trim());
+      const matchesBranchLocation = !branchLocationFilter || 
+        hospital.branchLocation?.toLowerCase().includes(String(branchLocationFilter).toLowerCase().trim());
+      return matchesName && matchesBranchLocation;
+    });
+  }
+
+  // Calculate total - use filtered count if client-side filtering is applied
+  const displayTotal = (nameFilter || branchLocationFilter) 
+    ? filteredHospitals.length 
+    : (hospitals?.total ?? 0);
+
   const tableData: HospitalData[] =
-    hospitals?.data?.map((hospital, index) => ({
+    filteredHospitals.map((hospital, index) => ({
       key: hospital.id,
       sNo: index + 1,
       name: hospital.name,
       logo: hospital.logoUrl,
       branchLocation: hospital.branchLocation,
       address: hospital.address,
-      updatedOn: new Date(hospital.updated_at).toLocaleDateString(),
+      updatedOn: (hospital as any).updatedAt || hospital.updated_at || "",
       status: (hospital.status?.toLowerCase() === "active"
         ? "Active"
         : hospital.status?.toLowerCase() === "inactive"
         ? "Inactive"
         : "Pending") as HospitalData["status"],
-    })) || [];
+    }));
 
   const columns: ColumnsType<HospitalData> = [
     {
@@ -303,11 +362,31 @@ const HospitalList: React.FC = () => {
       dataIndex: "branchLocation",
       key: "branchLocation",
     },
-    // {
-    //   title: "Updated on Portal",
-    //   dataIndex: "updatedOn",
-    //   key: "updatedOn",
-    // },
+    {
+      title: "Updated on Portal",
+      dataIndex: "updatedOn",
+      key: "updatedOn",
+      width: 180,
+      render: (dateValue: string) => {
+        if (!dateValue) {
+          return <span className="text-gray-500">N/A</span>;
+        }
+        try {
+          const dateObj = new Date(dateValue);
+          if (isNaN(dateObj.getTime())) {
+            return <span className="text-gray-500">N/A</span>;
+          }
+          const day = dateObj.getDate();
+          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+          const month = monthNames[dateObj.getMonth()];
+          const year = dateObj.getFullYear();
+          return <span>{`${day} ${month} ${year}`}</span>;
+        } catch (error) {
+          console.error("Date parsing error:", error, dateValue);
+          return <span className="text-gray-500">N/A</span>;
+        }
+      },
+    },
     {
       title: "Status",
       dataIndex: "status",
@@ -351,8 +430,30 @@ const HospitalList: React.FC = () => {
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    console.log("Filter values:", filters);
-    setFilterValues(filters);
+    // Clean up empty values from filters
+    const cleanedFilters: Record<string, any> = {};
+    Object.entries(filters).forEach(([key, value]) => {
+      // Only keep non-empty values
+      if (value !== "" && value !== null && value !== undefined) {
+        // For checkboxes, only keep if true
+        if (key.includes("_")) {
+          if (value === true) {
+            cleanedFilters[key] = value;
+          }
+        } else {
+          // For text inputs, trim and keep if not empty
+          const trimmed = String(value).trim();
+          if (trimmed) {
+            cleanedFilters[key] = trimmed;
+          }
+        }
+      }
+    });
+    
+    console.log("Filter values received:", filters);
+    console.log("Cleaned filter values:", cleanedFilters);
+    setFilterValues(cleanedFilters);
+    setCurrentPage(1);
   };
 
   const handleDownload = (format: "excel" | "csv") => {
@@ -433,7 +534,7 @@ const HospitalList: React.FC = () => {
         <CommonPagination
           current={currentPage}
           pageSize={pageSize}
-          total={hospitals?.total ?? 0}
+          total={displayTotal}
           onChange={handlePageChange}
           onShowSizeChange={handlePageChange}
         />

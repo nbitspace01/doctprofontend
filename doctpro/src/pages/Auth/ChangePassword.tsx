@@ -10,21 +10,63 @@ const ChangePassword: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const userId = localStorage.getItem("userIdForgotPassword");
   const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  
+  // Get userId from localStorage and validate it
+  const getUserId = () => {
+    const userId = localStorage.getItem("userIdForgotPassword");
+    console.log("userId from localStorage:", userId);
+    if (!userId || userId === "undefined" || userId === "null") {
+      return null;
+    }
+    return userId;
+  };
+  
+  const userId = getUserId();
 
   const onFinish = async (values: any) => {
+    if (!userId) {
+      message.error("User ID is missing. Please try the forgot password process again.");
+      navigate({ to: "/auth/forgot-password", replace: true });
+      return;
+    }
+
     try {
       setLoading(true);
-      await axios.post(`${URL}/api/user/forgot-password/reset/${userId}`, {
-        newPassword: values.newPassword,
-      });
+      
+      // Re-check userId to ensure it's available
+      const currentUserId = getUserId();
+      if (!currentUserId) {
+        message.error("User ID is missing. Please try the forgot password process again.");
+        navigate({ to: "/auth/forgot-password", replace: true });
+        return;
+      }
+      
+      console.log("Calling API: /api/user/forgot-password/reset/" + currentUserId);
+      console.log("Payload:", { newPassword: values.newPassword });
+      
+      const response = await axios.post(
+        `${URL}/api/user/forgot-password/reset/${currentUserId}`,
+        {
+          newPassword: values.newPassword,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
 
+      console.log("Password reset successful:", response.data);
       message.success("Password changed successfully!");
       form.resetFields();
+      // Clear the userId from localStorage after successful password change
+      localStorage.removeItem("userIdForgotPassword");
       // Redirect to login page after successful password change
       navigate({ to: "/auth/login", replace: true });
     } catch (error: any) {
+      console.error("Password reset error:", error);
+      console.error("Error response:", error.response?.data);
       const errorMessage =
         error.response?.data?.message ?? "Failed to change password";
       message.error(errorMessage);
