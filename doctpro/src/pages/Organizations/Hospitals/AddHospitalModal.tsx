@@ -5,6 +5,7 @@ import {
   message,
   Modal,
   notification,
+  Switch,
   Upload,
   UploadProps,
 } from "antd";
@@ -56,8 +57,8 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         name: initialData.name,
         branchLocation: initialData.branchLocation,
         isHeadBranch: initialData.isHeadBranch,
+        isActive: initialData.isActive,
         logoUrl: initialData.logoUrl,
-        // add other fields as needed
       };
       form.setFieldsValue(formValues);
       setHospitalData({
@@ -70,7 +71,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       // Set the image URL for display if editing
       setImageUrl(initialData.logoUrl || "");
     } else {
-      form.resetFields();
       const emptyData = {
         name: "",
         branchLocation: "",
@@ -78,6 +78,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         logoUrl: null,
         isActive: true,
       };
+      form.setFieldsValue(emptyData);
       setHospitalData(emptyData);
       setImageUrl(""); // Reset image URL when not editing
     }
@@ -102,10 +103,12 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   const handleSubmit = async (values: Partial<ApiHospitalData>) => {
     try {
-      // Include the logoUrl from hospitalData in the submission
+      // Include the logoUrl, isHeadBranch, and isActive from hospitalData in the submission
       const submissionData = {
         ...values,
         logoUrl: hospitalData.logoUrl,
+        isHeadBranch: hospitalData.isHeadBranch,
+        isActive: hospitalData.isActive,
       };
 
       const handler = isEditing ? updateHospital : createHospital;
@@ -270,6 +273,46 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
               }
             />
           </Form.Item>
+
+          {/* Head of Location Toggle - Show in Add mode */}
+          {!isEditing && (
+            <Form.Item
+              name="isHeadBranch"
+              valuePropName="checked"
+              className="mb-0"
+            >
+              <div className="flex items-center justify-between">
+                <span>This Hospital/Clinic branch its Head of The Location</span>
+                <Switch
+                  checked={hospitalData.isHeadBranch}
+                  onChange={(checked) => {
+                    setHospitalData({ ...hospitalData, isHeadBranch: checked });
+                    form.setFieldsValue({ isHeadBranch: checked });
+                  }}
+                />
+              </div>
+            </Form.Item>
+          )}
+
+          {/* Working Status - Show in Edit mode */}
+          {isEditing && (
+            <Form.Item
+              name="isActive"
+              label="Working Status"
+              valuePropName="checked"
+            >
+              <div className="flex items-center justify-between">
+                <span>{hospitalData.isActive ? "Active" : "Inactive"}</span>
+                <Switch
+                  checked={hospitalData.isActive}
+                  onChange={(checked) => {
+                    setHospitalData({ ...hospitalData, isActive: checked });
+                    form.setFieldsValue({ isActive: checked });
+                  }}
+                />
+              </div>
+            </Form.Item>
+          )}
 
           {/* Hidden field for logoUrl */}
           <Form.Item name="logoUrl" hidden>

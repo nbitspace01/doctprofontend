@@ -355,6 +355,12 @@ const SubAdmin: React.FC = () => {
       render: (location) => location ?? "N/A",
     },
     {
+      title: "Districts",
+      dataIndex: "associated_location",
+      key: "associated_location",
+      render: (associated_location) => associated_location ?? "N/A",
+    },
+    {
       title: "Organization Type",
       dataIndex: "organization_type",
       key: "organization_type",

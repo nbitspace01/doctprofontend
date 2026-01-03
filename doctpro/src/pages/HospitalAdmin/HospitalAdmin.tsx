@@ -2,7 +2,7 @@ import { Avatar, Button, Image, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
-import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
+import AddHospitalAdminModal from "./AddHospitalAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
@@ -80,67 +80,47 @@ const HospitalAdmin: React.FC = () => {
   ];
 
   const fetchHospitalAdmin = async (): Promise<HospitalAdminResponse> => {
+    const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
-    const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
     const searchParam = searchValue ? `&search=${searchValue}` : "";
 
-    const filterParams = [];
-
+    // Build filter parameters
+    const filterParams: string[] = [];
+    
+    // Handle name filter
     if (filterValues.name && String(filterValues.name).trim()) {
       filterParams.push(`name=${encodeURIComponent(String(filterValues.name).trim())}`);
     }
-    // Don't send email and phone to API - we'll filter client-side instead
-    // This ensures we get all data and can filter it properly
-    // if (filterValues.email && String(filterValues.email).trim()) {
-    //   filterParams.push(`email=${encodeURIComponent(String(filterValues.email).trim())}`);
-    // }
-    // if (filterValues.phone && String(filterValues.phone).trim()) {
-    //   filterParams.push(`phone=${encodeURIComponent(String(filterValues.phone).trim())}`);
-    // }
+    
+    // Handle location filter
     if (filterValues.location && String(filterValues.location).trim()) {
       filterParams.push(
         `location=${encodeURIComponent(String(filterValues.location).trim())}`
       );
     }
 
+    // Handle checkbox-style filters (role, organization_type, status)
     const selectedRoles = Object.keys(filterValues).filter(
       (key) => key.startsWith("role_") && filterValues[key]
     );
     if (selectedRoles.length > 0) {
-      const roleMapping: Record<string, string> = {
-        "SUB_ADMIN": "subadmin",
-        "ADMIN": "admin"
-      };
-      filterParams.push(
-        `role=${selectedRoles
-          .map((key) => {
-            const filterValue = key.replace("role_", "");
-            const mappedValue = roleMapping[filterValue] || filterValue.toLowerCase();
-            return encodeURIComponent(mappedValue);
-          })
-          .join(",")}`
-      );
+      const roleValues = selectedRoles.map((key) => {
+        const filterValue = key.replace("role_", "");
+        return encodeURIComponent(filterValue);
+      });
+      filterParams.push(`role=${roleValues.join(",")}`);
     }
     
     const selectedOrgTypes = Object.keys(filterValues).filter(
       (key) => key.startsWith("organization_type_") && filterValues[key]
     );
     if (selectedOrgTypes.length > 0) {
-      const orgTypeMapping: Record<string, string> = {
-        "HOSPITAL": "Hospital",
-        "CLINIC": "Clinic",
-        "PHARMACY": "Pharmacy"
-      };
-      filterParams.push(
-        `organization_type=${selectedOrgTypes
-          .map((key) => {
-            const filterValue = key.replace("organization_type_", "");
-            const mappedValue = orgTypeMapping[filterValue] || filterValue;
-            return encodeURIComponent(mappedValue);
-          })
-          .join(",")}`
-      );
+      const orgTypeValues = selectedOrgTypes.map((key) => {
+        const filterValue = key.replace("organization_type_", "");
+        return encodeURIComponent(filterValue);
+      });
+      filterParams.push(`organization_type=${orgTypeValues.join(",")}`);
     }
     
     const selectedStatuses = Object.keys(filterValues).filter(
@@ -154,19 +134,34 @@ const HospitalAdmin: React.FC = () => {
       filterParams.push(`status=${statusValues.join(",")}`);
     }
 
-    const filterParam =
-      filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
+    const filterParam = filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
     
-    const fullUrl = `${API_URL}/api/dashboard/hospital-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
-    console.log("HospitalAdmin API URL:", fullUrl);
-    console.log("HospitalAdmin Filter params:", filterParams);
-    console.log("HospitalAdmin Filter values:", filterValues);
+    const fullUrl = `${API_URL}/api/user/hospital-admins?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
+    console.log("Hospital Admin API URL:", fullUrl);
     
     const res = await ApiRequest.get(fullUrl);
 
+    // Handle different response structures
+    // If response is an array directly
+    if (Array.isArray(res.data)) {
+      return {
+        data: res.data,
+        total: res.data.length,
+      };
+    }
+    
+    // If response has data and total properties
+    if (res.data && res.data.data) {
+      return {
+        data: res.data.data ?? [],
+        total: res.data.total ?? res.data.data?.length ?? 0,
+      };
+    }
+
+    // Fallback: return empty array
     return {
-      data: res.data.data ?? [],
-      total: res.data.total ?? 0,
+      data: [],
+      total: 0,
     };
   };
 
@@ -263,7 +258,7 @@ const HospitalAdmin: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-      await ApiRequest.delete(`${API_URL}/api/user/delete-sub-admin/${id}`);
+      await ApiRequest.delete(`${API_URL}/api/user/hospital-admin/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hospitalAdmin"] });
@@ -302,9 +297,9 @@ const HospitalAdmin: React.FC = () => {
       key: "name",
       render: (_, record) => (
         <div className="flex items-center gap-2">
-          {record.profile_image ? (
+          {record.profile_image || record.image_url ? (
             <Image
-              src={record.profile_image}
+              src={record.profile_image || record.image_url}
               width={40}
               height={40}
               alt="Hospital Admin"
@@ -315,10 +310,10 @@ const HospitalAdmin: React.FC = () => {
               size={40}
               className="bg-button-primary rounded-full mr-2 text-white"
             >
-              {record.first_name.charAt(0)}
+              {record.first_name?.charAt(0) || record.email?.charAt(0) || "A"}
             </Avatar>
           )}
-          <span>{`${record.first_name} ${record.last_name}`}</span>
+          <span>{`${record.first_name || ""} ${record.last_name || ""}`.trim() || "N/A"}</span>
         </div>
       ),
     },
@@ -337,6 +332,7 @@ const HospitalAdmin: React.FC = () => {
       title: "Role",
       dataIndex: "role",
       key: "role",
+      render: (role) => role ?? "N/A",
     },
     {
       title: "Location",
@@ -345,9 +341,16 @@ const HospitalAdmin: React.FC = () => {
       render: (location) => location ?? "N/A",
     },
     {
+      title: "Districts",
+      dataIndex: "districts",
+      key: "districts",
+      render: (districts) => districts ?? "N/A",
+    },
+    {
       title: "Organization Type",
       dataIndex: "organization_type",
       key: "organization_type",
+      render: (orgType) => orgType ?? "N/A",
     },
     {
       title: "Status",
@@ -466,7 +469,7 @@ const HospitalAdmin: React.FC = () => {
         )}
       </div>
 
-      <AddSubAdminModal
+      <AddHospitalAdminModal
         open={isModalOpen}
         onCancel={() => {
           setIsModalOpen(false);

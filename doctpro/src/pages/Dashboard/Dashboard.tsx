@@ -44,7 +44,7 @@ const Dashboard: React.FC = () => {
   };
 
   const fetchKycStats = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/getKycStatusCounts`, {
+    const res = await axios.get(`${API_URL}/api/dashboard/admin-counts/location`, {
       headers: {
         Authorization: `Bearer ${getToken()}`,
       },
@@ -52,9 +52,17 @@ const Dashboard: React.FC = () => {
     return res.data;
   };
 
-  const { data, isLoading, isError } = useQuery({
+  const { 
+    data, 
+    isLoading, 
+    isError, 
+    error: dashboardCountsError 
+  } = useQuery({
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
+    retry: false,
+    // Make this query non-blocking - show UI even if it fails
+    // We'll show 0 values as fallback
   });
 
   const fetchSubAdmin = async () => {
@@ -71,6 +79,7 @@ const Dashboard: React.FC = () => {
     data: subAdmin,
     isLoading: subAdminLoading,
     isError: subAdminError,
+    error: subAdminErrorObj,
   } = useQuery({
     queryKey: ["subAdmin"],
     queryFn: fetchSubAdmin,
@@ -86,12 +95,42 @@ const Dashboard: React.FC = () => {
   } = useQuery({
     queryKey: ["kycStats"],
     queryFn: fetchKycStats,
+    retry: false,
+    // Make this query non-blocking since it's not currently used in the UI
+    // If it fails, we'll just log it but won't block the dashboard
   });
 
-  if (isLoading || kycStatsLoading || subAdminLoading)
+  // Only show loading for subAdmin (critical for the table)
+  // dashboardCounts and kycStats are non-blocking - show UI even if they fail
+  if (subAdminLoading)
     return <Loader size="large" />;
-  if (isError || kycStatsError || subAdminError)
-    return <div>Error: {kycStatsErrorObj?.message ?? "An error occurred"}</div>;
+  
+  // Only block on subAdmin error since it's critical for the table
+  if (subAdminError) {
+    const errorMessage = 
+      (subAdminErrorObj as any)?.response?.data?.message ||
+      (subAdminErrorObj as any)?.message ||
+      (subAdminErrorObj as any)?.response?.statusText ||
+      "An error occurred";
+    console.error("Sub-admin list error:", subAdminErrorObj);
+    return (
+      <div className="p-4">
+        <div className="text-red-600 font-semibold mb-2">
+          Error loading sub-admin list
+        </div>
+        <div className="text-gray-700">{errorMessage}</div>
+      </div>
+    );
+  }
+  
+  // Log errors but don't block the UI - show fallback values instead
+  if (isError) {
+    console.warn("Dashboard counts API error (non-blocking):", dashboardCountsError);
+  }
+  
+  if (kycStatsError) {
+    console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
+  }
 
   // Filter sub-admin data based on search and filters
   const filteredSubAdmin = subAdmin?.data?.filter((item: any) => {
@@ -207,38 +246,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card className="shadow-sm bg-white p-2">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">
-              {totalCollege() as React.ReactNode}
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Colleges</p>
-              <p className="text-2xl font-bold">
-                {(() => {
-                  if (!data) return 0;
-                  const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('college')
-                  );
-                  return key ? (data as any)[key] : 0;
-                })()}
-              </p>
-            </div>
-          </div>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
         <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full text-white">
               {totalHospital() as React.ReactNode}
             </div>
             <div>
-              <p className="text-gray-600 text-sm">Total Hospitals</p>
+              <p className="text-gray-600 text-sm">Hospital Admin Count</p>
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
                   const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('hospital')
+                    k.toLowerCase().includes('hospital') && 
+                    k.toLowerCase().includes('admin')
                   );
                   return key ? (data as any)[key] : 0;
                 })()}
@@ -249,35 +270,16 @@ const Dashboard: React.FC = () => {
         <Card className="shadow-sm bg-white p-2">
           <div className="flex items-center gap-4">
             <div className="p-3 rounded-full text-white">
-              {totalStudents() as React.ReactNode}
+              {totalCollege() as React.ReactNode}
             </div>
             <div>
-              <p className="text-gray-600 text-sm">Total Students</p>
+              <p className="text-gray-600 text-sm">Sub Admin Count</p>
               <p className="text-2xl font-bold">
                 {(() => {
                   if (!data) return 0;
                   const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('student')
-                  );
-                  return key ? (data as any)[key] : 0;
-                })()}
-              </p>
-            </div>
-          </div>
-        </Card>
-        <Card className="shadow-sm bg-white p-2">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">
-              {totalHealthCare() as React.ReactNode}
-            </div>
-            <div>
-              <p className="text-gray-600 text-sm">Total Healthcare Professionals</p>
-              <p className="text-2xl font-bold">
-                {(() => {
-                  if (!data) return 0;
-                  const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('professional') ||
-                    k.toLowerCase().includes('healthcare')
+                    k.toLowerCase().includes('sub') && 
+                    k.toLowerCase().includes('admin')
                   );
                   return key ? (data as any)[key] : 0;
                 })()}

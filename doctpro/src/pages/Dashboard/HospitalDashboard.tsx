@@ -34,7 +34,7 @@ const HospitalDashboard: React.FC = () => {
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const fetchDashboardCounts = async () => {
     const res = await axios.get(
-      `${API_URL}/api/dashboard/sub-admin/dashboard-status`,
+      `${API_URL}/api/hospitaldashboard/hospitaladmin-count/location`,
       {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -53,9 +53,17 @@ const HospitalDashboard: React.FC = () => {
     return res.data;
   };
 
-  const { data, isLoading, isError } = useQuery({
+  const { 
+    data, 
+    isLoading, 
+    isError, 
+    error: dashboardCountsError 
+  } = useQuery({
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
+    retry: false,
+    // Make this query non-blocking - show UI even if it fails
+    // We'll show fallback values
   });
 
   const fetchSubAdminHealthCare = async () => {
@@ -75,6 +83,7 @@ const HospitalDashboard: React.FC = () => {
     data: subAdminHealthCare,
     isLoading: subAdminHealthCareLoading,
     isError: subAdminHealthCareError,
+    error: subAdminHealthCareErrorObj,
   } = useQuery({
     queryKey: ["subAdmin"],
     queryFn: fetchSubAdminHealthCare,
@@ -88,12 +97,42 @@ const HospitalDashboard: React.FC = () => {
   } = useQuery({
     queryKey: ["kycStats"],
     queryFn: fetchKycStats,
+    retry: false,
+    // Make this query non-blocking - show UI even if it fails
+    // We'll show fallback values
   });
 
-  if (isLoading || kycStatsLoading || subAdminHealthCareLoading)
+  // Only show loading for subAdminHealthCare (critical for the table)
+  // dashboardCounts and kycStats are non-blocking - show UI even if they fail
+  if (subAdminHealthCareLoading)
     return <Loader size="large" />;
-  if (isError || kycStatsError || subAdminHealthCareError)
-    return <div>Error: {kycStatsErrorObj?.message ?? "An error occurred"}</div>;
+  
+  // Only block on subAdminHealthCare error since it's critical for the table
+  if (subAdminHealthCareError) {
+    const errorMessage = 
+      (subAdminHealthCareErrorObj as any)?.response?.data?.message ||
+      (subAdminHealthCareErrorObj as any)?.message ||
+      (subAdminHealthCareErrorObj as any)?.response?.statusText ||
+      "An error occurred";
+    console.error("Healthcare professionals error:", subAdminHealthCareErrorObj);
+    return (
+      <div className="p-4">
+        <div className="text-red-600 font-semibold mb-2">
+          Error loading healthcare professionals
+        </div>
+        <div className="text-gray-700">{errorMessage}</div>
+      </div>
+    );
+  }
+  
+  // Log errors but don't block the UI - show fallback values instead
+  if (isError) {
+    console.warn("Dashboard counts API error (non-blocking):", dashboardCountsError);
+  }
+  
+  if (kycStatsError) {
+    console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
+  }
 
   const data1 = [
     {
@@ -143,48 +182,60 @@ const HospitalDashboard: React.FC = () => {
   return (
     <div className="">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
+        <h1 className="text-2xl font-bold">Hospital admin Dashboard</h1>
         <span className="text-blue-500 cursor-pointer">See All →</span>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {Object.entries(data)
-          .filter(([key]) =>
-            [
-              "totalDoctors",
-              "totalHospitals",
-              "totalStudents",
-              "pendingKycCount",
-            ].includes(key)
-          )
-          .map(([key, value]) => (
-            <Card key={key} className="shadow-sm bg-white p-2">
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-full text-white`}>
-                  {(key === "totalHospitals" &&
-                    (totalHospital() as React.ReactNode)) ||
-                    (key === "totalDoctors" &&
-                      (totalCollege() as React.ReactNode)) ||
-                    (key === "totalStudents" &&
-                      (totalStudents() as React.ReactNode)) ||
-                    (key === "pendingKycCount" &&
-                      (totalHealthCare() as React.ReactNode))}{" "}
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">
-                    {key.replace(/([A-Z])/g, " $1").replace("total ", "Total ")}
-                  </p>
-                  <p className="text-2xl font-bold">{value as number}</p>
-                </div>
+        {data && Object.keys(data).length > 0 ? (
+          (() => {
+            // Find the job post count field (flexible to handle different naming conventions)
+            const jobPostKey = Object.keys(data).find(
+              (key) =>
+                key.toLowerCase().includes("job") &&
+                (key.toLowerCase().includes("post") ||
+                  key.toLowerCase().includes("count") ||
+                  key.toLowerCase().includes("total"))
+            );
+            
+            if (jobPostKey) {
+              const value = (data as any)[jobPostKey];
+              return (
+                <Card className="shadow-sm bg-white p-2">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-full text-white">
+                      {totalCollege() as React.ReactNode}
+                    </div>
+                    <div>
+                      <p className="text-gray-600 text-sm">Total Job Post Count</p>
+                      <p className="text-2xl font-bold">{value as number}</p>
+                    </div>
+                  </div>
+                </Card>
+              );
+            }
+            return null;
+          })()
+        ) : (
+          // Show fallback card when data is not available
+          <Card className="shadow-sm bg-white p-2">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full text-white">
+                {totalCollege() as React.ReactNode}
               </div>
-            </Card>
-          ))}
+              <div>
+                <p className="text-gray-600 text-sm">Total Job Post Count</p>
+                <p className="text-2xl font-bold">0</p>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* Reports Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
+        {/* <div className="lg:col-span-2">
           <Card className="shadow-sm">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Reports</h2>
@@ -211,21 +262,21 @@ const HospitalDashboard: React.FC = () => {
               <Bar dataKey="CountKYC" fill="#ff7300" />
             </BarChart>
           </Card>
-        </div>
+        </div> */}
 
         {/* Employees Section */}
-        <div>
+        {/* <div>
           <Card className="shadow-sm">
             <h2 className="text-xl font-semibold mb-4">Employees</h2>
             <div className="flex justify-center">
               <Progress
                 type="circle"
-                percent={kycStats.kycApproved}
+                percent={kycStats?.kycApproved || 0}
                 success={{
-                  percent: kycStats.kycPending,
+                  percent: kycStats?.kycPending || 0,
                   strokeColor: "#4CAF50",
                 }}
-                format={() => <ProgressLabel total={kycStats.totalUsers} />}
+                format={() => <ProgressLabel total={kycStats?.totalUsers || 0} />}
                 size={180}
                 strokeColor={{ "0%": "#ff9f43", "100%": "#ff9f43" }}
                 trailColor="#f5f5f5"
@@ -235,15 +286,15 @@ const HospitalDashboard: React.FC = () => {
             <div className="flex justify-center mt-4 space-x-8">
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-                <span>KYC Pending ({kycStats.kycPending}%)</span>
+                <span>KYC Pending ({kycStats?.kycPending || 0}%)</span>
               </div>
               <div className="flex items-center">
                 <span className="w-3 h-3 bg-green-500 rounded-full mr-2"></span>
-                <span>KYC Approved ({kycStats.kycApproved}%)</span>
+                <span>KYC Approved ({kycStats?.kycApproved || 0}%)</span>
               </div>
             </div>
           </Card>
-        </div>
+        </div> */}
       </div>
 
       {/* Sub Admin Section */}

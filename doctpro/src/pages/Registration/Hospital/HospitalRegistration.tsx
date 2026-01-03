@@ -339,19 +339,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
               City/Town <span className="text-red-500">*</span>
             </span>
           }
-          rules={[{ required: true, message: "Please select city" }]}
+          rules={[{ required: true, message: "Please enter city" }]}
         >
-          <Select placeholder="Select City/Town">
-            <Select.Option value="Mumbai">Mumbai</Select.Option>
-            <Select.Option value="Delhi">Delhi</Select.Option>
-            <Select.Option value="Bangalore">Bangalore</Select.Option>
-            <Select.Option value="Chennai">Chennai</Select.Option>
-            <Select.Option value="Kolkata">Kolkata</Select.Option>
-            <Select.Option value="Hyderabad">Hyderabad</Select.Option>
-            <Select.Option value="Pune">Pune</Select.Option>
-            <Select.Option value="Jaipur">Jaipur</Select.Option>
-            <Select.Option value="Ahmedabad">Ahmedabad</Select.Option>
-          </Select>
+          <Input placeholder="Enter City/Town" />
         </Form.Item>
         <Form.Item
           name="state"
@@ -360,19 +350,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
               State <span className="text-red-500">*</span>
             </span>
           }
-          rules={[{ required: true, message: "Please select state" }]}
+          rules={[{ required: true, message: "Please enter state" }]}
         >
-          <Select placeholder="Select State">
-            <Select.Option value="Maharashtra">Maharashtra</Select.Option>
-            <Select.Option value="Delhi">Delhi</Select.Option>
-            <Select.Option value="Tamil Nadu">Tamil Nadu</Select.Option>
-            <Select.Option value="Karnataka">Karnataka</Select.Option>
-            <Select.Option value="Andhra Pradesh">Andhra Pradesh</Select.Option>
-            <Select.Option value="Telangana">Telangana</Select.Option>
-            <Select.Option value="Kerala">Kerala</Select.Option>
-            <Select.Option value="Rajasthan">Rajasthan</Select.Option>
-            <Select.Option value="Gujarat">Gujarat</Select.Option>
-          </Select>
+          <Input placeholder="Enter State" />
         </Form.Item>
       </div>
 
@@ -380,18 +360,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         <Form.Item
           name="country"
           label="Country"
-          rules={[{ required: true, message: "Please select country" }]}
+          rules={[{ required: true, message: "Please enter country" }]}
         >
-          <Select placeholder="Select Country">
-            <Select.Option value="India">India</Select.Option>
-            <Select.Option value="USA">USA</Select.Option>
-            <Select.Option value="UK">UK</Select.Option>
-            <Select.Option value="Australia">Australia</Select.Option>
-            <Select.Option value="Canada">Canada</Select.Option>
-            <Select.Option value="New Zealand">New Zealand</Select.Option>
-            <Select.Option value="South Africa">South Africa</Select.Option>
-            <Select.Option value="Sri Lanka">Sri Lanka</Select.Option>
-          </Select>
+          <Input placeholder="Enter Country" />
         </Form.Item>
 
         <Form.Item

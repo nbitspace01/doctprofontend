@@ -18,7 +18,7 @@ import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
 
-interface SubAdminData {
+interface HospitalAdminData {
   id: string;
   first_name: string;
   last_name: string;
@@ -33,14 +33,14 @@ interface SubAdminData {
   profile_image?: string;
 }
 
-interface AddSubAdminModalProps {
+interface AddHospitalAdminModalProps {
   open: boolean;
   onCancel: () => void;
   onSubmit: (values: any) => void;
-  initialData?: SubAdminData | null;
+  initialData?: HospitalAdminData | null;
 }
 
-interface SubAdminFormValues {
+interface HospitalAdminFormValues {
   first_name: string;
   last_name: string;
   email: string;
@@ -54,7 +54,7 @@ interface SubAdminFormValues {
   profile_image?: string;
 }
 
-const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
+const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
   open,
   onCancel,
   onSubmit,
@@ -66,7 +66,10 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { notification } = App.useApp();
 
-  const roleOptions = [{ value: "subadmin", label: "Sub Admin" }];
+  const roleOptions = [
+    { value: "subadmin", label: "Sub Admin" },
+    { value: "hospital-admin", label: "Hospital Admin" }
+  ];
 
   const organizationOptions = [
     { value: "Hospital", label: "Hospital" },
@@ -77,34 +80,12 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   ];
 
   const locationOptions = [
-    { value: "Andhra Pradesh", label: "Andhra Pradesh" },
-    { value: "Arunachal Pradesh", label: "Arunachal Pradesh" },
-    { value: "Assam", label: "Assam" },
-    { value: "Bihar", label: "Bihar" },
-    { value: "Chhattisgarh", label: "Chhattisgarh" },
-    { value: "Goa", label: "Goa" },
-    { value: "Gujarat", label: "Gujarat" },
-    { value: "Haryana", label: "Haryana" },
-    { value: "Himachal Pradesh", label: "Himachal Pradesh" },
-    { value: "Jharkhand", label: "Jharkhand" },
-    { value: "Karnataka", label: "Karnataka" },
-    { value: "Kerala", label: "Kerala" },
-    { value: "Madhya Pradesh", label: "Madhya Pradesh" },
-    { value: "Maharashtra", label: "Maharashtra" },
-    { value: "Manipur", label: "Manipur" },
-    { value: "Meghalaya", label: "Meghalaya" },
-    { value: "Mizoram", label: "Mizoram" },
-    { value: "Nagaland", label: "Nagaland" },
-    { value: "Odisha", label: "Odisha" },
-    { value: "Punjab", label: "Punjab" },
-    { value: "Rajasthan", label: "Rajasthan" },
-    { value: "Sikkim", label: "Sikkim" },
-    { value: "Tamil Nadu", label: "Tamil Nadu" },
-    { value: "Telangana", label: "Telangana" },
-    { value: "Tripura", label: "Tripura" },
-    { value: "Uttar Pradesh", label: "Uttar Pradesh" },
-    { value: "Uttarakhand", label: "Uttarakhand" },
-    { value: "West Bengal", label: "West Bengal" },
+    { value: "Chennai", label: "Chennai" },
+    { value: "Mumbai", label: "Mumbai" },
+    { value: "Delhi", label: "Delhi" },
+    { value: "Bangalore", label: "Bangalore" },
+    { value: "Hyderabad", label: "Hyderabad" },
+    { value: "Kochi", label: "Kochi" },
   ];
 
   const uploadProps: UploadProps = {
@@ -189,7 +170,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           role: initialData.role,
           organization_type: initialData.organization_type,
           location: initialData.location,
-          associated_location: initialData.associated_location,
+          associated_location: initialData.location,
           status: initialData.status,
           profile_image: initialData.profile_image,
         });
@@ -207,15 +188,15 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     }
   }, [initialData?.profile_image]);
 
-  const createSubAdminMutation = useMutation({
-    mutationFn: (values: SubAdminFormValues) => {
+  const createHospitalAdminMutation = useMutation({
+    mutationFn: (values: HospitalAdminFormValues) => {
       const payload = {
         name: values.first_name + " " + values.last_name,
         email: values.email,
         phone: values.phone,
         password: values.password,
-        role: values.role,
         organization_type: values.organization_type.toLowerCase(),
+        role: values.role,
         location: values.location,
         associated_location: values.associated_location,
         profile_picture: imageUrl || "",
@@ -223,7 +204,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
       console.log("Create payload:", payload);
 
-      return axios.post(`${API_URL}/api/user/create-sub-admin`, payload, {
+      return axios.post(`${API_URL}/api/user/create-hospital-admin`, payload, {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
         },
@@ -231,7 +212,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
-        message: "Sub-admin Created Successfully",
+        message: "Hospital Admin Created Successfully",
         description: data.message,
       });
       form.resetFields();
@@ -240,18 +221,17 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
-      // Add this for debugging
       const errorMessage =
-        error.response?.data?.error ?? "Failed to create sub-admin";
+        error.response?.data?.error ?? "Failed to create hospital admin";
       showError(notification, {
-        message: "Failed to create sub-admin",
+        message: "Failed to create hospital admin",
         description: errorMessage,
       });
     },
   });
 
-  const updateSubAdminMutation = useMutation({
-    mutationFn: (values: SubAdminFormValues) => {
+  const updateHospitalAdminMutation = useMutation({
+    mutationFn: (values: HospitalAdminFormValues) => {
       const payload = {
         first_name: values.first_name,
         last_name: values.last_name,
@@ -268,7 +248,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       console.log("Update payload:", payload);
 
       return axios.put(
-        `${API_URL}/api/user/update-sub-admin/${initialData?.id}`,
+        `${API_URL}/api/user/hospital-admin/${initialData?.id}`,
         payload,
         {
           headers: {
@@ -279,7 +259,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
-        message: "Sub-admin Updated Successfully",
+        message: "Hospital Admin Updated Successfully",
         description: data.message,
       });
       form.resetFields();
@@ -290,29 +270,29 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     onError: (error: any) => {
       console.error("API Error:", error);
       const errorMessage =
-        error.response?.error ?? "Failed to update sub-admin";
+        error.response?.error ?? "Failed to update hospital admin";
       showError(notification, {
-        message: "Failed to update sub-admin",
+        message: "Failed to update hospital admin",
         description: errorMessage,
       });
     },
   });
 
-  const handleSubmit = (values: SubAdminFormValues) => {
+  const handleSubmit = (values: HospitalAdminFormValues) => {
     console.log("Form values:", values);
     console.log("Profile image value:", values.profile_image);
     console.log("Image URL state:", imageUrl);
 
     if (initialData) {
-      updateSubAdminMutation.mutate(values);
+      updateHospitalAdminMutation.mutate(values);
     } else {
-      createSubAdminMutation.mutate(values);
+      createHospitalAdminMutation.mutate(values);
     }
   };
 
   return (
     <Modal
-      title={initialData ? "Edit Sub Admin" : "Create New Sub-Admin"}
+      title={initialData ? "Edit Hospital Admin" : "Create New Hospital Admin"}
       open={open}
       onCancel={onCancel}
       footer={null}
@@ -353,7 +333,6 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         >
           <Input placeholder="Enter first name" />
         </Form.Item>
-        {/* show last name only in add sub admin */}
         <Form.Item
           label="Last Name"
           name="last_name"
@@ -397,7 +376,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
         <Form.Item
           label="State"
-          name="location"
+          name="State"
           rules={[{ required: true, message: "Please select State" }]}
         >
           <Select placeholder="Select State" options={locationOptions} />
@@ -405,7 +384,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
         <Form.Item
           label="Districts"
-          name="associated_location"
+          name="Districts"
           rules={[
             { required: true, message: "Please enter Districts" },
           ]}
@@ -457,13 +436,13 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
             className="bg-blue-600"
             loading={
               initialData
-                ? updateSubAdminMutation.isPending
-                : createSubAdminMutation.isPending
+                ? updateHospitalAdminMutation.isPending
+                : createHospitalAdminMutation.isPending
             }
             disabled={
               initialData
-                ? updateSubAdminMutation.isPending
-                : createSubAdminMutation.isPending
+                ? updateHospitalAdminMutation.isPending
+                : createHospitalAdminMutation.isPending
             }
           >
             {initialData ? "Update" : "Create"}
@@ -474,4 +453,5 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   );
 };
 
-export default AddSubAdminModal;
+export default AddHospitalAdminModal;
+

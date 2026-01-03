@@ -9,6 +9,7 @@ import {
   Table,
   Tag,
 } from "antd";
+import { MailOutlined, PhoneOutlined, UserOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
@@ -17,6 +18,7 @@ import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonPagination from "../../Common/CommonPagination";
 import { ApiHospitalData } from "../Hospital.types";
 import AddHospitalModal from "./AddHospitalModal";
+import { TOKEN } from "../../Common/constant.function";
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 interface ApiResponse {
@@ -142,6 +144,36 @@ const updateHospital = async (data: {
   return response.json();
 };
 
+// Hardcoded hospital admin data for testing
+const hardcodedHospitalAdmin = {
+  id: "1",
+  first_name: "John",
+  last_name: "Doe",
+  email: "john.doe@hospital.com",
+  phone: "+1234567890",
+  role: "hospital-admin",
+  location: "Chennai",
+  organization_type: "Hospital",
+  status: "ACTIVE",
+  profile_image: "",
+};
+
+const fetchHospitalAdmins = async () => {
+  const response = await fetch(`${API_URL}/api/user/hospital-admins`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${TOKEN}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch hospital admins");
+  }
+
+  return response.json();
+};
+
 const HospitalList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
@@ -179,6 +211,14 @@ const HospitalList: React.FC = () => {
     staleTime: 0,
   });
 
+  const { data: hospitalAdminsData } = useQuery({
+    queryKey: ["hospitalAdmins"],
+    queryFn: fetchHospitalAdmins,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+  });
+
   const { data: selectedHospital } = useQuery({
     queryKey: ["hospital", selectedHospitalId],
     queryFn: () =>
@@ -197,6 +237,7 @@ const HospitalList: React.FC = () => {
     refetchOnWindowFocus: true,
     staleTime: 0,
   });
+
 
   const updateHospitalMutation = useMutation({
     mutationFn: updateHospital,
@@ -599,24 +640,78 @@ const HospitalList: React.FC = () => {
               <p>{viewHospital.branchLocation}</p>
             </div>
 
-            {/* <div>
-              <h4 className="font-medium mb-2">Address</h4>
-              <p>{viewHospital.address}</p>
-            </div> */}
-
-            {/* <div>
-              <h4 className="font-medium mb-2">Updated On Portal</h4>
-              <p>
-                {viewHospital.updated_at ? (
-                  <FormattedDate
-                    dateString={viewHospital.updated_at}
-                    format="long"
-                  />
+            {/* Hospital Admins Section */}
+            {hospitalAdminsData && (
+              <div>
+                <h4 className="font-medium mb-4 flex items-center gap-2">
+                  <UserOutlined /> Hospital Admins
+                </h4>
+                {Array.isArray(hospitalAdminsData) && hospitalAdminsData.length > 0 ? (
+                  <div className="space-y-4">
+                    {hospitalAdminsData.map((admin: any) => (
+                      <div
+                        key={admin.id}
+                        className="border border-gray-200 rounded-lg p-4"
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          {admin.profile_image || admin.image_url ? (
+                            <img
+                              src={admin.profile_image || admin.image_url}
+                              alt={`${admin.first_name} ${admin.last_name}`}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <Avatar className="bg-button-primary text-white">
+                              {admin.first_name?.charAt(0) || "A"}
+                            </Avatar>
+                          )}
+                          <div>
+                            <p className="font-medium">
+                              {admin.first_name} {admin.last_name}
+                            </p>
+                            <p className="text-sm text-gray-500">{admin.role}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div className="flex items-center gap-2">
+                            <MailOutlined className="text-gray-400" />
+                            <span className="text-gray-600">Email:</span>
+                            <span>{admin.email || "N/A"}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <PhoneOutlined className="text-gray-400" />
+                            <span className="text-gray-600">Phone:</span>
+                            <span>{admin.phone || "N/A"}</span>
+                          </div>
+                          {admin.location && (
+                            <div>
+                              <span className="text-gray-600">Location:</span>
+                              <span className="ml-2">{admin.location}</span>
+                            </div>
+                          )}
+                          {admin.status && (
+                            <div>
+                              <span className="text-gray-600">Status:</span>
+                              <Tag
+                                className={`ml-2 ${
+                                  admin.status === "ACTIVE"
+                                    ? "bg-green-50 text-green-600"
+                                    : "bg-red-50 text-red-600"
+                                }`}
+                              >
+                                {admin.status}
+                              </Tag>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  "Not available"
+                  <p className="text-gray-500">No hospital admins found</p>
                 )}
-              </p>
-            </div> */}
+              </div>
+            )}
           </div>
         ) : null}
       </Drawer>
