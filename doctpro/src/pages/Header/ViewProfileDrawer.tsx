@@ -3,6 +3,8 @@ import { Drawer, Avatar, Button } from "antd";
 import { CloseOutlined } from "@ant-design/icons";
 import EditProfileDrawer from "./EditProfileDrawer";
 import ResetPasswordModal from "./ResetPasswordModal";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "../Common/axiosInstance";
 
 interface ViewProfileDrawerProps {
   visible: boolean;
@@ -20,8 +22,43 @@ interface ViewProfileDrawerProps {
 const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
   visible,
   onClose,
-  profileData,
+  profileData: initialProfileData,
 }) => {
+  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const USER_ID = localStorage.getItem("userId");
+  
+  // Fetch fresh profile data when drawer is open
+  const { data: userProfile } = useQuery({
+    queryKey: ["userProfile", USER_ID],
+    queryFn: async () => {
+      const response = await axiosInstance.get(
+        `${URL}/api/user/profile/${USER_ID}`
+      );
+      return response.data;
+    },
+    enabled: !!USER_ID && visible, // Only fetch when drawer is visible
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  // Use fresh data from query if available, otherwise fallback to initial data
+  const displayName = userProfile?.name || 
+    (userProfile?.first_name && userProfile?.last_name 
+      ? `${userProfile.first_name} ${userProfile.last_name}` 
+      : userProfile?.first_name || userProfile?.last_name || initialProfileData.name);
+  const displayRole = userProfile?.role || initialProfileData.role;
+  const displayEmail = userProfile?.email || initialProfileData.email;
+  const displayPhone = userProfile?.phone || initialProfileData.phone;
+  const displayNote = userProfile?.note ?? initialProfileData.note;
+
+  const profileData = {
+    name: displayName,
+    role: displayRole,
+    title: initialProfileData.title,
+    note: displayNote,
+    email: displayEmail,
+    phone: displayPhone,
+  };
   const [editProfileVisible, setEditProfileVisible] = useState(false);
   const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
 

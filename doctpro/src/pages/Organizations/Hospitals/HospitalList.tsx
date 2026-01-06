@@ -196,6 +196,45 @@ const HospitalList: React.FC = () => {
     onError: () => message.error("Failed to update hospital"),
   });
 
+  const deleteHospitalMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log("deleteHospitalMutation.mutationFn called with ID:", id);
+      const deleteUrl = `${API_URL}/api/hospital/${id}`;
+      console.log("Delete API URL:", deleteUrl);
+      console.log("API_URL:", API_URL);
+      
+      try {
+        const response = await fetch(deleteUrl, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+        });
+        console.log("Delete API response status:", response.status);
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Delete API error response:", errorData);
+          throw new Error(errorData.message || `Failed to delete hospital: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log("Delete API response data:", data);
+        return data;
+      } catch (error) {
+        console.error("Delete API error in mutationFn:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Delete mutation success:", data);
+      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+      message.success("Hospital deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("Delete mutation onError:", error);
+      console.error("Error message:", error?.message);
+      const errorMessage = error?.message || "Failed to delete hospital";
+      message.error(errorMessage);
+    },
+  });
+
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
     if (viewHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
@@ -208,6 +247,26 @@ const HospitalList: React.FC = () => {
     if (!selectedHospitalId) return;
     const response = await updateHospitalMutation.mutateAsync({ id: selectedHospitalId, hospitalData });
     showSuccess(notification, { message: response.message });
+  };
+
+  const handleDelete = (record: any) => {
+    console.log("handleDelete called with record:", record);
+    
+    if (!record) {
+      console.error("Record is null or undefined");
+      message.error("Cannot delete: Invalid record data");
+      return;
+    }
+    
+    if (!record.key && !record.id) {
+      console.error("Record key/ID is missing. Record:", record);
+      message.error("Cannot delete: Missing record ID");
+      return;
+    }
+    
+    const hospitalId = record.key || record.id;
+    console.log("Calling deleteHospitalMutation.mutate with ID:", hospitalId);
+    deleteHospitalMutation.mutate(hospitalId);
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
@@ -363,7 +422,7 @@ const HospitalList: React.FC = () => {
             setSelectedHospitalId(record.key);
             setIsModalOpen(true);
           }}
-          onDelete={() => {}}
+          onDelete={() => handleDelete(record)}
         />
       ),
     },

@@ -33,7 +33,7 @@ interface PaginatedResponse {
 
 const fetchStudents = async (
   page: number = 1,
-  limit: number = 10,
+  limit: number = 10000,
   searchValue: string = "",
   filterValues: Record<string, any> = {}
 ): Promise<PaginatedResponse> => {
@@ -41,8 +41,14 @@ const fetchStudents = async (
   const searchParam = searchValue ? `&search=${searchValue}` : "";
 
   // Process filter values to convert checkbox-style filters to proper format
+  // Exclude studentName, studentId, and kycStatus from API filters (handle on frontend)
   const processedFilters: Record<string, any> = {};
   Object.entries(filterValues).forEach(([key, value]) => {
+    // Skip frontend-only filters
+    if (key === "studentName" || key === "studentId" || key === "kycStatus" || key.startsWith("kycStatus_")) {
+      return;
+    }
+    
     if (key.includes("_")) {
       // Handle checkbox-style filters like "gender_Male"
       const [filterKey, filterValue] = key.split("_");
@@ -50,13 +56,15 @@ const fetchStudents = async (
         processedFilters[filterKey] = filterValue.toLowerCase();
       }
     } else {
-      // Handle regular filters
-      processedFilters[key] = value;
+      // Handle regular text filters
+      if (value && String(value).trim()) {
+        processedFilters[key] = String(value).trim();
+      }
     }
   });
 
   const filterParam = Object.entries(processedFilters)
-    .map(([key, value]) => `${key}=${value}`)
+    .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
     .join("&");
 
   const response = await fetch(
@@ -162,15 +170,13 @@ const StudentList: React.FC = () => {
   } = useQuery({
     queryKey: [
       "students",
-      pagination.current,
-      pagination.pageSize,
       searchValue,
       filterValues,
     ],
     queryFn: () =>
       fetchStudents(
-        pagination.current,
-        pagination.pageSize,
+        1,
+        10000,
         searchValue,
         filterValues
       ),
@@ -183,8 +189,55 @@ const StudentList: React.FC = () => {
     return <div>Error fetching students</div>;
   }
 
-  const students = studentsResponse?.data || [];
-  const total = studentsResponse?.total || 0;
+  // Get all students from API
+  const allStudents = studentsResponse?.data || [];
+
+  // Extract frontend filter values
+  const studentNameFilter = filterValues.studentName;
+  const studentIdFilter = filterValues.studentId;
+  const kycStatusFilters: string[] = [];
+  
+  // Collect KYC Status checkbox filter values
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.startsWith("kycStatus_") && value === true) {
+      kycStatusFilters.push(key.replace("kycStatus_", ""));
+    }
+  });
+
+  // Apply client-side filtering for studentName, studentId, and kycStatus
+  let filteredStudents = allStudents;
+  
+  if (studentNameFilter || studentIdFilter || kycStatusFilters.length > 0) {
+    filteredStudents = filteredStudents.filter((student: Student) => {
+      // Student Name filter
+      const matchesStudentName = !studentNameFilter || 
+        (student.studentName && student.studentName.toLowerCase().includes(String(studentNameFilter).toLowerCase().trim()));
+      
+      // Student ID filter
+      const matchesStudentId = !studentIdFilter || 
+        (student.studentId && student.studentId.toLowerCase().includes(String(studentIdFilter).toLowerCase().trim()));
+      
+      // KYC Status filter
+      const matchesKycStatus = kycStatusFilters.length === 0 || kycStatusFilters.some(filter => {
+        if (filter === "Verified") {
+          return student.kycStatus === true;
+        } else if (filter === "Pending") {
+          return student.kycStatus === false;
+        }
+        return false;
+      });
+      
+      return matchesStudentName && matchesStudentId && matchesKycStatus;
+    });
+  }
+
+  // Apply pagination to filtered results
+  const startIndex = (pagination.current - 1) * pagination.pageSize;
+  const endIndex = startIndex + pagination.pageSize;
+  const paginatedStudents = filteredStudents.slice(startIndex, endIndex);
+  
+  const students = paginatedStudents;
+  const total = filteredStudents.length;
 
   const columns = [
     {
@@ -353,10 +406,40 @@ const StudentList: React.FC = () => {
   const handleFilterChange = (filters: Record<string, any>) => {
     console.log("Filter values:", filters);
     setFilterValues(filters);
+    setPagination({ current: 1, pageSize: pagination.pageSize });
   };
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!students || students.length === 0) {
+    // Get all students and apply frontend filters for download
+    const allStudentsForDownload = studentsResponse?.data || [];
+    const studentNameFilter = filterValues.studentName;
+    const studentIdFilter = filterValues.studentId;
+    const kycStatusFilters: string[] = [];
+    
+    Object.entries(filterValues).forEach(([key, value]) => {
+      if (key.startsWith("kycStatus_") && value === true) {
+        kycStatusFilters.push(key.replace("kycStatus_", ""));
+      }
+    });
+
+    let studentsToDownload = allStudentsForDownload;
+    
+    if (studentNameFilter || studentIdFilter || kycStatusFilters.length > 0) {
+      studentsToDownload = studentsToDownload.filter((student: Student) => {
+        const matchesStudentName = !studentNameFilter || 
+          (student.studentName && student.studentName.toLowerCase().includes(String(studentNameFilter).toLowerCase().trim()));
+        const matchesStudentId = !studentIdFilter || 
+          (student.studentId && student.studentId.toLowerCase().includes(String(studentIdFilter).toLowerCase().trim()));
+        const matchesKycStatus = kycStatusFilters.length === 0 || kycStatusFilters.some(filter => {
+          if (filter === "Verified") return student.kycStatus === true;
+          if (filter === "Pending") return student.kycStatus === false;
+          return false;
+        });
+        return matchesStudentName && matchesStudentId && matchesKycStatus;
+      });
+    }
+    
+    if (!studentsToDownload || studentsToDownload.length === 0) {
       console.log("No data to download");
       return;
     }
@@ -379,9 +462,9 @@ const StudentList: React.FC = () => {
     const rows = [];
     rows.push(headers.join(format === "csv" ? "," : "\t"));
 
-    students.forEach((row, index) => {
+    studentsToDownload.forEach((row, index) => {
       const values = [
-        (pagination.current - 1) * pagination.pageSize + index + 1,
+        index + 1,
         `"${row.studentName || "N/A"}"`,
         `"${row.studentId || "N/A"}"`,
         `"${row.email || "N/A"}"`,

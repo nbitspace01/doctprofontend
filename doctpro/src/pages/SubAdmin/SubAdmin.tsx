@@ -1,11 +1,11 @@
-import { Avatar, Button, Image, Pagination, Table } from "antd";
+import { Avatar, Button, Image, Pagination, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import ViewSubAdmin from "./ViewSubAdmin";
 import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
@@ -54,6 +54,16 @@ const SubAdmin: React.FC = () => {
       type: "text" as const,
     },
     {
+      label: "Email",
+      key: "email",
+      type: "text" as const,
+    },
+    {
+      label: "Phone",
+      key: "phone",
+      type: "text" as const,
+    },
+    {
       label: "Role",
       key: "role",
       type: "checkbox" as const,
@@ -76,11 +86,6 @@ const SubAdmin: React.FC = () => {
       options: ["HOSPITAL", "CLINIC", "PHARMACY"],
     },
     {
-      label: "Associated Location",
-      key: "associated_location",
-      type: "text" as const,
-    },
-    {
       label: "Status",
       key: "status",
       type: "checkbox" as const,
@@ -89,79 +94,10 @@ const SubAdmin: React.FC = () => {
   ];
 
   const fetchSubAdmin = async (): Promise<SubAdminResponse> => {
-    const validPage = currentPage || 1;
-    const validLimit = pageSize || 10;
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-    // seacrh is only if search is true
-    const searchParam = searchValue ? `&search=${searchValue}` : "";
-
-    // Build filter parameters only for selected filters
-    const filterParams = [];
-
-    // Add text filter values
-    if (filterValues.name) {
-      filterParams.push(`name=${encodeURIComponent(filterValues.name)}`);
-    }
-    if (filterValues.state) {
-      filterParams.push(
-        `state=${encodeURIComponent(filterValues.state)}`
-      );
-    }
-    if (filterValues.district) {
-      filterParams.push(
-        `district=${encodeURIComponent(filterValues.district)}`
-      );
-    }
-    if (filterValues.associated_location) {
-      filterParams.push(
-        `associated_location=${encodeURIComponent(
-          filterValues.associated_location
-        )}`
-      );
-    }
-
-    // Add checkbox filter values (only selected options)
-    if (filterValues.role) {
-      const selectedRoles = Object.keys(filterValues).filter(
-        (key) => key.startsWith("role_") && filterValues[key]
-      );
-      if (selectedRoles.length > 0) {
-        filterParams.push(
-          `role=${selectedRoles
-            .map((key) => key.replace("role_", ""))
-            .join(",")}`
-        );
-      }
-    }
-    if (filterValues.organization_type) {
-      const selectedOrgTypes = Object.keys(filterValues).filter(
-        (key) => key.startsWith("organization_type_") && filterValues[key]
-      );
-      if (selectedOrgTypes.length > 0) {
-        filterParams.push(
-          `organization_type=${selectedOrgTypes
-            .map((key) => key.replace("organization_type_", ""))
-            .join(",")}`
-        );
-      }
-    }
-    if (filterValues.status) {
-      const selectedStatuses = Object.keys(filterValues).filter(
-        (key) => key.startsWith("status_") && filterValues[key]
-      );
-      if (selectedStatuses.length > 0) {
-        filterParams.push(
-          `status=${selectedStatuses
-            .map((key) => key.replace("status_", ""))
-            .join(",")}`
-        );
-      }
-    }
-
-    const filterParam =
-      filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
+    // Fetch all data without pagination for client-side filtering
     const res = await ApiRequest.get(
-      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`
+      `${API_URL}/api/dashboard/sub-admin/list?page=1&limit=10000`
     );
 
     // Return the full response structure with data and total
@@ -175,29 +111,140 @@ const SubAdmin: React.FC = () => {
     SubAdminResponse,
     Error
   >({
-    queryKey: ["subAdmin", currentPage, pageSize, searchValue, filterValues],
+    queryKey: ["subAdmin"],
     queryFn: fetchSubAdmin,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 0,
   });
 
-  const subAdmin = subAdminResponse?.data ?? [];
-  const totalCount = subAdminResponse?.total ?? 0;
-  console.log("subAdmin", subAdmin);
+  // Get all sub-admins from API
+  const allSubAdmins = subAdminResponse?.data ?? [];
+
+  // Extract filter values
+  const nameFilter = filterValues.name;
+  const emailFilter = filterValues.email;
+  const phoneFilter = filterValues.phone;
+  const stateFilter = filterValues.state;
+  const districtFilter = filterValues.district;
+  
+  // Collect checkbox filter values
+  const roleFilters: string[] = [];
+  const orgTypeFilters: string[] = [];
+  const statusFilters: string[] = [];
+  
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.startsWith("role_") && value === true) {
+      roleFilters.push(key.replace("role_", ""));
+    }
+    if (key.startsWith("organization_type_") && value === true) {
+      orgTypeFilters.push(key.replace("organization_type_", ""));
+    }
+    if (key.startsWith("status_") && value === true) {
+      statusFilters.push(key.replace("status_", ""));
+    }
+  });
+
+  // Apply client-side filtering
+  let filteredSubAdmins = allSubAdmins;
+  
+  // Apply search filter
+  if (searchValue) {
+    const searchLower = searchValue.toLowerCase().trim();
+    filteredSubAdmins = filteredSubAdmins.filter((admin: SubAdminData) => {
+      const fullName = `${admin.first_name} ${admin.last_name}`.toLowerCase();
+      return (
+        fullName.includes(searchLower) ||
+        admin.email?.toLowerCase().includes(searchLower) ||
+        admin.phone?.toLowerCase().includes(searchLower) ||
+        admin.state?.toLowerCase().includes(searchLower) ||
+        admin.district?.toLowerCase().includes(searchLower)
+      );
+    });
+  }
+
+  // Apply text filters
+  if (nameFilter || emailFilter || phoneFilter || stateFilter || districtFilter || roleFilters.length > 0 || orgTypeFilters.length > 0 || statusFilters.length > 0) {
+    filteredSubAdmins = filteredSubAdmins.filter((admin: SubAdminData) => {
+      // Name filter
+      const fullName = `${admin.first_name} ${admin.last_name}`.toLowerCase();
+      const matchesName = !nameFilter || fullName.includes(String(nameFilter).toLowerCase().trim());
+      
+      // Email filter
+      const matchesEmail = !emailFilter || admin.email?.toLowerCase().includes(String(emailFilter).toLowerCase().trim());
+      
+      // Phone filter
+      const matchesPhone = !phoneFilter || admin.phone?.toLowerCase().includes(String(phoneFilter).toLowerCase().trim());
+      
+      // State filter
+      const matchesState = !stateFilter || admin.state?.toLowerCase().includes(String(stateFilter).toLowerCase().trim());
+      
+      // District filter
+      const matchesDistrict = !districtFilter || admin.district?.toLowerCase().includes(String(districtFilter).toLowerCase().trim());
+      
+      // Role filter - normalize and compare (handle "subadmin", "SUB_ADMIN", "admin", etc.)
+      const matchesRole = roleFilters.length === 0 || roleFilters.some(filter => {
+        if (!admin.role) return false;
+        // Normalize both values: remove underscores, spaces, hyphens, convert to uppercase
+        const normalizeRole = (role: string) => role.toUpperCase().replace(/[_\s-]/g, "");
+        const adminRoleNormalized = normalizeRole(admin.role);
+        const filterNormalized = normalizeRole(filter);
+        
+        // Special handling for SUB_ADMIN vs ADMIN
+        if (filterNormalized === "SUBADMIN") {
+          // Match if role contains "SUB" and "ADMIN" (but not just "ADMIN")
+          return adminRoleNormalized.includes("SUB") && adminRoleNormalized.includes("ADMIN");
+        }
+        if (filterNormalized === "ADMIN") {
+          // Match if role is exactly "ADMIN" (not "SUBADMIN")
+          return adminRoleNormalized === "ADMIN";
+        }
+        // Fallback: exact match after normalization
+        return adminRoleNormalized === filterNormalized;
+      });
+      
+      // Organization Type filter
+      const matchesOrgType = orgTypeFilters.length === 0 || orgTypeFilters.some(filter => 
+        admin.organization_type?.toUpperCase() === filter.toUpperCase()
+      );
+      
+      // Status filter
+      const matchesStatus = statusFilters.length === 0 || statusFilters.some(filter => 
+        admin.status?.toUpperCase() === filter.toUpperCase()
+      );
+      
+      return matchesName && matchesEmail && matchesPhone && matchesState && matchesDistrict && matchesRole && matchesOrgType && matchesStatus;
+    });
+  }
+
+  // Apply pagination to filtered results
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedSubAdmins = filteredSubAdmins.slice(startIndex, endIndex);
+  
+  const totalCount = filteredSubAdmins.length;
+  const subAdmin = paginatedSubAdmins;
 
   const downloadReportCSV = (format: "excel" | "csv") => {
-    if (!subAdmin || subAdmin.length === 0) {
+    // Use filtered data for download, not just paginated data
+    if (!filteredSubAdmins || filteredSubAdmins.length === 0) {
       return;
     }
     const rows = [];
-    const headers = Object.keys(subAdmin[0]);
+    const headers = ["S No", "Name", "Email", "Phone", "Role", "State", "District", "Organization Type", "Status"];
     rows.push(headers.join(format === "csv" ? "," : "\t"));
-    subAdmin.forEach((row) => {
-      const values = headers.map((header) => {
-        const value = row[header as keyof SubAdminData];
-        return `"${value || "N/A"}"`;
-      });
+    filteredSubAdmins.forEach((row, index) => {
+      const values = [
+        index + 1,
+        `"${row.first_name} ${row.last_name}"`,
+        `"${row.email || "N/A"}"`,
+        `"${row.phone || "N/A"}"`,
+        `"${row.role || "N/A"}"`,
+        `"${row.state || "N/A"}"`,
+        `"${row.district || "N/A"}"`,
+        `"${row.organization_type || "N/A"}"`,
+        `"${row.status || "N/A"}"`,
+      ];
       rows.push(values.join(format === "csv" ? "," : "\t"));
     });
     const content = rows.join("\n");
@@ -226,9 +273,54 @@ const SubAdmin: React.FC = () => {
     setIsModalOpen(true);
   };
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      console.log("deleteMutation.mutationFn called with ID:", id);
+      const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+      const deleteUrl = `${API_URL}/api/user/delete-sub-admin/${id}`;
+      console.log("Delete API URL:", deleteUrl);
+      console.log("API_URL:", API_URL);
+      
+      try {
+        const response = await ApiRequest.delete(deleteUrl);
+        console.log("Delete API response:", response);
+        return response.data;
+      } catch (error) {
+        console.error("Delete API error in mutationFn:", error);
+        throw error;
+      }
+    },
+    onSuccess: (data) => {
+      console.log("Delete mutation success:", data);
+      queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
+      message.success("Sub-admin deleted successfully");
+    },
+    onError: (error: any) => {
+      console.error("Delete mutation onError:", error);
+      console.error("Error response:", error?.response);
+      console.error("Error message:", error?.message);
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to delete sub-admin";
+      message.error(errorMessage);
+    },
+  });
+
   const handleDelete = (record: SubAdminData) => {
-    console.log("Delete:", record);
-    // Add your delete logic here
+    console.log("handleDelete called with record:", record);
+    
+    if (!record) {
+      console.error("Record is null or undefined");
+      message.error("Cannot delete: Invalid record data");
+      return;
+    }
+    
+    if (!record.id) {
+      console.error("Record ID is missing. Record:", record);
+      message.error("Cannot delete: Missing record ID");
+      return;
+    }
+    
+    console.log("Calling deleteMutation.mutate with ID:", record.id);
+    deleteMutation.mutate(record.id);
   };
 
   const handleViewSubAdmin = (subAdmin: SubAdminData) => {
@@ -247,7 +339,7 @@ const SubAdmin: React.FC = () => {
       title: "S No",
       key: "sNo",
       width: 70,
-      render: (_, __, index) => (currentPage - 1) * pageSize + index + 1,
+      render: (_, __, index) => startIndex + index + 1,
     },
     {
       title: "Name",
@@ -340,11 +432,13 @@ const SubAdmin: React.FC = () => {
   const handleSearch = (value: string) => {
     console.log("Search value:", value);
     setSearchValue(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
     console.log("Filter values:", filters);
     setFilterValues(filters);
+    setCurrentPage(1); // Reset to first page when filters change
   };
 
   return (

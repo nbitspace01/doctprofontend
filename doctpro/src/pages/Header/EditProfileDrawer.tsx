@@ -54,6 +54,26 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       // Invalidate and refetch userProfile query
       const currentUserId = localStorage.getItem("userId");
       queryClient.invalidateQueries({ queryKey: ["userProfile", currentUserId] });
+      
+      // Update localStorage with new name if available
+      if (data.data) {
+        const updatedName = data.data.name || 
+          (data.data.first_name && data.data.last_name 
+            ? `${data.data.first_name} ${data.data.last_name}` 
+            : data.data.first_name || data.data.last_name || "");
+        if (updatedName) {
+          const nameParts = updatedName.trim().split(" ");
+          localStorage.setItem("firstName", nameParts[0] || "");
+          localStorage.setItem("lastName", nameParts.slice(1).join(" ") || "");
+        }
+        if (data.data.phone) {
+          localStorage.setItem("userPhone", data.data.phone);
+        }
+      }
+      
+      // Refetch the query immediately to update UI
+      queryClient.refetchQueries({ queryKey: ["userProfile", currentUserId] });
+      
       onSave(data);
       onClose();
     },
