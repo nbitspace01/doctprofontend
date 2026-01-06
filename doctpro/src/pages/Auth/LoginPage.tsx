@@ -61,12 +61,12 @@ const LoginPage = () => {
   const onFinish = (values: LoginFormValues) => {
     const { remember, email, ...loginValues } = values;
     localStorage.setItem("userEmail", email);
-    // Transform sub-admin to subadmin and hospital-admin to hospital for the payload
+    // Transform sub-admin to subadmin and hospital-admin to hospitaladmin for the payload
     let transformedLoginType = loginValues.loginType;
     if (loginValues.loginType === "sub-admin") {
       transformedLoginType = "subadmin";
     } else if (loginValues.loginType === "hospital-admin") {
-      transformedLoginType = "hospital";
+      transformedLoginType = "hospitaladmin";
     }
     loginMutation.mutate({ ...loginValues, loginType: transformedLoginType, email });
   };

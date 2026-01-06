@@ -82,21 +82,77 @@ const StudentList: React.FC = () => {
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
   const filterOptions = [
     {
-      label: "Degree",
-      key: "degree",
+      label: "Student Name",
+      key: "studentName",
+      type: "text" as const,
     },
     {
-      label: "Specialization",
-      key: "specialization",
+      label: "Student ID",
+      key: "studentId",
+      type: "text" as const,
     },
     {
-      label: "College",
-      key: "collegeName",
+      label: "Email",
+      key: "email",
+      type: "text" as const,
+    },
+    {
+      label: "Phone",
+      key: "phone",
+      type: "text" as const,
     },
     {
       label: "Gender",
       key: "gender",
+      type: "checkbox" as const,
       options: ["Male", "Female"],
+    },
+    {
+      label: "DOB",
+      key: "dob",
+      type: "date" as const,
+    },
+    {
+      label: "Address",
+      key: "address",
+      type: "text" as const,
+    },
+    {
+      label: "College",
+      key: "collegeName",
+      type: "text" as const,
+    },
+    {
+      label: "Degree",
+      key: "degree",
+      type: "text" as const,
+    },
+    {
+      label: "Specialization",
+      key: "specialization",
+      type: "text" as const,
+    },
+    {
+      label: "Start Year",
+      key: "startYear",
+      type: "text" as const,
+    },
+    {
+      label: "End Year",
+      key: "endYear",
+      type: "text" as const,
+    },
+    {
+      label: "KYC Status",
+      key: "kycStatus",
+      type: "checkbox" as const,
+      options: ["Verified", "Pending"],
+    },
+    {
+      label: "Account Status",
+      key: "userStatus",
+      type: "checkbox" as const,
+      options: ["Active", "Inactive"],
     },
   ];
   const {
@@ -171,14 +227,8 @@ const StudentList: React.FC = () => {
       key: "gender",
       width: 120,
       render: (gender: string) => (
-        <span
-          className={`text-sm px-3 py-1 rounded-full ${
-            gender.toLowerCase() === "male"
-              ? "text-green-600 bg-green-50"
-              : "text-orange-600 bg-orange-50"
-          }`}
-        >
-          {gender}
+        <span className="text-sm">
+          {gender || "N/A"}
         </span>
       ),
     },
@@ -338,7 +388,7 @@ const StudentList: React.FC = () => {
         `"${row.phone || "N/A"}"`,
         `"${row.gender || "N/A"}"`,
         `"${row.dob ? new Date(row.dob).toLocaleDateString() : "N/A"}"`,
-        `"${row.college || "N/A"}"`,
+        `"${row.collegeName || "N/A"}"`,
         `"${row.degree || "N/A"}"`,
         `"${row.specialization || "N/A"}"`,
         `"${row.kycStatus ? "Verified" : "Pending"}"`,

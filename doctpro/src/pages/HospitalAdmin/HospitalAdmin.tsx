@@ -11,21 +11,25 @@ import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";
 import CommonPagination from "../Common/CommonPagination";
+import StatusBadge from "../Common/StatusBadge";
 
 interface HospitalAdminData {
   id: string;
-  first_name: string;
-  last_name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone: string;
   role: string;
-  location: string;
+  location?: string;
   organization_type: string;
   status: string;
   active_user: boolean;
-  associated_location: string;
-  image_url: string;
-  profile_image: string;
+  associated_location?: string;
+  image_url?: string;
+  profile_image?: string;
+  state?: string;
+  district?: string;
 }
 
 const HospitalAdmin: React.FC = () => {
@@ -49,33 +53,45 @@ const HospitalAdmin: React.FC = () => {
     {
       label: "Name",
       key: "name",
+      type: "text" as const,
     },
     {
       label: "Email Address",
       key: "email",
+      type: "text" as const,
     },
     {
       label: "Phone Number",
       key: "phone",
+      type: "text" as const,
     },
     {
       label: "Role",
       key: "role",
-      options: ["ADMIN", "SUB_ADMIN"],
+      type: "checkbox" as const,
+      options: ["Sub Admin", "Hospital Admin"],
     },
     {
-      label: "Location",
-      key: "location",
+      label: "State",
+      key: "state",
+      type: "text" as const,
+    },
+    {
+      label: "District",
+      key: "district",
+      type: "text" as const,
     },
     {
       label: "Organization Type",
       key: "organization_type",
-      options: ["HOSPITAL", "CLINIC", "PHARMACY"],
+      type: "checkbox" as const,
+      options: ["Hospital", "College", "University", "Institute", "Training Center"],
     },
     {
       label: "Status",
       key: "status",
-      options: ["ACTIVE", "INACTIVE"],
+      type: "checkbox" as const,
+      options: ["Active", "Inactive", "Pending"],
     },
   ];
 
@@ -83,7 +99,7 @@ const HospitalAdmin: React.FC = () => {
     const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
     const validPage = currentPage || 1;
     const validLimit = pageSize || 10;
-    const searchParam = searchValue ? `&search=${searchValue}` : "";
+    const searchParam = searchValue ? `&search=${encodeURIComponent(searchValue.trim())}` : "";
 
     // Build filter parameters
     const filterParams: string[] = [];
@@ -93,32 +109,53 @@ const HospitalAdmin: React.FC = () => {
       filterParams.push(`name=${encodeURIComponent(String(filterValues.name).trim())}`);
     }
     
-    // Handle location filter
-    if (filterValues.location && String(filterValues.location).trim()) {
-      filterParams.push(
-        `location=${encodeURIComponent(String(filterValues.location).trim())}`
-      );
+    // Handle email filter
+    if (filterValues.email && String(filterValues.email).trim()) {
+      filterParams.push(`email=${encodeURIComponent(String(filterValues.email).trim())}`);
+    }
+    
+    // Handle phone filter
+    if (filterValues.phone && String(filterValues.phone).trim()) {
+      filterParams.push(`phone=${encodeURIComponent(String(filterValues.phone).trim())}`);
+    }
+    
+    // Handle state filter
+    if (filterValues.state && String(filterValues.state).trim()) {
+      filterParams.push(`state=${encodeURIComponent(String(filterValues.state).trim())}`);
+    }
+    
+    // Handle district filter
+    if (filterValues.district && String(filterValues.district).trim()) {
+      filterParams.push(`district=${encodeURIComponent(String(filterValues.district).trim())}`);
     }
 
     // Handle checkbox-style filters (role, organization_type, status)
     const selectedRoles = Object.keys(filterValues).filter(
-      (key) => key.startsWith("role_") && filterValues[key]
+      (key) => key.startsWith("role_") && filterValues[key] === true
     );
     if (selectedRoles.length > 0) {
       const roleValues = selectedRoles.map((key) => {
         const filterValue = key.replace("role_", "");
-        return encodeURIComponent(filterValue);
+        // Map display values to API values
+        const roleMapping: Record<string, string> = {
+          "Sub Admin": "subadmin",
+          "Hospital Admin": "hospitaladmin",
+        };
+        const apiRoleValue = roleMapping[filterValue] || filterValue.toLowerCase().replace(/\s/g, "-");
+        return encodeURIComponent(apiRoleValue);
       });
       filterParams.push(`role=${roleValues.join(",")}`);
     }
     
     const selectedOrgTypes = Object.keys(filterValues).filter(
-      (key) => key.startsWith("organization_type_") && filterValues[key]
+      (key) => key.startsWith("organization_type_") && filterValues[key] === true
     );
     if (selectedOrgTypes.length > 0) {
       const orgTypeValues = selectedOrgTypes.map((key) => {
         const filterValue = key.replace("organization_type_", "");
-        return encodeURIComponent(filterValue);
+        // Normalize organization type values for API (lowercase)
+        const normalizedOrgType = filterValue.toLowerCase();
+        return encodeURIComponent(normalizedOrgType);
       });
       filterParams.push(`organization_type=${orgTypeValues.join(",")}`);
     }
@@ -127,9 +164,16 @@ const HospitalAdmin: React.FC = () => {
       (key) => key.startsWith("status_") && filterValues[key] === true
     );
     if (selectedStatuses.length > 0) {
+      // Map filter values to database format (Active -> ACTIVE, Inactive -> INACTIVE, Pending -> PENDING)
+      const statusMapping: Record<string, string> = {
+        "Active": "ACTIVE",
+        "Inactive": "INACTIVE",
+        "Pending": "PENDING"
+      };
       const statusValues = selectedStatuses.map((key) => {
         const filterValue = key.replace("status_", "");
-        return encodeURIComponent(filterValue);
+        const mappedValue = statusMapping[filterValue] || filterValue.toUpperCase();
+        return encodeURIComponent(mappedValue);
       });
       filterParams.push(`status=${statusValues.join(",")}`);
     }
@@ -142,26 +186,51 @@ const HospitalAdmin: React.FC = () => {
     const res = await ApiRequest.get(fullUrl);
 
     // Handle different response structures
+    let responseData: any[] = [];
+    let responseTotal = 0;
+
     // If response is an array directly
     if (Array.isArray(res.data)) {
-      return {
-        data: res.data,
-        total: res.data.length,
-      };
+      responseData = res.data;
+      responseTotal = res.data.length;
     }
-    
     // If response has data and total properties
-    if (res.data && res.data.data) {
-      return {
-        data: res.data.data ?? [],
-        total: res.data.total ?? res.data.data?.length ?? 0,
-      };
+    else if (res.data && res.data.data) {
+      responseData = res.data.data ?? [];
+      responseTotal = res.data.total ?? res.data.data?.length ?? 0;
+    }
+    // If response.data is the object with data array
+    else if (res.data && Array.isArray(res.data)) {
+      responseData = res.data;
+      responseTotal = res.data.length;
     }
 
-    // Fallback: return empty array
+    // Transform API response to match our interface
+    // API returns 'name' as a single field, we need to split it for display
+    const transformedData = responseData.map((item: any) => {
+      // Split name into first_name and last_name if name exists
+      let first_name = item.first_name || "";
+      let last_name = item.last_name || "";
+      
+      if (item.name && !first_name && !last_name) {
+        const nameParts = item.name.trim().split(" ");
+        first_name = nameParts[0] || "";
+        last_name = nameParts.slice(1).join(" ") || "";
+      }
+
+      return {
+        ...item,
+        first_name,
+        last_name,
+        // Ensure state and district are included from API response
+        state: item.state || "",
+        district: item.district || "",
+      };
+    });
+
     return {
-      data: [],
-      total: 0,
+      data: transformedData,
+      total: responseTotal,
     };
   };
 
@@ -176,24 +245,160 @@ const HospitalAdmin: React.FC = () => {
     staleTime: 0,
   });
 
-  // Apply client-side filtering for email and phone if API doesn't support them
+  // Apply client-side filtering for all filters including search
   let filteredHospitalAdmin = hospitalAdminResponse?.data ?? [];
+  const nameFilter = filterValues.name;
   const emailFilter = filterValues.email;
   const phoneFilter = filterValues.phone;
+  const stateFilter = filterValues.state;
+  const districtFilter = filterValues.district;
   
-  if (emailFilter || phoneFilter) {
+  // Collect checkbox filters (role, organization_type, status)
+  const roleFilters: string[] = [];
+  const orgTypeFilters: string[] = [];
+  const statusFilters: string[] = [];
+  
+  Object.entries(filterValues).forEach(([key, value]) => {
+    if (key.includes("_") && value === true) {
+      // Handle keys with multiple underscores (e.g., "organization_type_Hospital")
+      // Split at the last underscore to get the filter key and value
+      const lastUnderscoreIndex = key.lastIndexOf("_");
+      const filterKey = key.substring(0, lastUnderscoreIndex);
+      const filterValue = key.substring(lastUnderscoreIndex + 1);
+      
+      if (filterKey === "role") {
+        roleFilters.push(filterValue);
+      } else if (filterKey === "organization_type") {
+        orgTypeFilters.push(filterValue);
+      } else if (filterKey === "status") {
+        statusFilters.push(filterValue);
+      }
+    }
+  });
+  
+  // Apply all filters including search
+  if (searchValue || nameFilter || emailFilter || phoneFilter || stateFilter || districtFilter || 
+      roleFilters.length > 0 || orgTypeFilters.length > 0 || statusFilters.length > 0) {
     filteredHospitalAdmin = filteredHospitalAdmin.filter((admin: HospitalAdminData) => {
+      // Search filter - search across multiple fields
+      const matchesSearch = !searchValue || (() => {
+        const searchLower = String(searchValue).toLowerCase().trim();
+        if (!searchLower) return true;
+        
+        const fullName = `${admin.first_name || ""} ${admin.last_name || ""}`.trim() || admin.name || "";
+        const email = admin.email || "";
+        const phone = admin.phone || "";
+        const state = admin.state || "";
+        const district = admin.district || "";
+        const role = admin.role || "";
+        const orgType = admin.organization_type || "";
+        
+        return (
+          fullName.toLowerCase().includes(searchLower) ||
+          email.toLowerCase().includes(searchLower) ||
+          phone.toLowerCase().includes(searchLower) ||
+          state.toLowerCase().includes(searchLower) ||
+          district.toLowerCase().includes(searchLower) ||
+          role.toLowerCase().includes(searchLower) ||
+          orgType.toLowerCase().includes(searchLower)
+        );
+      })();
+      
+      // Name filter
+      const matchesName = !nameFilter || (() => {
+        const fullName = `${admin.first_name || ""} ${admin.last_name || ""}`.trim() || admin.name || "";
+        return fullName.toLowerCase().includes(String(nameFilter).toLowerCase().trim());
+      })();
+      
+      // Email filter
       const matchesEmail = !emailFilter || 
         (admin.email && admin.email.toLowerCase().includes(String(emailFilter).toLowerCase().trim()));
+      
+      // Phone filter
       const matchesPhone = !phoneFilter || 
         (admin.phone && admin.phone.toLowerCase().includes(String(phoneFilter).toLowerCase().trim()));
-      return matchesEmail && matchesPhone;
+      
+      // State filter
+      const matchesState = !stateFilter || 
+        (admin.state && admin.state.toLowerCase().includes(String(stateFilter).toLowerCase().trim()));
+      
+      // District filter
+      const matchesDistrict = !districtFilter || 
+        (admin.district && admin.district.toLowerCase().includes(String(districtFilter).toLowerCase().trim()));
+      
+      // Role filter - match display values with API values
+      const matchesRole = roleFilters.length === 0 || (() => {
+        const adminRole = String(admin.role || "").trim().toLowerCase();
+        if (!adminRole) return false;
+        
+        // Normalize admin role (remove hyphens, underscores, spaces)
+        const normalizedAdminRole = adminRole.replace(/-/g, "").replace(/_/g, "").replace(/\s/g, "");
+        
+        return roleFilters.some(filterRole => {
+          // Map display values to API values for comparison
+          const roleMapping: Record<string, string> = {
+            "Sub Admin": "subadmin",
+            "Hospital Admin": "hospitaladmin",
+          };
+          
+          const mappedRole = roleMapping[filterRole] || filterRole.toLowerCase().replace(/\s/g, "");
+          const normalizedMappedRole = mappedRole.replace(/-/g, "").replace(/_/g, "").replace(/\s/g, "");
+          
+          // Match normalized values
+          return normalizedAdminRole === normalizedMappedRole || 
+                 normalizedAdminRole.includes(normalizedMappedRole) ||
+                 normalizedMappedRole.includes(normalizedAdminRole);
+        });
+      })();
+      
+      // Organization Type filter - case-insensitive matching
+      const matchesOrgType = orgTypeFilters.length === 0 || (() => {
+        const adminOrgType = String(admin.organization_type || "").trim().toLowerCase();
+        if (!adminOrgType) return false;
+        
+        return orgTypeFilters.some(filterOrgType => {
+          const filterOrgTypeLower = String(filterOrgType).trim().toLowerCase();
+          // Handle "Training Center" -> "training center" mapping
+          const normalizedFilter = filterOrgTypeLower === "training center" ? "training center" : filterOrgTypeLower;
+          const normalizedAdmin = adminOrgType === "training center" ? "training center" : adminOrgType;
+          
+          // Exact match
+          if (normalizedAdmin === normalizedFilter) return true;
+          
+          // Also check if admin type contains the filter (for partial matches)
+          return normalizedAdmin.includes(normalizedFilter) || normalizedFilter.includes(normalizedAdmin);
+        });
+      })();
+      
+      // Status filter - match case-insensitively
+      const matchesStatus = statusFilters.length === 0 || (() => {
+        const adminStatus = String(admin.status || "").trim();
+        if (!adminStatus) return false;
+        
+        const adminStatusLower = adminStatus.toLowerCase();
+        return statusFilters.some(status => {
+          const statusLower = String(status).toLowerCase().trim();
+          // Map database status to filter status for comparison
+          const statusMap: Record<string, string> = {
+            "active": "active",
+            "inactive": "inactive",
+            "pending": "pending"
+          };
+          const normalizedAdminStatus = statusMap[adminStatusLower] || adminStatusLower;
+          return statusLower === normalizedAdminStatus;
+        });
+      })();
+      
+      return matchesSearch && matchesName && matchesEmail && matchesPhone && matchesState && matchesDistrict && 
+             matchesRole && matchesOrgType && matchesStatus;
     });
   }
 
   const hospitalAdmin = filteredHospitalAdmin;
   // Use filtered count if client-side filtering is applied, otherwise use API total
-  const totalCount = (emailFilter || phoneFilter) 
+  const hasClientSideFilters = searchValue || nameFilter || emailFilter || phoneFilter || stateFilter || districtFilter || 
+    roleFilters.length > 0 || orgTypeFilters.length > 0 || statusFilters.length > 0;
+  const totalCount = hasClientSideFilters 
     ? filteredHospitalAdmin.length 
     : (hospitalAdminResponse?.total ?? 0);
 
@@ -209,7 +414,8 @@ const HospitalAdmin: React.FC = () => {
       "Email Address",
       "Phone Number",
       "Role",
-      "Location",
+      "State",
+      "District",
       "Organization Type",
       "Status",
     ];
@@ -220,11 +426,12 @@ const HospitalAdmin: React.FC = () => {
     hospitalAdmin.forEach((row, index) => {
       const values = [
         (currentPage - 1) * pageSize + index + 1,
-        `"${`${row.first_name || ""} ${row.last_name || ""}`.trim()}"`,
+        `"${`${row.first_name || ""} ${row.last_name || ""}`.trim() || row.name || "N/A"}"`,
         `"${row.email || "N/A"}"`,
         `"${row.phone || "N/A"}"`,
         `"${row.role || "N/A"}"`,
-        `"${row.location || "N/A"}"`,
+        `"${row.state || "N/A"}"`,
+        `"${row.district || "N/A"}"`,
         `"${row.organization_type || "N/A"}"`,
         `"${row.status || "N/A"}"`,
       ];
@@ -246,12 +453,28 @@ const HospitalAdmin: React.FC = () => {
   };
 
   const handleEdit = (record: HospitalAdminData) => {
-    setEditData({
+    // Split name into first_name and last_name if name exists but first_name/last_name don't
+    let first_name = record.first_name || "";
+    let last_name = record.last_name || "";
+    
+    if (record.name && !first_name && !last_name) {
+      const nameParts = record.name.trim().split(" ");
+      first_name = nameParts[0] || "";
+      last_name = nameParts.slice(1).join(" ") || "";
+    }
+
+    const editDataWithDefaults: HospitalAdminData = {
       ...record,
+      first_name: first_name,
+      last_name: last_name,
       role: record.role || "",
       location: record.location || "",
       profile_image: record.profile_image || record.image_url || "",
-    });
+      state: record.state || "",
+      district: record.district || "",
+    };
+
+    setEditData(editDataWithDefaults);
     setIsModalOpen(true);
   };
 
@@ -335,16 +558,16 @@ const HospitalAdmin: React.FC = () => {
       render: (role) => role ?? "N/A",
     },
     {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
-      render: (location) => location ?? "N/A",
+      title: "State",
+      dataIndex: "state",
+      key: "state",
+      render: (state) => state ?? "N/A",
     },
     {
-      title: "Districts",
-      dataIndex: "districts",
-      key: "districts",
-      render: (districts) => districts ?? "N/A",
+      title: "District",
+      dataIndex: "district",
+      key: "district",
+      render: (district) => district ?? "N/A",
     },
     {
       title: "Organization Type",
@@ -356,17 +579,7 @@ const HospitalAdmin: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <span
-          className={`px-3 py-1 rounded-full text-sm ${
-            status === "ACTIVE"
-              ? "bg-green-100 text-green-600"
-              : "bg-red-100 text-red-600"
-          }`}
-        >
-          {status}
-        </span>
-      ),
+      render: (status) => <StatusBadge status={status || ""} />,
     },
     {
       title: "Actions",
@@ -394,6 +607,7 @@ const HospitalAdmin: React.FC = () => {
 
   const handleSearch = (value: string) => {
     setSearchValue(value);
+    setCurrentPage(1); // Reset to first page when searching
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {

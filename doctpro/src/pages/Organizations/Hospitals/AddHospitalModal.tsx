@@ -5,6 +5,7 @@ import {
   message,
   Modal,
   notification,
+  Select,
   Switch,
   Upload,
   UploadProps,
@@ -57,8 +58,8 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         name: initialData.name,
         branchLocation: initialData.branchLocation,
         isHeadBranch: initialData.isHeadBranch,
-        isActive: initialData.isActive,
         logoUrl: initialData.logoUrl,
+        // add other fields as needed
       };
       form.setFieldsValue(formValues);
       setHospitalData({
@@ -71,6 +72,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       // Set the image URL for display if editing
       setImageUrl(initialData.logoUrl || "");
     } else {
+      form.resetFields();
       const emptyData = {
         name: "",
         branchLocation: "",
@@ -78,7 +80,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         logoUrl: null,
         isActive: true,
       };
-      form.setFieldsValue(emptyData);
       setHospitalData(emptyData);
       setImageUrl(""); // Reset image URL when not editing
     }
@@ -103,12 +104,10 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   const handleSubmit = async (values: Partial<ApiHospitalData>) => {
     try {
-      // Include the logoUrl, isHeadBranch, and isActive from hospitalData in the submission
+      // Include the logoUrl from hospitalData in the submission
       const submissionData = {
         ...values,
         logoUrl: hospitalData.logoUrl,
-        isHeadBranch: hospitalData.isHeadBranch,
-        isActive: hospitalData.isActive,
       };
 
       const handler = isEditing ? updateHospital : createHospital;
@@ -266,53 +265,64 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
             label="Branch Location"
             rules={[{ required: true }]}
           >
-            <Input
-              placeholder="Enter Location"
-              onChange={(e) =>
-                setHospitalData({ ...hospitalData, branchLocation: e.target.value })
+            <Select
+              placeholder="Select Location"
+              onChange={(value) =>
+                setHospitalData({ ...hospitalData, branchLocation: value })
               }
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+              options={[
+                { value: "Andhra Pradesh", label: "Andhra Pradesh" },
+                { value: "Arunachal Pradesh", label: "Arunachal Pradesh" },
+                { value: "Assam", label: "Assam" },
+                { value: "Bihar", label: "Bihar" },
+                { value: "Chhattisgarh", label: "Chhattisgarh" },
+                { value: "Goa", label: "Goa" },
+                { value: "Gujarat", label: "Gujarat" },
+                { value: "Haryana", label: "Haryana" },
+                { value: "Himachal Pradesh", label: "Himachal Pradesh" },
+                { value: "Jharkhand", label: "Jharkhand" },
+                { value: "Karnataka", label: "Karnataka" },
+                { value: "Kerala", label: "Kerala" },
+                { value: "Madhya Pradesh", label: "Madhya Pradesh" },
+                { value: "Maharashtra", label: "Maharashtra" },
+                { value: "Manipur", label: "Manipur" },
+                { value: "Meghalaya", label: "Meghalaya" },
+                { value: "Mizoram", label: "Mizoram" },
+                { value: "Nagaland", label: "Nagaland" },
+                { value: "Odisha", label: "Odisha" },
+                { value: "Punjab", label: "Punjab" },
+                { value: "Rajasthan", label: "Rajasthan" },
+                { value: "Sikkim", label: "Sikkim" },
+                { value: "Tamil Nadu", label: "Tamil Nadu" },
+                { value: "Telangana", label: "Telangana" },
+                { value: "Tripura", label: "Tripura" },
+                { value: "Uttar Pradesh", label: "Uttar Pradesh" },
+                { value: "Uttarakhand", label: "Uttarakhand" },
+                { value: "West Bengal", label: "West Bengal" },
+                { value: "Andaman and Nicobar Islands", label: "Andaman and Nicobar Islands" },
+                { value: "Chandigarh", label: "Chandigarh" },
+                { value: "Dadra and Nagar Haveli and Daman and Diu", label: "Dadra and Nagar Haveli and Daman and Diu" },
+                { value: "Delhi", label: "Delhi" },
+                { value: "Jammu and Kashmir", label: "Jammu and Kashmir" },
+                { value: "Ladakh", label: "Ladakh" },
+                { value: "Lakshadweep", label: "Lakshadweep" },
+                { value: "Puducherry", label: "Puducherry" },
+              ]}
             />
           </Form.Item>
 
-          {/* Head of Location Toggle - Show in Add mode */}
-          {!isEditing && (
-            <Form.Item
-              name="isHeadBranch"
-              valuePropName="checked"
-              className="mb-0"
-            >
-              <div className="flex items-center justify-between">
-                <span>This Hospital/Clinic branch its Head of The Location</span>
-                <Switch
-                  checked={hospitalData.isHeadBranch}
-                  onChange={(checked) => {
-                    setHospitalData({ ...hospitalData, isHeadBranch: checked });
-                    form.setFieldsValue({ isHeadBranch: checked });
-                  }}
-                />
-              </div>
-            </Form.Item>
-          )}
-
-          {/* Working Status - Show in Edit mode */}
-          {isEditing && (
-            <Form.Item
-              name="isActive"
-              label="Working Status"
-              valuePropName="checked"
-            >
-              <div className="flex items-center justify-between">
-                <span>{hospitalData.isActive ? "Active" : "Inactive"}</span>
-                <Switch
-                  checked={hospitalData.isActive}
-                  onChange={(checked) => {
-                    setHospitalData({ ...hospitalData, isActive: checked });
-                    form.setFieldsValue({ isActive: checked });
-                  }}
-                />
-              </div>
-            </Form.Item>
-          )}
+          {/* Head Branch Toggle */}
+          <Form.Item name="isHeadBranch" label="Head Branch">
+            <Switch
+              onChange={(checked) =>
+                setHospitalData({ ...hospitalData, isHeadBranch: checked })
+              }
+            />
+          </Form.Item>
 
           {/* Hidden field for logoUrl */}
           <Form.Item name="logoUrl" hidden>

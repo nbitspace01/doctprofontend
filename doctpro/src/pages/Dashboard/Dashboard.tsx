@@ -255,14 +255,7 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-gray-600 text-sm">Hospital Admin Count</p>
               <p className="text-2xl font-bold">
-                {(() => {
-                  if (!data) return 0;
-                  const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('hospital') && 
-                    k.toLowerCase().includes('admin')
-                  );
-                  return key ? (data as any)[key] : 0;
-                })()}
+                {kycStats?.hospitalAdminCount ?? 0}
               </p>
             </div>
           </div>
@@ -275,14 +268,7 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-gray-600 text-sm">Sub Admin Count</p>
               <p className="text-2xl font-bold">
-                {(() => {
-                  if (!data) return 0;
-                  const key = Object.keys(data).find(k =>
-                    k.toLowerCase().includes('sub') && 
-                    k.toLowerCase().includes('admin')
-                  );
-                  return key ? (data as any)[key] : 0;
-                })()}
+                {kycStats?.subAdminCount ?? 0}
               </p>
             </div>
           </div>

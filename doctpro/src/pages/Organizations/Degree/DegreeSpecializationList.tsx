@@ -5,7 +5,7 @@ import {
   useQueryClient,
   useMutation,
 } from "@tanstack/react-query";
-import { Button, Table, Tag, message } from "antd";
+import { Button, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import DegreeAddModal from "./DegreeAddModal";
@@ -65,8 +65,14 @@ const DegreeSpecializationList: React.FC = () => {
             statusFilters.push(filterValue);
             console.log(`Added status filter: ${filterValue}`);
           }
+        } else if (key === "createdOn") {
+          // Handle date filter - don't send to API, filter client-side
+          // Date filter will be handled in client-side filtering
+        } else if (key === "graduation_level") {
+          // Handle level filter - don't send to API, filter client-side for better reliability
+          // Level filter will be handled in client-side filtering
         } else {
-          // Handle regular text filters (name, graduation_level, specialization)
+          // Handle regular text filters (name, specialization)
           const trimmedValue = String(value).trim();
           if (trimmedValue) {
             processedFilters[key] = trimmedValue;
@@ -225,7 +231,7 @@ const DegreeSpecializationList: React.FC = () => {
       title: "Level",
       dataIndex: "graduation_level",
       key: "graduation_level",
-      render: (text) => <span className="text-blue-500">{text}</span>,
+      render: (text) => <span>{text}</span>,
     },
     {
       title: "Specializations",
@@ -236,19 +242,22 @@ const DegreeSpecializationList: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag
-          color={
-            status === "active"
-              ? "success"
-              : status === "inactive"
-              ? "error"
-              : "warning"
-          }
-        >
-          {status}
-        </Tag>
-      ),
+      render: (status) => {
+        const statusLower = String(status || "").toLowerCase();
+        return (
+          <span
+            className={`text-sm px-3 py-1 rounded-full ${
+              statusLower === "active"
+                ? "text-green-600 bg-green-50"
+                : statusLower === "inactive"
+                ? "text-red-600 bg-red-50"
+                : "text-orange-600 bg-orange-50"
+            }`}
+          >
+            {status}
+          </span>
+        );
+      },
     },
     {
       title: "Created on",
@@ -279,18 +288,27 @@ const DegreeSpecializationList: React.FC = () => {
     {
       label: "Degree Name",
       key: "name",
+      type: "text" as const,
     },
     {
       label: "Level",
       key: "graduation_level",
+      type: "text" as const,
     },
     {
       label: "Specializations",
       key: "specialization",
+      type: "text" as const,
+    },
+    {
+      label: "Created On",
+      key: "createdOn",
+      type: "date" as const,
     },
     {
       label: "Status",
       key: "status",
+      type: "checkbox" as const,
       options: ["active", "inactive", "pending"],
     },
   ];
@@ -301,16 +319,23 @@ const DegreeSpecializationList: React.FC = () => {
     Object.entries(filters).forEach(([key, value]) => {
       // Only keep non-empty values
       if (value !== "" && value !== null && value !== undefined) {
-        // For checkboxes, only keep if true
-        if (key.includes("_")) {
+        // For checkbox filters (status_active, status_inactive, etc.), only keep if true
+        // Check if it's a status checkbox filter (starts with "status_")
+        if (key.startsWith("status_")) {
           if (value === true) {
             cleanedFilters[key] = value;
           }
         } else {
+          // For text inputs (name, graduation_level, specialization) and date inputs (createdOn)
           // For text inputs, trim and keep if not empty
-          const trimmed = String(value).trim();
-          if (trimmed) {
-            cleanedFilters[key] = trimmed;
+          if (typeof value === "string") {
+            const trimmed = value.trim();
+            if (trimmed) {
+              cleanedFilters[key] = trimmed;
+            }
+          } else {
+            // For date inputs or other types, keep as is
+            cleanedFilters[key] = value;
           }
         }
       }
@@ -318,6 +343,7 @@ const DegreeSpecializationList: React.FC = () => {
     
     console.log("Filter values received:", filters);
     console.log("Cleaned filter values:", cleanedFilters);
+    console.log("Level filter value:", cleanedFilters.graduation_level);
     setFilterValues(cleanedFilters);
     setCurrentPage(1);
   };
@@ -381,6 +407,7 @@ const DegreeSpecializationList: React.FC = () => {
   const nameFilter = filterValues.name;
   const levelFilter = filterValues.graduation_level;
   const specializationFilter = filterValues.specialization;
+  const createdOnFilter = filterValues.createdOn;
   
   // Collect status filters from filterValues
   Object.entries(filterValues).forEach(([key, value]) => {
@@ -396,21 +423,29 @@ const DegreeSpecializationList: React.FC = () => {
     nameFilter,
     levelFilter,
     specializationFilter,
+    createdOnFilter,
     statusFilters,
     totalDataBeforeFilter: degreeData.length
   });
   
   // Always apply client-side filtering if any filters are set
-  if (nameFilter || levelFilter || specializationFilter || statusFilters.length > 0) {
+  if (nameFilter || levelFilter || specializationFilter || createdOnFilter || statusFilters.length > 0) {
     const beforeFilterCount = degreeData.length;
     degreeData = degreeData.filter((degree: DegreeData) => {
       // Name filter
       const matchesName = !nameFilter || 
         (degree.name && degree.name.toLowerCase().includes(String(nameFilter).toLowerCase().trim()));
       
-      // Level filter
-      const matchesLevel = !levelFilter || 
-        (degree.graduation_level && degree.graduation_level.toLowerCase().includes(String(levelFilter).toLowerCase().trim()));
+      // Level filter - fix: ensure proper case-insensitive matching
+      const matchesLevel = !levelFilter || (() => {
+        if (!degree.graduation_level) return false;
+        const levelValue = String(degree.graduation_level).toLowerCase().trim();
+        const filterValue = String(levelFilter).toLowerCase().trim();
+        // Check if level matches exactly or contains the filter value
+        const exactMatch = levelValue === filterValue;
+        const containsMatch = levelValue.includes(filterValue) || filterValue.includes(levelValue);
+        return exactMatch || containsMatch;
+      })();
       
       // Specialization filter - ensure it works correctly with proper null checks
       const matchesSpecialization = !specializationFilter || (() => {
@@ -418,6 +453,26 @@ const DegreeSpecializationList: React.FC = () => {
         const specValue = String(degree.specialization).toLowerCase().trim();
         const filterValue = String(specializationFilter).toLowerCase().trim();
         return specValue.includes(filterValue);
+      })();
+      
+      // Created On date filter
+      const matchesCreatedOn = !createdOnFilter || (() => {
+        if (!degree.created_at) return false;
+        try {
+          // Parse the filter date (format: "YYYY-MM-DD" from DatePicker)
+          const filterDate = new Date(createdOnFilter);
+          filterDate.setHours(0, 0, 0, 0);
+          
+          // Parse the degree created_at date
+          const degreeDate = new Date(degree.created_at);
+          degreeDate.setHours(0, 0, 0, 0);
+          
+          // Compare dates (ignore time)
+          return filterDate.getTime() === degreeDate.getTime();
+        } catch (error) {
+          console.error("Error parsing date:", error);
+          return false;
+        }
       })();
       
       // Status filter - always apply client-side for reliability
@@ -432,17 +487,26 @@ const DegreeSpecializationList: React.FC = () => {
         });
       })();
       
-      const allMatch = matchesName && matchesLevel && matchesSpecialization && matchesStatus;
+      const allMatch = matchesName && matchesLevel && matchesSpecialization && matchesCreatedOn && matchesStatus;
       
       // Debug log for first few items
       if (degreeData.indexOf(degree) < 3) {
         console.log(`Filter check for "${degree.name}":`, {
           matchesName,
-          matchesLevel,
+          matchesLevel: {
+            filter: levelFilter,
+            value: degree.graduation_level,
+            matches: matchesLevel
+          },
           matchesSpecialization: { 
             filter: specializationFilter, 
             value: degree.specialization, 
             matches: matchesSpecialization 
+          },
+          matchesCreatedOn: {
+            filter: createdOnFilter,
+            value: degree.created_at,
+            matches: matchesCreatedOn
           },
           matchesStatus: {
             filter: statusFilters,
@@ -459,7 +523,7 @@ const DegreeSpecializationList: React.FC = () => {
     console.log(`Client-side filtering: ${beforeFilterCount} -> ${degreeData.length} items`);
   }
   
-  const hasClientSideFilters = nameFilter || levelFilter || specializationFilter || statusFilters.length > 0;
+  const hasClientSideFilters = nameFilter || levelFilter || specializationFilter || createdOnFilter || statusFilters.length > 0;
   const total = hasClientSideFilters ? degreeData.length : (fetchedDegreeSpecialization?.total || 0);
 
   return (

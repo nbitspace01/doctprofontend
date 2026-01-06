@@ -20,17 +20,21 @@ import PhoneNumberInput from "../Common/PhoneNumberInput";
 
 interface HospitalAdminData {
   id: string;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone: string;
   status: string;
   active_user: boolean;
   role: string;
   organization_type: string;
-  location: string;
-  associated_location: string;
+  location?: string;
+  associated_location?: string;
   profile_image?: string;
+  state?: string;
+  district?: string;
+  name?: string;
+  image_url?: string;
 }
 
 interface AddHospitalAdminModalProps {
@@ -52,6 +56,8 @@ interface HospitalAdminFormValues {
   password: string;
   confirmPassword: string;
   profile_image?: string;
+  State?: string;
+  Districts?: string;
 }
 
 const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
@@ -79,13 +85,35 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
     { value: "Training Center", label: "Training Center" },
   ];
 
-  const locationOptions = [
-    { value: "Chennai", label: "Chennai" },
-    { value: "Mumbai", label: "Mumbai" },
-    { value: "Delhi", label: "Delhi" },
-    { value: "Bangalore", label: "Bangalore" },
-    { value: "Hyderabad", label: "Hyderabad" },
-    { value: "Kochi", label: "Kochi" },
+  const stateOptions = [
+    { value: "Andhra Pradesh", label: "Andhra Pradesh" },
+    { value: "Arunachal Pradesh", label: "Arunachal Pradesh" },
+    { value: "Assam", label: "Assam" },
+    { value: "Bihar", label: "Bihar" },
+    { value: "Chhattisgarh", label: "Chhattisgarh" },
+    { value: "Goa", label: "Goa" },
+    { value: "Gujarat", label: "Gujarat" },
+    { value: "Haryana", label: "Haryana" },
+    { value: "Himachal Pradesh", label: "Himachal Pradesh" },
+    { value: "Jharkhand", label: "Jharkhand" },
+    { value: "Karnataka", label: "Karnataka" },
+    { value: "Kerala", label: "Kerala" },
+    { value: "Madhya Pradesh", label: "Madhya Pradesh" },
+    { value: "Maharashtra", label: "Maharashtra" },
+    { value: "Manipur", label: "Manipur" },
+    { value: "Meghalaya", label: "Meghalaya" },
+    { value: "Mizoram", label: "Mizoram" },
+    { value: "Nagaland", label: "Nagaland" },
+    { value: "Odisha", label: "Odisha" },
+    { value: "Punjab", label: "Punjab" },
+    { value: "Rajasthan", label: "Rajasthan" },
+    { value: "Sikkim", label: "Sikkim" },
+    { value: "Tamil Nadu", label: "Tamil Nadu" },
+    { value: "Telangana", label: "Telangana" },
+    { value: "Tripura", label: "Tripura" },
+    { value: "Uttar Pradesh", label: "Uttar Pradesh" },
+    { value: "Uttarakhand", label: "Uttarakhand" },
+    { value: "West Bengal", label: "West Bengal" },
   ];
 
   const uploadProps: UploadProps = {
@@ -158,9 +186,21 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
         setImageUrl(initialData.profile_image || "");
 
         // Split the full name into first and last name
-        const nameParts = initialData.first_name.split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
+        // Handle both first_name/last_name and name fields
+        let firstName = initialData.first_name || "";
+        let lastName = initialData.last_name || "";
+        
+        // If name exists but first_name/last_name don't, split the name
+        if (!firstName && !lastName && initialData.name) {
+          const nameParts = initialData.name.split(" ");
+          firstName = nameParts[0] || "";
+          lastName = nameParts.slice(1).join(" ") || "";
+        } else if (!firstName && initialData.first_name) {
+          // If first_name exists as a full name, split it
+          const nameParts = initialData.first_name.split(" ");
+          firstName = nameParts[0] || "";
+          lastName = nameParts.slice(1).join(" ") || "";
+        }
 
         form.setFieldsValue({
           first_name: firstName,
@@ -169,10 +209,12 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
           phone: initialData.phone,
           role: initialData.role,
           organization_type: initialData.organization_type,
-          location: initialData.location,
-          associated_location: initialData.location,
+          location: initialData.location || "",
+          associated_location: initialData.associated_location || initialData.location || "",
           status: initialData.status,
           profile_image: initialData.profile_image,
+          State: initialData.state || "",
+          Districts: initialData.district || "",
         });
       } else {
         setImageUrl("");
@@ -200,6 +242,8 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
         location: values.location,
         associated_location: values.associated_location,
         profile_picture: imageUrl || "",
+        state: values.State || "",
+        district: values.Districts || "",
       };
 
       console.log("Create payload:", payload);
@@ -243,6 +287,8 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
         location: values.location,
         associated_location: values.associated_location,
         profile_picture: imageUrl || "",
+        state: values.State || "",
+        district: values.Districts || "",
       };
 
       console.log("Update payload:", payload);
@@ -379,7 +425,14 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
           name="State"
           rules={[{ required: true, message: "Please select State" }]}
         >
-          <Select placeholder="Select State" options={locationOptions} />
+          <Select 
+            placeholder="Select State" 
+            options={stateOptions}
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+            }
+          />
         </Form.Item>
 
         <Form.Item
@@ -454,4 +507,3 @@ const AddHospitalAdminModal: React.FC<AddHospitalAdminModalProps> = ({
 };
 
 export default AddHospitalAdminModal;
-

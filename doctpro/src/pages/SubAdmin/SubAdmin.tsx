@@ -1,16 +1,16 @@
-import { Avatar, Button, Image, Table, message } from "antd";
+import { Avatar, Button, Image, Pagination, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
-import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import ViewSubAdmin from "./ViewSubAdmin";
-import DownloadFilterButton from "../Common/DownloadFilterButton";
+import SearchFilterDownloadButton from "../Common/SearchFilterDownloadButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";
-import CommonPagination from "../Common/CommonPagination";
+import StatusBadge from "../Common/StatusBadge";
 
 interface SubAdminData {
   id: string;
@@ -19,7 +19,9 @@ interface SubAdminData {
   email: string;
   phone: string;
   role: string;
-  location: string;
+  location?: string;
+  state?: string;
+  district?: string;
   organization_type: string;
   status: string;
   active_user: boolean;
@@ -49,32 +51,39 @@ const SubAdmin: React.FC = () => {
     {
       label: "Name",
       key: "name",
-    },
-    {
-      label: "Email Address",
-      key: "email",
-    },
-    {
-      label: "Phone Number",
-      key: "phone",
+      type: "text" as const,
     },
     {
       label: "Role",
       key: "role",
+      type: "checkbox" as const,
       options: ["ADMIN", "SUB_ADMIN"],
     },
     {
-      label: "Location",
-      key: "location",
+      label: "State",
+      key: "state",
+      type: "text" as const,
+    },
+    {
+      label: "District",
+      key: "district",
+      type: "text" as const,
     },
     {
       label: "Organization Type",
       key: "organization_type",
+      type: "checkbox" as const,
       options: ["HOSPITAL", "CLINIC", "PHARMACY"],
+    },
+    {
+      label: "Associated Location",
+      key: "associated_location",
+      type: "text" as const,
     },
     {
       label: "Status",
       key: "status",
+      type: "checkbox" as const,
       options: ["ACTIVE", "INACTIVE"],
     },
   ];
@@ -90,84 +99,70 @@ const SubAdmin: React.FC = () => {
     const filterParams = [];
 
     // Add text filter values
-    if (filterValues.name && String(filterValues.name).trim()) {
-      filterParams.push(`name=${encodeURIComponent(String(filterValues.name).trim())}`);
+    if (filterValues.name) {
+      filterParams.push(`name=${encodeURIComponent(filterValues.name)}`);
     }
-    // Don't send email and phone to API - we'll filter client-side instead
-    // This ensures we get all data and can filter it properly
-    // if (filterValues.email && String(filterValues.email).trim()) {
-    //   filterParams.push(`email=${encodeURIComponent(String(filterValues.email).trim())}`);
-    // }
-    // if (filterValues.phone && String(filterValues.phone).trim()) {
-    //   filterParams.push(`phone=${encodeURIComponent(String(filterValues.phone).trim())}`);
-    // }
-    if (filterValues.location && String(filterValues.location).trim()) {
+    if (filterValues.state) {
       filterParams.push(
-        `location=${encodeURIComponent(String(filterValues.location).trim())}`
+        `state=${encodeURIComponent(filterValues.state)}`
+      );
+    }
+    if (filterValues.district) {
+      filterParams.push(
+        `district=${encodeURIComponent(filterValues.district)}`
+      );
+    }
+    if (filterValues.associated_location) {
+      filterParams.push(
+        `associated_location=${encodeURIComponent(
+          filterValues.associated_location
+        )}`
       );
     }
 
     // Add checkbox filter values (only selected options)
-    const selectedRoles = Object.keys(filterValues).filter(
-      (key) => key.startsWith("role_") && filterValues[key]
-    );
-    if (selectedRoles.length > 0) {
-      const roleMapping: Record<string, string> = {
-        "SUB_ADMIN": "subadmin",
-        "ADMIN": "admin"
-      };
-      filterParams.push(
-        `role=${selectedRoles
-          .map((key) => {
-            const filterValue = key.replace("role_", "");
-            const mappedValue = roleMapping[filterValue] || filterValue.toLowerCase();
-            return encodeURIComponent(mappedValue);
-          })
-          .join(",")}`
+    if (filterValues.role) {
+      const selectedRoles = Object.keys(filterValues).filter(
+        (key) => key.startsWith("role_") && filterValues[key]
       );
+      if (selectedRoles.length > 0) {
+        filterParams.push(
+          `role=${selectedRoles
+            .map((key) => key.replace("role_", ""))
+            .join(",")}`
+        );
+      }
     }
-    
-    const selectedOrgTypes = Object.keys(filterValues).filter(
-      (key) => key.startsWith("organization_type_") && filterValues[key]
-    );
-    if (selectedOrgTypes.length > 0) {
-      const orgTypeMapping: Record<string, string> = {
-        "HOSPITAL": "Hospital",
-        "CLINIC": "Clinic",
-        "PHARMACY": "Pharmacy"
-      };
-      filterParams.push(
-        `organization_type=${selectedOrgTypes
-          .map((key) => {
-            const filterValue = key.replace("organization_type_", "");
-            const mappedValue = orgTypeMapping[filterValue] || filterValue;
-            return encodeURIComponent(mappedValue);
-          })
-          .join(",")}`
+    if (filterValues.organization_type) {
+      const selectedOrgTypes = Object.keys(filterValues).filter(
+        (key) => key.startsWith("organization_type_") && filterValues[key]
       );
+      if (selectedOrgTypes.length > 0) {
+        filterParams.push(
+          `organization_type=${selectedOrgTypes
+            .map((key) => key.replace("organization_type_", ""))
+            .join(",")}`
+        );
+      }
     }
-    
-    const selectedStatuses = Object.keys(filterValues).filter(
-      (key) => key.startsWith("status_") && filterValues[key] === true
-    );
-    if (selectedStatuses.length > 0) {
-      // Send status exactly as stored in database (ACTIVE, INACTIVE)
-      const statusValues = selectedStatuses.map((key) => {
-        const filterValue = key.replace("status_", "");
-        return encodeURIComponent(filterValue);
-      });
-      filterParams.push(`status=${statusValues.join(",")}`);
+    if (filterValues.status) {
+      const selectedStatuses = Object.keys(filterValues).filter(
+        (key) => key.startsWith("status_") && filterValues[key]
+      );
+      if (selectedStatuses.length > 0) {
+        filterParams.push(
+          `status=${selectedStatuses
+            .map((key) => key.replace("status_", ""))
+            .join(",")}`
+        );
+      }
     }
 
     const filterParam =
       filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
-    
-    const fullUrl = `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
-    console.log("SubAdmin API URL:", fullUrl);
-    console.log("SubAdmin Filter params:", filterParams);
-    console.log("SubAdmin Filter values:", filterValues);
-    
-    const res = await ApiRequest.get(fullUrl);
+    const res = await ApiRequest.get(
+      `${API_URL}/api/dashboard/sub-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`
+    );
 
     // Return the full response structure with data and total
     return {
@@ -187,64 +182,24 @@ const SubAdmin: React.FC = () => {
     staleTime: 0,
   });
 
-  // Apply client-side filtering for email and phone if API doesn't support them
-  let filteredSubAdmin = subAdminResponse?.data ?? [];
-  const emailFilter = filterValues.email;
-  const phoneFilter = filterValues.phone;
-  
-  if (emailFilter || phoneFilter) {
-    filteredSubAdmin = filteredSubAdmin.filter((admin: SubAdminData) => {
-      const matchesEmail = !emailFilter || 
-        (admin.email && admin.email.toLowerCase().includes(String(emailFilter).toLowerCase().trim()));
-      const matchesPhone = !phoneFilter || 
-        (admin.phone && admin.phone.toLowerCase().includes(String(phoneFilter).toLowerCase().trim()));
-      return matchesEmail && matchesPhone;
-    });
-  }
-
-  const subAdmin = filteredSubAdmin;
-  // Use filtered count if client-side filtering is applied, otherwise use API total
-  const totalCount = (emailFilter || phoneFilter) 
-    ? filteredSubAdmin.length 
-    : (subAdminResponse?.total ?? 0);
+  const subAdmin = subAdminResponse?.data ?? [];
+  const totalCount = subAdminResponse?.total ?? 0;
   console.log("subAdmin", subAdmin);
 
-  const handleDownload = (format: "excel" | "csv") => {
+  const downloadReportCSV = (format: "excel" | "csv") => {
     if (!subAdmin || subAdmin.length === 0) {
-      console.log("No data to download");
       return;
     }
-
-    // Define headers based on the data structure
-    const headers = [
-      "S No",
-      "Name",
-      "Email Address",
-      "Phone Number",
-      "Role",
-      "Location",
-      "Organization Type",
-      "Status",
-    ];
-
-    // Create rows
     const rows = [];
+    const headers = Object.keys(subAdmin[0]);
     rows.push(headers.join(format === "csv" ? "," : "\t"));
-
-    subAdmin.forEach((row, index) => {
-      const values = [
-        (currentPage - 1) * pageSize + index + 1,
-        `"${`${row.first_name || ""} ${row.last_name || ""}`.trim()}"`,
-        `"${row.email || "N/A"}"`,
-        `"${row.phone || "N/A"}"`,
-        `"${row.role || "N/A"}"`,
-        `"${row.location || "N/A"}"`,
-        `"${row.organization_type || "N/A"}"`,
-        `"${row.status || "N/A"}"`,
-      ];
+    subAdmin.forEach((row) => {
+      const values = headers.map((header) => {
+        const value = row[header as keyof SubAdminData];
+        return `"${value || "N/A"}"`;
+      });
       rows.push(values.join(format === "csv" ? "," : "\t"));
     });
-
     const content = rows.join("\n");
     const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
     const fileExtension = format === "csv" ? "csv" : "xls";
@@ -252,7 +207,7 @@ const SubAdmin: React.FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `subadmin-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    a.download = `sub-admin-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -264,27 +219,16 @@ const SubAdmin: React.FC = () => {
       ...record,
       role: record.role || "",
       location: record.location || "",
+      state: record.state || "",
+      district: record.district || "",
       profile_image: record.profile_image || record.image_url || "",
     });
     setIsModalOpen(true);
   };
 
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-      await ApiRequest.delete(`${API_URL}/api/user/delete-sub-admin/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["subAdmin"] });
-      message.success("Sub-admin deleted successfully");
-    },
-    onError: () => {
-      message.error("Failed to delete sub-admin");
-    },
-  });
-
   const handleDelete = (record: SubAdminData) => {
-    deleteMutation.mutate(record.id);
+    console.log("Delete:", record);
+    // Add your delete logic here
   };
 
   const handleViewSubAdmin = (subAdmin: SubAdminData) => {
@@ -292,12 +236,10 @@ const SubAdmin: React.FC = () => {
     setIsViewDrawerOpen(true);
   };
 
-  const handlePageChange = (page: number, pageSize?: number) => {
+  const handlePageChange = (page: number, pageSize: number) => {
     console.log("Page changed to:", page, "Page size:", pageSize);
     setCurrentPage(page);
-    if (pageSize) {
-      setPageSize(pageSize);
-    }
+    setPageSize(pageSize);
   };
 
   const columns: ColumnsType<SubAdminData> = [
@@ -349,16 +291,16 @@ const SubAdmin: React.FC = () => {
       key: "role",
     },
     {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
-      render: (location) => location ?? "N/A",
+      title: "State",
+      dataIndex: "state",
+      key: "state",
+      render: (state) => state ?? "N/A",
     },
     {
-      title: "Districts",
-      dataIndex: "associated_location",
-      key: "associated_location",
-      render: (associated_location) => associated_location ?? "N/A",
+      title: "District",
+      dataIndex: "district",
+      key: "district",
+      render: (district) => district ?? "N/A",
     },
     {
       title: "Organization Type",
@@ -369,17 +311,7 @@ const SubAdmin: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <span
-          className={`px-3 py-1 rounded-full text-sm ${
-            status === "ACTIVE"
-              ? "bg-green-100 text-green-600"
-              : "bg-red-100 text-red-600"
-          }`}
-        >
-          {status}
-        </span>
-      ),
+      render: (status) => <StatusBadge status={status || ""} />,
     },
     {
       title: "Actions",
@@ -411,31 +343,8 @@ const SubAdmin: React.FC = () => {
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    // Clean up empty values from filters
-    const cleanedFilters: Record<string, any> = {};
-    Object.entries(filters).forEach(([key, value]) => {
-      // Only keep non-empty values
-      if (value !== "" && value !== null && value !== undefined) {
-        // For checkboxes, only keep if true
-        if (key.includes("_")) {
-          if (value === true) {
-            cleanedFilters[key] = value;
-          }
-        } else {
-          // For text inputs, trim and keep if not empty
-          const trimmed = String(value).trim();
-          if (trimmed) {
-            cleanedFilters[key] = trimmed;
-          }
-        }
-      }
-    });
-    
-    console.log("Filter values received:", filters);
-    console.log("Cleaned filter values:", cleanedFilters);
-    setFilterValues(cleanedFilters);
-    // Reset to first page when filters change
-    setCurrentPage(1);
+    console.log("Filter values:", filters);
+    setFilterValues(filters);
   };
 
   return (
@@ -453,9 +362,9 @@ const SubAdmin: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <DownloadFilterButton
+        <SearchFilterDownloadButton
           onSearch={handleSearch}
-          onDownload={handleDownload}
+          onDownload={downloadReportCSV}
           searchValue={searchValue}
           filterOptions={filterOptions}
           onFilterChange={handleFilterChange}
@@ -474,13 +383,20 @@ const SubAdmin: React.FC = () => {
               // onChange={handleTableChange}
               rowKey="id"
             />
-            <CommonPagination
-              current={currentPage}
-              pageSize={pageSize}
-              total={totalCount}
-              onChange={handlePageChange}
-              onShowSizeChange={handlePageChange}
-            />
+            <div className="flex justify-end my-2 py-3">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={totalCount}
+                showSizeChanger
+                showQuickJumper
+                showTotal={(total, range) =>
+                  `${range[0]}-${range[1]} of ${total} items`
+                }
+                onChange={handlePageChange}
+                onShowSizeChange={handlePageChange}
+              />
+            </div>
           </>
         )}
       </div>

@@ -6,6 +6,7 @@ import {
   Outlet,
   createRouter,
   RouterProvider,
+  redirect,
 } from "@tanstack/react-router";
 import { ConfigProvider, theme, App as AntdApp } from "antd";
 import LoginPage from "./pages/Auth/LoginPage";
@@ -41,9 +42,10 @@ const rootRoute = createRootRoute({
 const rootIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: () => {
-    window.location.href = "/app";
-    return null;
+  beforeLoad: () => {
+    throw redirect({
+      to: "/app",
+    });
   },
 });
 

@@ -68,7 +68,7 @@ const SubAdminDashboard: React.FC = () => {
 
   const fetchSubAdminHealthCare = async () => {
     const res = await axios.get(
-      `${API_URL}/api/healthCare/healthcare-professionals`,
+      `${API_URL}/api/professinal`,
       {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
@@ -134,6 +134,28 @@ const SubAdminDashboard: React.FC = () => {
     console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
   }
 
+  // Helper function to get full name
+  const getFullName = (professional: any) => {
+    if (professional.firstName && professional.lastName) {
+      return `${professional.firstName} ${professional.lastName}`;
+    }
+    if (professional.firstName) {
+      return professional.firstName;
+    }
+    if (professional.lastName) {
+      return professional.lastName;
+    }
+    if (professional.name) {
+      return professional.name;
+    }
+    return "N/A";
+  };
+
+  // Handle both response structures: array directly or wrapped in object
+  const professionals = Array.isArray(subAdminHealthCare)
+    ? subAdminHealthCare
+    : (subAdminHealthCare?.data || []);
+
   const data1 = [
     {
       date: "1 Mar",
@@ -183,7 +205,7 @@ const SubAdminDashboard: React.FC = () => {
     <div className="">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sub admin Dashboard</h1>
-        <span className="text-blue-500 cursor-pointer">See All →</span>
+        
       </div>
 
       {/* Stats Cards */}
@@ -303,91 +325,102 @@ const SubAdminDashboard: React.FC = () => {
         </div> */}
       </div>
 
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
+        <span
+          className="text-blue-500 cursor-pointer"
+          onClick={() => navigate({ to: "/app/healthcare" })}
+        >
+          See All →
+        </span>
+      </div>
       {/* Sub Admin Section */}
       <div className="mt-6">
         <Card className="shadow-sm">
-          <div className="flex justify-between items-center mb-4">
-            <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
-            <span
-              className="text-blue-500 cursor-pointer"
-              onClick={() => navigate({ to: "/app/healthcare" })}
-            >
-              See All →
-            </span>
-          </div>
           <div className="overflow-x-auto">
             <table className="min-w-full">
               <thead>
                 <tr className="text-left text-gray-600">
                   <th className="py-3 px-4">S No</th>
                   <th className="py-3 px-4">Name</th>
-                  <th className="py-3 px-4">Degree</th>
-                  <th className="py-3 px-4">Specialization</th>
-                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Email</th>
+                  <th className="py-3 px-4">Phone</th>
                   <th className="py-3 px-4">DOB</th>
                   <th className="py-3 px-4">Gender</th>
-                  {/* <th className="py-3 px-4">Status</th> */}
+                  <th className="py-3 px-4">City</th>
+                  <th className="py-3 px-4">State</th>
+                  <th className="py-3 px-4">Country</th>
+                  <th className="py-3 px-4">Degree</th>
+                  <th className="py-3 px-4">Specialization</th>
+                  <th className="py-3 px-4">Start Year</th>
+                  <th className="py-3 px-4">End Year</th>
+                  <th className="py-3 px-4">Role</th>
+                  <th className="py-3 px-4">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {subAdminHealthCare?.data?.length > 0 ? (
-                  subAdminHealthCare.data
+                {professionals.length > 0 ? (
+                  professionals
                     .slice(0, 5)
-                    .map((admin: any, index: number) => (
-                      <tr key={admin.id} className="border-t">
-                        <td className="py-3 px-4">{index + 1}</td>
-                        <td className="py-3 px-4">
-                          <div className="flex items-center gap-2">
-                            {admin.imageUrl ? (
-                              <img
-                                src={admin.imageUrl}
-                                alt={`${admin.name ?? ""} 
-                                }`}
-                                className="w-8 h-8 rounded-full"
-                              />
-                            ) : (
-                              <>
+                    .map((professional: any, index: number) => {
+                      const fullName = getFullName(professional);
+                      const avatarInitial = fullName !== "N/A" ? fullName.charAt(0).toUpperCase() : professional.email?.charAt(0).toUpperCase() || "N";
+                      return (
+                        <tr key={professional.id} className="border-t">
+                          <td className="py-3 px-4">{index + 1}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex items-center gap-2">
+                              {professional.profilePicture ? (
+                                <img
+                                  src={professional.profilePicture}
+                                  alt={fullName}
+                                  className="w-8 h-8 rounded-full object-cover"
+                                />
+                              ) : (
                                 <div className="w-10 h-10 flex items-center justify-center p-4 rounded-full bg-button-primary text-white">
                                   <Avatar className="bg-button-primary text-white">
-                                    {admin.name?.charAt(0)}
+                                    {avatarInitial}
                                   </Avatar>
                                 </div>
-                                <span className="text-sm">{admin.name}</span>
-                              </>
+                              )}
+                              <span className="text-sm">{fullName}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-sm">{professional.email || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.phone || "N/A"}</td>
+                          <td className="py-3 px-4">
+                            {professional.dob ? (
+                              <FormattedDate dateString={professional.dob} format="long" />
+                            ) : (
+                              "N/A"
                             )}
-                          </div>
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.qualification ?? "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          {admin.specialization ?? "N/A"}
-                        </td>
-                        <td className="py-3 px-4">
-                          <span className="px-2 py-1 bg-green-100 text-green-600 rounded-full text-sm">
-                            {admin.role ?? "N/A"}
-                          </span>
-                        </td>
-                        {/* <td className="py-3 px-4">
-                          <span
-                            className={`px-2 py-1 rounded-full text-sm ${
-                              admin.status === "ACTIVE"
-                                ? "bg-green-100 text-green-600"
-                                : "bg-red-100 text-red-600"
-                            }`}
-                          >
-                            {admin.status}
-                          </span>
-                        </td> */}
-                        <td className="py-3 px-4">
-                          <FormattedDate dateString={admin.dob} format="long" />
-                        </td>
-                        <td className="py-3 px-4">{admin.gender ?? "N/A"}</td>
-                      </tr>
-                    ))
+                          </td>
+                          <td className="py-3 px-4 text-sm">{professional.gender || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.city || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.state || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.country || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.degree || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.specialization || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.startYear || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.endYear || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">{professional.role || "N/A"}</td>
+                          <td className="py-3 px-4">
+                            <span
+                              className={`px-2 py-1 rounded-full text-sm ${
+                                professional.isActive
+                                  ? "bg-green-100 text-green-600"
+                                  : "bg-red-100 text-red-600"
+                              }`}
+                            >
+                              {professional.isActive ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })
                 ) : (
                   <tr>
-                    <td colSpan={6} className="py-4 text-center text-gray-500">
+                    <td colSpan={15} className="py-4 text-center text-gray-500">
                       No Healthcare Professionals data available
                     </td>
                   </tr>

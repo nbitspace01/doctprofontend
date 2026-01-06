@@ -2,19 +2,23 @@ import {
   DownloadOutlined,
   FilterFilled,
   SearchOutlined,
+  FileExcelOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
-import { Button, Checkbox, Dropdown, Input, Space } from "antd";
+import { Button, Checkbox, Dropdown, Input, Space, DatePicker } from "antd";
 import { useState } from "react";
+import dayjs from "dayjs";
+import type { Dayjs } from "dayjs";
 
 interface FilterOption {
   label: string;
   key: string;
-  type: "text" | "checkbox";
+  type: "text" | "checkbox" | "date";
   options?: string[];
 }
 
 interface SearchFilterDownloadButtonProps {
-  onDownload?: () => void;
+  onDownload?: (format: "excel" | "csv") => void;
   onSearch?: (value: string) => void;
   searchValue?: string;
   filterOptions?: FilterOption[];
@@ -58,6 +62,21 @@ const SearchFilterDownloadButton = ({
               onChange={(e) =>
                 handleFilterChange(activeFilterKey, e.target.value)
               }
+              allowClear
+            />
+          </div>
+        );
+      case "date":
+        return (
+          <div>
+            <DatePicker
+              placeholder={`Select ${activeFilter.label}`}
+              className="w-full"
+              format="DD/MM/YYYY"
+              value={filterValues[activeFilterKey] ? dayjs(filterValues[activeFilterKey]) : null}
+              onChange={(date: Dayjs | null) => {
+                handleFilterChange(activeFilterKey, date ? date.format("YYYY-MM-DD") : null);
+              }}
               allowClear
             />
           </div>
@@ -141,13 +160,32 @@ const SearchFilterDownloadButton = ({
       />
       <Space>
         {onDownload && (
-          <Button
-            icon={<DownloadOutlined />}
-            className="flex items-center"
-            onClick={onDownload}
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: "csv",
+                  label: "Download as CSV",
+                  icon: <FileTextOutlined />,
+                  onClick: () => onDownload("csv"),
+                },
+                {
+                  key: "excel",
+                  label: "Download as Excel",
+                  icon: <FileExcelOutlined />,
+                  onClick: () => onDownload("excel"),
+                },
+              ],
+            }}
+            trigger={["click"]}
           >
-            Download Report
-          </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              className="flex items-center"
+            >
+              Download Report
+            </Button>
+          </Dropdown>
         )}
         {filterOptions.length > 0 && (
           <Dropdown dropdownRender={() => filterMenu} trigger={["click"]}>

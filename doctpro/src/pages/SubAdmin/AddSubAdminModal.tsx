@@ -28,8 +28,10 @@ interface SubAdminData {
   active_user: boolean;
   role: string;
   organization_type: string;
-  location: string;
-  associated_location: string;
+  location?: string;
+  associated_location?: string;
+  state?: string;
+  district?: string;
   profile_image?: string;
 }
 
@@ -47,8 +49,8 @@ interface SubAdminFormValues {
   phone: string;
   role: string;
   organization_type: string;
-  location: string;
-  associated_location: string;
+  state: string;
+  district: string;
   password: string;
   confirmPassword: string;
   profile_image?: string;
@@ -188,8 +190,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           phone: initialData.phone,
           role: initialData.role,
           organization_type: initialData.organization_type,
-          location: initialData.location,
-          associated_location: initialData.associated_location,
+          state: (initialData as any).state || initialData.location || "",
+          district: (initialData as any).district || initialData.associated_location || "",
           status: initialData.status,
           profile_image: initialData.profile_image,
         });
@@ -216,8 +218,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         password: values.password,
         role: values.role,
         organization_type: values.organization_type.toLowerCase(),
-        location: values.location,
-        associated_location: values.associated_location,
+        state: values.state,
+        district: values.district,
         profile_picture: imageUrl || "",
       };
 
@@ -260,8 +262,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         password: values.password,
         organization_type: values.organization_type,
         role: values.role,
-        location: values.location,
-        associated_location: values.associated_location,
+        state: values.state,
+        district: values.district,
         profile_picture: imageUrl || "",
       };
 
@@ -397,20 +399,20 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
         <Form.Item
           label="State"
-          name="location"
+          name="state"
           rules={[{ required: true, message: "Please select State" }]}
         >
           <Select placeholder="Select State" options={locationOptions} />
         </Form.Item>
 
         <Form.Item
-          label="Districts"
-          name="associated_location"
+          label="District"
+          name="district"
           rules={[
-            { required: true, message: "Please enter Districts" },
+            { required: true, message: "Please enter District" },
           ]}
         >
-          <Input placeholder="Enter Districts" />
+          <Input placeholder="Enter District" />
         </Form.Item>
 
         <div className="border-t pt-4 mt-4">

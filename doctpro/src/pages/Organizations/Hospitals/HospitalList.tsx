@@ -1,15 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  App,
-  Avatar,
-  Button,
-  Drawer,
-  message,
-  Skeleton,
-  Table,
-  Tag,
-} from "antd";
-import { MailOutlined, PhoneOutlined, UserOutlined } from "@ant-design/icons";
+import { App, Avatar, Button, Drawer, message, Skeleton, Table } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
@@ -18,7 +8,7 @@ import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonPagination from "../../Common/CommonPagination";
 import { ApiHospitalData } from "../Hospital.types";
 import AddHospitalModal from "./AddHospitalModal";
-import { TOKEN } from "../../Common/constant.function";
+
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
 interface ApiResponse {
@@ -48,9 +38,15 @@ const fetchHospitals = async (
     
     if (key.includes("_")) {
       // Handle checkbox-style filters like "status_Active"
+      // Don't send status filter to API - handle it on frontend only
+      if (key.startsWith("status_")) {
+        // Skip status filters - we'll handle them on the frontend
+        return;
+      }
+      
       const [filterKey, filterValue] = key.split("_");
       if (value === true) {
-        // For status filters, collect all selected statuses
+        // For other checkbox filters, collect all selected values
         if (!processedFilters[filterKey]) {
           processedFilters[filterKey] = [];
         }
@@ -83,15 +79,7 @@ const fetchHospitals = async (
   });
 
   const filterParam = filterParams.length > 0 ? filterParams.join("&") : "";
-  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
-    filterParam ? `&${filterParam}` : ""
-  }`;
-  
-  console.log("API Request URL:", fullUrl);
-  console.log("Filter values:", filterValues);
-  console.log("Processed filters:", processedFilters);
-  console.log("Filter params array:", filterParams);
-
+  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${filterParam ? `&${filterParam}` : ""}`;
   const response = await fetch(fullUrl);
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
@@ -113,66 +101,24 @@ interface HospitalData {
 const fetchHospitalById = async (id: string): Promise<ApiHospitalData> => {
   const response = await fetch(`${API_URL}/api/hospital/byId`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id: id }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id }),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch hospital details");
-  }
-  return response.json();
+  if (!response.ok) throw new Error("Failed to fetch hospital details");
+  const data = await response.json();
+  return data.data || data.hospital || data;
 };
 
-const updateHospital = async (data: {
-  id: string;
-  hospitalData: Partial<ApiHospitalData>;
-}) => {
+const updateHospital = async (data: { id: string; hospitalData: Partial<ApiHospitalData> }) => {
   const response = await fetch(`${API_URL}/api/hospital/${data.id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data.hospitalData),
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to update hospital");
-  }
-
+  if (!response.ok) throw new Error("Failed to update hospital");
   return response.json();
 };
 
-// Hardcoded hospital admin data for testing
-const hardcodedHospitalAdmin = {
-  id: "1",
-  first_name: "John",
-  last_name: "Doe",
-  email: "john.doe@hospital.com",
-  phone: "+1234567890",
-  role: "hospital-admin",
-  location: "Chennai",
-  organization_type: "Hospital",
-  status: "ACTIVE",
-  profile_image: "",
-};
-
-const fetchHospitalAdmins = async () => {
-  const response = await fetch(`${API_URL}/api/user/hospital-admins`, {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${TOKEN}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error("Failed to fetch hospital admins");
-  }
-
-  return response.json();
-};
 
 const HospitalList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -191,14 +137,22 @@ const HospitalList: React.FC = () => {
     {
       label: "Name",
       key: "name",
+      type: "text" as const,
     },
     {
       label: "Branch Location",
       key: "branchLocation",
+      type: "text" as const,
+    },
+    {
+      label: "Updated on Portal",
+      key: "updatedOn",
+      type: "date" as const,
     },
     {
       label: "Status",
       key: "status",
+      type: "checkbox" as const,
       options: ["Active", "Inactive", "Pending"],
     },
   ];
@@ -208,14 +162,6 @@ const HospitalList: React.FC = () => {
       fetchHospitals(currentPage, pageSize, searchValue, filterValues),
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  const { data: hospitalAdminsData } = useQuery({
-    queryKey: ["hospitalAdmins"],
-    queryFn: fetchHospitalAdmins,
-    refetchOnMount: true,
-    refetchOnWindowFocus: false,
     staleTime: 0,
   });
 
@@ -239,67 +185,29 @@ const HospitalList: React.FC = () => {
   });
 
 
+
   const updateHospitalMutation = useMutation({
     mutationFn: updateHospital,
     onSuccess: () => {
-      // Invalidate all hospital-related queries
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-      // Also invalidate the specific hospital query if we're viewing one
-      if (viewHospitalId) {
-        queryClient.invalidateQueries({
-          queryKey: ["hospital", viewHospitalId],
-        });
-      }
-      // Invalidate the selected hospital query if we're editing one
-      if (selectedHospitalId) {
-        queryClient.invalidateQueries({
-          queryKey: ["hospital", selectedHospitalId],
-        });
-      }
+      if (viewHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
+      if (selectedHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", selectedHospitalId] });
     },
-    onError: (error) => {
-      message.error("Failed to update hospital");
-      console.error("Update error:", error);
-    },
+    onError: () => message.error("Failed to update hospital"),
   });
 
-  const handleSuccess = (message: string) => {
-    // Invalidate all hospital-related queries
+  const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-    // Also invalidate the specific hospital query if we're viewing one
-    if (viewHospitalId) {
-      queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
-    }
-    // Invalidate the selected hospital query if we're editing one
-    if (selectedHospitalId) {
-      queryClient.invalidateQueries({
-        queryKey: ["hospital", selectedHospitalId],
-      });
-    }
-    console.log("message:", message);
-    // Close the modal after successful update
+    if (viewHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
+    if (selectedHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", selectedHospitalId] });
     setIsModalOpen(false);
     setSelectedHospitalId(null);
   };
 
-  // Pass this function to the modal
-  const handleUpdateHospital = async (
-    hospitalData: Partial<ApiHospitalData>
-  ) => {
-    if (selectedHospitalId) {
-      console.log("Updating hospital with ID:", selectedHospitalId);
-      console.log("Hospital data:", hospitalData);
-      const response = await updateHospitalMutation.mutateAsync({
-        id: selectedHospitalId,
-        hospitalData,
-      });
-      showSuccess(notification, {
-        message: response.message,
-      });
-      // The mutation's onSuccess will handle query invalidation
-    } else {
-      console.error("No hospital ID selected for update.");
-    }
+  const handleUpdateHospital = async (hospitalData: Partial<ApiHospitalData>) => {
+    if (!selectedHospitalId) return;
+    const response = await updateHospitalMutation.mutateAsync({ id: selectedHospitalId, hospitalData });
+    showSuccess(notification, { message: response.message });
   };
 
   const handlePageChange = (page: number, pageSize?: number) => {
@@ -309,41 +217,70 @@ const HospitalList: React.FC = () => {
     }
   };
 
-  // Apply client-side filtering if API doesn't support name/branchLocation filters
   let filteredHospitals = hospitals?.data || [];
-  const nameFilter = filterValues.name;
-  const branchLocationFilter = filterValues.branchLocation;
+  const { name: nameFilter, branchLocation: branchLocationFilter, updatedOn: updatedOnFilter } = filterValues;
+  const statusFilters = Object.entries(filterValues)
+    .filter(([key, value]) => key.startsWith("status_") && value === true)
+    .map(([key]) => key.replace("status_", ""))
+    .filter(Boolean);
   
-  if (nameFilter || branchLocationFilter) {
+  const formatDate = (dateValue: string) => {
+    if (!dateValue) return null;
+    try {
+      const dateObj = new Date(dateValue);
+      if (isNaN(dateObj.getTime())) return null;
+      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+      return `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+    } catch {
+      return null;
+    }
+  };
+
+  const transformStatus = (status: string) => {
+    const statusLower = status?.toLowerCase() || "";
+    return statusLower === "active" ? "Active" : statusLower === "inactive" ? "Inactive" : "Pending";
+  };
+
+  const getDateValue = (hospital: ApiHospitalData) => (hospital as any).updatedAt || hospital.updated_at || "";
+
+  if (nameFilter || branchLocationFilter || updatedOnFilter || statusFilters.length > 0) {
     filteredHospitals = filteredHospitals.filter((hospital: ApiHospitalData) => {
-      const matchesName = !nameFilter || 
-        hospital.name?.toLowerCase().includes(String(nameFilter).toLowerCase().trim());
-      const matchesBranchLocation = !branchLocationFilter || 
-        hospital.branchLocation?.toLowerCase().includes(String(branchLocationFilter).toLowerCase().trim());
-      return matchesName && matchesBranchLocation;
+      const matchesName = !nameFilter || hospital.name?.toLowerCase().includes(String(nameFilter).toLowerCase().trim());
+      const matchesBranchLocation = !branchLocationFilter || hospital.branchLocation?.toLowerCase().includes(String(branchLocationFilter).toLowerCase().trim());
+      const matchesUpdatedOn = !updatedOnFilter || (() => {
+        try {
+          const hospitalDateValue = getDateValue(hospital);
+          if (!hospitalDateValue) return false;
+          const hospitalDate = new Date(hospitalDateValue);
+          const filterDate = new Date(updatedOnFilter);
+          if (isNaN(hospitalDate.getTime()) || isNaN(filterDate.getTime())) return false;
+          const hospitalDateOnly = new Date(hospitalDate.getFullYear(), hospitalDate.getMonth(), hospitalDate.getDate());
+          const filterDateOnly = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
+          return hospitalDateOnly.getTime() === filterDateOnly.getTime();
+        } catch {
+          return false;
+        }
+      })();
+      const matchesStatus = statusFilters.length === 0 || statusFilters.some(filter => 
+        transformStatus(hospital.status || "").toLowerCase() === filter.toLowerCase().trim()
+      );
+      return matchesName && matchesBranchLocation && matchesUpdatedOn && matchesStatus;
     });
   }
 
-  // Calculate total - use filtered count if client-side filtering is applied
-  const displayTotal = (nameFilter || branchLocationFilter) 
-    ? filteredHospitals.length 
-    : (hospitals?.total ?? 0);
+  const hasClientSideFilters = nameFilter || branchLocationFilter || updatedOnFilter || statusFilters.length > 0;
+  const displayTotal = hasClientSideFilters ? filteredHospitals.length : (hospitals?.total ?? 0);
 
-  const tableData: HospitalData[] =
-    filteredHospitals.map((hospital, index) => ({
-      key: hospital.id,
-      sNo: index + 1,
-      name: hospital.name,
-      logo: hospital.logoUrl,
-      branchLocation: hospital.branchLocation,
-      address: hospital.address,
-      updatedOn: (hospital as any).updatedAt || hospital.updated_at || "",
-      status: (hospital.status?.toLowerCase() === "active"
-        ? "Active"
-        : hospital.status?.toLowerCase() === "inactive"
-        ? "Inactive"
-        : "Pending") as HospitalData["status"],
-    }));
+  const tableData: HospitalData[] = filteredHospitals.map((hospital, index) => ({
+    key: hospital.id,
+    sNo: index + 1,
+    name: hospital.name,
+    logo: hospital.logoUrl,
+    branchLocation: hospital.branchLocation,
+    address: hospital.address,
+    updatedOn: getDateValue(hospital),
+    status: transformStatus(hospital.status || "") as HospitalData["status"],
+  }));
 
   const columns: ColumnsType<HospitalData> = [
     {
@@ -357,40 +294,30 @@ const HospitalList: React.FC = () => {
       dataIndex: "name",
       key: "name",
       render: (text, record) => {
-        // Helper function to check if logoUrl is a valid image URL
         const isValidImageUrl = (url: string | null) => {
-          if (!url || url === "" || url === "null") return false;
-          // Check if it's a JSON string (file metadata)
+          if (!url || url === "null") return false;
           try {
             JSON.parse(url);
-            return false; // It's JSON metadata, not a valid image URL
+            return false;
           } catch {
-            // It's not JSON, check if it's a valid URL
             return url.startsWith("http://") || url.startsWith("https://");
           }
         };
-
+        const hasValidImage = isValidImageUrl(record.logo);
         return (
           <div className="flex items-center gap-3">
-            {isValidImageUrl(record.logo) ? (
+            {hasValidImage && (
               <img
                 src={record.logo!}
                 alt={text}
                 className="w-10 h-10 rounded-full object-cover"
                 onError={(e) => {
-                  // Fallback to avatar if image fails to load
                   e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling?.classList.remove(
-                    "hidden"
-                  );
+                  e.currentTarget.nextElementSibling?.classList.remove("hidden");
                 }}
               />
-            ) : null}
-            <Avatar
-              className={`bg-button-primary text-white ${
-                isValidImageUrl(record.logo) ? "hidden" : ""
-              }`}
-            >
+            )}
+            <Avatar className={`bg-button-primary text-white ${hasValidImage ? "hidden" : ""}`}>
               {text.charAt(0)}
             </Avatar>
             <span>{text}</span>
@@ -409,23 +336,8 @@ const HospitalList: React.FC = () => {
       key: "updatedOn",
       width: 180,
       render: (dateValue: string) => {
-        if (!dateValue) {
-          return <span className="text-gray-500">N/A</span>;
-        }
-        try {
-          const dateObj = new Date(dateValue);
-          if (isNaN(dateObj.getTime())) {
-            return <span className="text-gray-500">N/A</span>;
-          }
-          const day = dateObj.getDate();
-          const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-          const month = monthNames[dateObj.getMonth()];
-          const year = dateObj.getFullYear();
-          return <span>{`${day} ${month} ${year}`}</span>;
-        } catch (error) {
-          console.error("Date parsing error:", error, dateValue);
-          return <span className="text-gray-500">N/A</span>;
-        }
+        const formatted = formatDate(dateValue);
+        return <span className={formatted ? "" : "text-gray-500"}>{formatted || "N/A"}</span>;
       },
     },
     {
@@ -433,17 +345,8 @@ const HospitalList: React.FC = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        const statusClass = (() => {
-          if (status === "Active") return "bg-green-50 text-green-600";
-          if (status === "Inactive") return "bg-red-50 text-red-600";
-          return "bg-orange-50 text-orange-600";
-        })();
-
-        return (
-          <Tag className={`px-3 py-1 rounded-full ${statusClass}`}>
-            {status}
-          </Tag>
-        );
+        const statusClass = status === "Active" ? "text-green-600 bg-green-50" : status === "Inactive" ? "text-red-600 bg-red-50" : "text-orange-600 bg-orange-50";
+        return <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>{status}</span>;
       },
     },
     {
@@ -471,66 +374,32 @@ const HospitalList: React.FC = () => {
   };
 
   const handleFilterChange = (filters: Record<string, any>) => {
-    // Clean up empty values from filters
     const cleanedFilters: Record<string, any> = {};
     Object.entries(filters).forEach(([key, value]) => {
-      // Only keep non-empty values
-      if (value !== "" && value !== null && value !== undefined) {
-        // For checkboxes, only keep if true
-        if (key.includes("_")) {
-          if (value === true) {
-            cleanedFilters[key] = value;
-          }
-        } else {
-          // For text inputs, trim and keep if not empty
-          const trimmed = String(value).trim();
-          if (trimmed) {
-            cleanedFilters[key] = trimmed;
-          }
-        }
+      if (value === "" || value === null || value === undefined) return;
+      if (key.includes("_")) {
+        if (value === true) cleanedFilters[key] = value;
+      } else {
+        const trimmed = String(value).trim();
+        if (trimmed) cleanedFilters[key] = trimmed;
       }
     });
-    
-    console.log("Filter values received:", filters);
-    console.log("Cleaned filter values:", cleanedFilters);
     setFilterValues(cleanedFilters);
     setCurrentPage(1);
   };
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!tableData || tableData.length === 0) {
-      console.log("No data to download");
-      return;
-    }
-
-    const headers = [
-      "S No",
-      "Hospital/Clinic Name",
-      "Branch Location",
-      "Status",
-    ];
-
-    const rows = [];
-    rows.push(headers.join(format === "csv" ? "," : "\t"));
-
-    tableData.forEach((row) => {
-      const values = [
-        row.sNo,
-        `"${row.name || "N/A"}"`,
-        `"${row.branchLocation || "N/A"}"`,
-        `"${row.status || "N/A"}"`,
-      ];
-      rows.push(values.join(format === "csv" ? "," : "\t"));
-    });
-
-    const content = rows.join("\n");
-    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
-    const fileExtension = format === "csv" ? "csv" : "xls";
-    const blob = new Blob([content], { type: mimeType });
+    if (!tableData?.length) return;
+    const delimiter = format === "csv" ? "," : "\t";
+    const headers = ["S No", "Hospital/Clinic Name", "Branch Location", "Status"];
+    const rows = [headers.join(delimiter), ...tableData.map(row => 
+      [row.sNo, `"${row.name || "N/A"}"`, `"${row.branchLocation || "N/A"}"`, `"${row.status || "N/A"}"`].join(delimiter)
+    )];
+    const blob = new Blob([rows.join("\n")], { type: format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${format === "csv" ? "csv" : "xls"}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -598,120 +467,46 @@ const HospitalList: React.FC = () => {
             <div className="flex items-center gap-3">
               {(() => {
                 const isValidImageUrl = (url: string | null) => {
-                  if (!url || url === "" || url === "null") return false;
+                  if (!url || url === "null") return false;
                   try {
                     JSON.parse(url);
                     return false;
                   } catch {
-                    return (
-                      url.startsWith("http://") || url.startsWith("https://")
-                    );
+                    return url.startsWith("http://") || url.startsWith("https://");
                   }
                 };
-
-                return isValidImageUrl(viewHospital.logoUrl) ? (
-                  <img
-                    src={viewHospital.logoUrl!}
-                    alt={viewHospital.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
+                const hasValidImage = isValidImageUrl(viewHospital.logoUrl);
+                return hasValidImage ? (
+                  <img src={viewHospital.logoUrl!} alt={viewHospital.name} className="w-12 h-12 rounded-full object-cover" />
                 ) : (
-                  <Avatar size={50} className="bg-button-primary">
-                    {viewHospital.name?.charAt(0) || ""}
-                  </Avatar>
+                  <Avatar size={50} className="bg-button-primary">{viewHospital.name?.charAt(0) || ""}</Avatar>
                 );
               })()}
-              <div className="flex  items-center gap-3">
+              <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold">{viewHospital.name}</h3>
-                <Tag
-                  className={`flex items-center justify-center mx-2 mb-2 rounded-md text-center ${
-                    viewHospital.isActive
-                      ? "bg-green-50 text-green-600"
-                      : "bg-red-50 text-red-600"
-                  }`}
-                >
-                  {viewHospital.isActive ? "Active" : "Inactive"}
-                </Tag>
+                {(() => {
+                  const transformedStatus = transformStatus(viewHospital.status || "");
+                  const statusClass = transformedStatus === "Active" ? "text-green-600 bg-green-50" : transformedStatus === "Inactive" ? "text-red-600 bg-red-50" : "text-orange-600 bg-orange-50";
+                  return <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>{transformedStatus}</span>;
+                })()}
               </div>
             </div>
 
             <div>
               <h4 className="font-medium mb-2">Branch Location</h4>
-              <p>{viewHospital.branchLocation}</p>
+              <p>{viewHospital.branchLocation || "N/A"}</p>
             </div>
 
-            {/* Hospital Admins Section */}
-            {hospitalAdminsData && (
-              <div>
-                <h4 className="font-medium mb-4 flex items-center gap-2">
-                  <UserOutlined /> Hospital Admins
-                </h4>
-                {Array.isArray(hospitalAdminsData) && hospitalAdminsData.length > 0 ? (
-                  <div className="space-y-4">
-                    {hospitalAdminsData.map((admin: any) => (
-                      <div
-                        key={admin.id}
-                        className="border border-gray-200 rounded-lg p-4"
-                      >
-                        <div className="flex items-center gap-3 mb-3">
-                          {admin.profile_image || admin.image_url ? (
-                            <img
-                              src={admin.profile_image || admin.image_url}
-                              alt={`${admin.first_name} ${admin.last_name}`}
-                              className="w-10 h-10 rounded-full object-cover"
-                            />
-                          ) : (
-                            <Avatar className="bg-button-primary text-white">
-                              {admin.first_name?.charAt(0) || "A"}
-                            </Avatar>
-                          )}
-                          <div>
-                            <p className="font-medium">
-                              {admin.first_name} {admin.last_name}
-                            </p>
-                            <p className="text-sm text-gray-500">{admin.role}</p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-sm">
-                          <div className="flex items-center gap-2">
-                            <MailOutlined className="text-gray-400" />
-                            <span className="text-gray-600">Email:</span>
-                            <span>{admin.email || "N/A"}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <PhoneOutlined className="text-gray-400" />
-                            <span className="text-gray-600">Phone:</span>
-                            <span>{admin.phone || "N/A"}</span>
-                          </div>
-                          {admin.location && (
-                            <div>
-                              <span className="text-gray-600">Location:</span>
-                              <span className="ml-2">{admin.location}</span>
-                            </div>
-                          )}
-                          {admin.status && (
-                            <div>
-                              <span className="text-gray-600">Status:</span>
-                              <Tag
-                                className={`ml-2 ${
-                                  admin.status === "ACTIVE"
-                                    ? "bg-green-50 text-green-600"
-                                    : "bg-red-50 text-red-600"
-                                }`}
-                              >
-                                {admin.status}
-                              </Tag>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-gray-500">No hospital admins found</p>
-                )}
-              </div>
-            )}
+            <div>
+              <h4 className="font-medium mb-2">Updated on Portal</h4>
+              <p>
+                {(() => {
+                  const dateValue = (viewHospital as any)?.updatedAt || viewHospital?.updated_at || (viewHospital as any)?.createdOn || (viewHospital as any)?.created_at || "";
+                  const formatted = formatDate(String(dateValue).trim());
+                  return <span className={formatted ? "" : "text-gray-500"}>{formatted || "N/A"}</span>;
+                })()}
+              </p>
+            </div>
           </div>
         ) : null}
       </Drawer>
@@ -723,7 +518,7 @@ const HospitalList: React.FC = () => {
           setIsModalOpen(false);
           setSelectedHospitalId(null);
         }}
-        onSuccess={() => handleSuccess("Hospital updated successfully")}
+        onSuccess={handleSuccess}
         initialData={selectedHospital}
         onUpdate={handleUpdateHospital}
         isEditing={!!selectedHospitalId}

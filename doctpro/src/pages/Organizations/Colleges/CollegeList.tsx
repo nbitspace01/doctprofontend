@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Avatar, Button, Table, Tag, message } from "antd";
+import { Avatar, Button, Table, message } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 import React, { useState } from "react";
@@ -10,6 +10,7 @@ import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import CommonPagination from "../../Common/CommonPagination";
 import CollegeViewDrawer from "./CollegeViewDrawer";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface CollegeData {
   key: string;
@@ -18,9 +19,12 @@ interface CollegeData {
   logo: string;
   collegeName: string;
   location: string;
+  state: string;
+  district: string;
   associatedHospital: any[];
   hospitals: any[];
   createdOn: string;
+  created_at: string;
   status: "Active" | "Pending" | "Unactive";
 }
 
@@ -145,9 +149,16 @@ const CollegeList: React.FC = () => {
       ),
     },
     {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
+      title: "State",
+      dataIndex: "state",
+      key: "state",
+      render: (state) => state ?? "N/A",
+    },
+    {
+      title: "District",
+      dataIndex: "district",
+      key: "district",
+      render: (district) => district ?? "N/A",
     },
     {
       title: "Associated Hospital",
@@ -178,19 +189,7 @@ const CollegeList: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status) => (
-        <Tag
-          className={`px-3 py-1 rounded-full ${
-            status === "Active"
-              ? "bg-green-50 text-green-600"
-              : status === "Pending"
-              ? "bg-yellow-50 text-yellow-600"
-              : "bg-red-50 text-red-600"
-          }`}
-        >
-          {status}
-        </Tag>
-      ),
+      render: (status) => <StatusBadge status={status || ""} />,
     },
     {
       title: "Action",
@@ -218,7 +217,9 @@ const CollegeList: React.FC = () => {
       sNo: (currentPage - 1) * pageSize + index + 1,
       logo: college.logo ?? null,
       collegeName: college.name ?? "N/A",
-      location: college.city ?? "N/A",
+      location: college.city ?? "N/A", // Keep for backward compatibility
+      state: college.state ?? "N/A",
+      district: college.district ?? "N/A",
       associatedHospital: college.associatedHospital ?? "N/A",
       hospitals: college.hospitals || [], // Include hospitals data
       createdOn:
@@ -227,6 +228,7 @@ const CollegeList: React.FC = () => {
           month: "long",
           year: "numeric",
         }) ?? "N/A",
+      created_at: college.created_at || "", // Store original date for filtering
       status: college.status ?? "Pending",
     })) ?? [];
   
@@ -240,8 +242,10 @@ const CollegeList: React.FC = () => {
   let filteredTableData = transformedData;
   const statusFilters: string[] = [];
   const nameFilter = filterValues.name;
-  const locationFilter = filterValues.location;
+  const stateFilter = filterValues.state;
+  const districtFilter = filterValues.district;
   const associatedHospitalFilter = filterValues.associatedHospital;
+  const createdOnFilter = filterValues.createdOn;
   
   // Collect status filters from filterValues
   Object.entries(filterValues).forEach(([key, value]) => {
@@ -266,21 +270,45 @@ const CollegeList: React.FC = () => {
   
   // Always apply client-side filtering for status to ensure it works
   // Apply all filters
-  if (nameFilter || locationFilter || associatedHospitalFilter || statusFilters.length > 0) {
+  if (nameFilter || stateFilter || districtFilter || associatedHospitalFilter || createdOnFilter || statusFilters.length > 0) {
     filteredTableData = transformedData.filter((college: CollegeData) => {
       // Name filter
       const matchesName = !nameFilter || 
         (college.collegeName && college.collegeName.toLowerCase().includes(String(nameFilter).toLowerCase().trim()));
       
-      // Location filter
-      const matchesLocation = !locationFilter || 
-        (college.location && college.location.toLowerCase().includes(String(locationFilter).toLowerCase().trim()));
+      // State filter
+      const matchesState = !stateFilter || 
+        (college.state && college.state.toLowerCase().includes(String(stateFilter).toLowerCase().trim()));
+      
+      // District filter
+      const matchesDistrict = !districtFilter || 
+        (college.district && college.district.toLowerCase().includes(String(districtFilter).toLowerCase().trim()));
       
       // Associated Hospital filter
       const matchesHospital = !associatedHospitalFilter || 
         (college.hospitals && college.hospitals.some((h: any) => 
           h.name && h.name.toLowerCase().includes(String(associatedHospitalFilter).toLowerCase().trim())
         )) || false;
+      
+      // Created On date filter
+      const matchesCreatedOn = !createdOnFilter || (() => {
+        if (!college.created_at) return false;
+        try {
+          // Parse the filter date (format: "YYYY-MM-DD" from DatePicker)
+          const filterDate = new Date(createdOnFilter);
+          filterDate.setHours(0, 0, 0, 0);
+          
+          // Parse the college created_at date
+          const collegeDate = new Date(college.created_at);
+          collegeDate.setHours(0, 0, 0, 0);
+          
+          // Compare dates (ignore time)
+          return filterDate.getTime() === collegeDate.getTime();
+        } catch (error) {
+          console.error("Error parsing date:", error);
+          return false;
+        }
+      })();
       
       // Status filter - always apply client-side for reliability
       const matchesStatus = statusFilters.length === 0 || (() => {
@@ -303,7 +331,7 @@ const CollegeList: React.FC = () => {
         return matches;
       })();
       
-      return matchesName && matchesLocation && matchesHospital && matchesStatus;
+      return matchesName && matchesState && matchesDistrict && matchesHospital && matchesCreatedOn && matchesStatus;
     });
     
     console.log("College filter - Total data after filter:", filteredTableData.length);
@@ -313,7 +341,7 @@ const CollegeList: React.FC = () => {
   const tableData = filteredTableData.length > 0 ? filteredTableData : [];
   
   // Calculate total for pagination - use filtered count if client-side filtering is applied
-  const hasClientSideFilters = nameFilter || locationFilter || associatedHospitalFilter || statusFilters.length > 0;
+  const hasClientSideFilters = nameFilter || stateFilter || districtFilter || associatedHospitalFilter || createdOnFilter || statusFilters.length > 0;
   const displayTotal = hasClientSideFilters ? filteredTableData.length : (fetchedColleges?.total ?? 0);
 
   const handleAddCollegeClick = () => {
@@ -376,18 +404,32 @@ const CollegeList: React.FC = () => {
     {
       label: "College Name",
       key: "name",
+      type: "text" as const,
     },
     {
-      label: "Location",
-      key: "location",
+      label: "State",
+      key: "state",
+      type: "text" as const,
+    },
+    {
+      label: "District",
+      key: "district",
+      type: "text" as const,
     },
     {
       label: "Associated Hospital",
       key: "associatedHospital",
+      type: "text" as const,
+    },
+    {
+      label: "Created On",
+      key: "createdOn",
+      type: "date" as const,
     },
     {
       label: "Status",
       key: "status",
+      type: "checkbox" as const,
       options: ["Active", "Pending", "Unactive"],
     },
   ];
@@ -428,7 +470,8 @@ const CollegeList: React.FC = () => {
     const headers = [
       "S No",
       "College Name",
-      "Location",
+      "State",
+      "District",
       "Associated Hospital",
       "Created On",
       "Status",
@@ -441,7 +484,8 @@ const CollegeList: React.FC = () => {
       const values = [
         row.sNo,
         `"${row.collegeName || "N/A"}"`,
-        `"${row.location || "N/A"}"`,
+        `"${row.state || "N/A"}"`,
+        `"${row.district || "N/A"}"`,
         `"${row.hospitals?.map((h: any) => h.name).join(", ") || "N/A"}"`,
         `"${row.createdOn || "N/A"}"`,
         `"${row.status || "N/A"}"`,

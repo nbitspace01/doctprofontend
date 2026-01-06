@@ -123,9 +123,41 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
           name="state"
           rules={[{ required: true, message: "Please select state" }]}
         >
-          <Select placeholder="Select State">
+          <Select 
+            placeholder="Select State"
+            showSearch
+            filterOption={(input, option) =>
+              (option?.children ?? "").toString().toLowerCase().includes(input.toLowerCase())
+            }
+          >
+            <Select.Option value="Andhra Pradesh">Andhra Pradesh</Select.Option>
+            <Select.Option value="Arunachal Pradesh">Arunachal Pradesh</Select.Option>
+            <Select.Option value="Assam">Assam</Select.Option>
+            <Select.Option value="Bihar">Bihar</Select.Option>
+            <Select.Option value="Chhattisgarh">Chhattisgarh</Select.Option>
+            <Select.Option value="Goa">Goa</Select.Option>
+            <Select.Option value="Gujarat">Gujarat</Select.Option>
+            <Select.Option value="Haryana">Haryana</Select.Option>
+            <Select.Option value="Himachal Pradesh">Himachal Pradesh</Select.Option>
+            <Select.Option value="Jharkhand">Jharkhand</Select.Option>
+            <Select.Option value="Karnataka">Karnataka</Select.Option>
+            <Select.Option value="Kerala">Kerala</Select.Option>
+            <Select.Option value="Madhya Pradesh">Madhya Pradesh</Select.Option>
+            <Select.Option value="Maharashtra">Maharashtra</Select.Option>
+            <Select.Option value="Manipur">Manipur</Select.Option>
+            <Select.Option value="Meghalaya">Meghalaya</Select.Option>
+            <Select.Option value="Mizoram">Mizoram</Select.Option>
+            <Select.Option value="Nagaland">Nagaland</Select.Option>
+            <Select.Option value="Odisha">Odisha</Select.Option>
+            <Select.Option value="Punjab">Punjab</Select.Option>
+            <Select.Option value="Rajasthan">Rajasthan</Select.Option>
+            <Select.Option value="Sikkim">Sikkim</Select.Option>
             <Select.Option value="Tamil Nadu">Tamil Nadu</Select.Option>
-            {/* Add more states as needed */}
+            <Select.Option value="Telangana">Telangana</Select.Option>
+            <Select.Option value="Tripura">Tripura</Select.Option>
+            <Select.Option value="Uttar Pradesh">Uttar Pradesh</Select.Option>
+            <Select.Option value="Uttarakhand">Uttarakhand</Select.Option>
+            <Select.Option value="West Bengal">West Bengal</Select.Option>
           </Select>
         </Form.Item>
 

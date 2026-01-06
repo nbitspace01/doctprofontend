@@ -1,7 +1,8 @@
 import React from "react";
-import { Drawer, Button, Tag, Avatar, Spin } from "antd";
+import { Drawer, Button, Avatar, Spin } from "antd";
 import { CloseOutlined, UserOutlined } from "@ant-design/icons";
 import { useCollegeById } from "../../../api/college";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface CollegeViewDrawerProps {
   open: boolean;
@@ -62,31 +63,35 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
         ) : college ? (
           <>
             <div className="flex items-center gap-4 mb-8">
-              <Avatar size={48} icon={<UserOutlined />} />
+              {college.logo ? (
+                <img
+                  src={college.logo}
+                  alt={college.name || "College"}
+                  className="w-12 h-12 rounded-full object-cover"
+                />
+              ) : (
+                <Avatar size={48} icon={<UserOutlined />} />
+              )}
               <span className="font-semibold text-lg">
                 {college.name || "N/A"}
               </span>
             </div>
             <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
               <div>
-                <div className="text-xs text-gray-500">Location:</div>
+                <div className="text-xs text-gray-500">State</div>
+                <div className="text-sm">{college.state || "N/A"}</div>
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">District</div>
+                <div className="text-sm">{college.district || "N/A"}</div>
+              </div>
+              <div className="col-span-2">
+                <div className="text-xs text-gray-500">Associated Hospitals</div>
                 <div className="text-sm">
-                  {college.city && college.state
-                    ? `${college.city}, ${college.state}`
-                    : college.city || college.state || "N/A"}
+                  {college.hospitals && college.hospitals.length > 0
+                    ? college.hospitals.map((hospital: any) => hospital.name).join(", ")
+                    : "No hospitals associated"}
                 </div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Email</div>
-                <div className="text-sm">{college.email || "N/A"}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Phone</div>
-                <div className="text-sm">{college.phone || "N/A"}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Website</div>
-                <div className="text-sm">{college.website_url || "N/A"}</div>
               </div>
               <div>
                 <div className="text-xs text-gray-500">Created on</div>
@@ -102,18 +107,9 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
               </div>
               <div>
                 <div className="text-xs text-gray-500">Status</div>
-                <Tag
-                  color={
-                    college.status === "Active"
-                      ? "green"
-                      : college.status === "Pending"
-                      ? "orange"
-                      : "red"
-                  }
-                  className="mt-1"
-                >
-                  {college.status || "Pending"}
-                </Tag>
+                <div className="mt-1">
+                  <StatusBadge status={college.status || "Pending"} />
+                </div>
               </div>
             </div>
           </>
