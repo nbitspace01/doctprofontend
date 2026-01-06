@@ -1,33 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Avatar, Card, Progress, Select } from "antd";
+import { Avatar, Card } from "antd";
 import axios from "axios";
 import React from "react";
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Legend,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  totalCollege,
   totalHealthCare,
   totalHospital,
-  totalStudents,
 } from "../../pages/Common/SVG/svg.functions";
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
-
-const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
-  <div className="text-center text-sm">
-    <p className="text-gray-600">Total User</p>
-    <p className="text-3xl font-bold">{total}</p>
-  </div>
-);
 
 const SubAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -55,7 +37,6 @@ const SubAdminDashboard: React.FC = () => {
 
   const { 
     data, 
-    isLoading, 
     isError, 
     error: dashboardCountsError 
   } = useQuery({
@@ -90,8 +71,6 @@ const SubAdminDashboard: React.FC = () => {
   });
 
   const {
-    data: kycStats,
-    isLoading: kycStatsLoading,
     isError: kycStatsError,
     error: kycStatsErrorObj,
   } = useQuery({
@@ -155,51 +134,6 @@ const SubAdminDashboard: React.FC = () => {
   const professionals = Array.isArray(subAdminHealthCare)
     ? subAdminHealthCare
     : (subAdminHealthCare?.data || []);
-
-  const data1 = [
-    {
-      date: "1 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 6,
-    },
-    {
-      date: "2 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-    {
-      date: "3 Mar",
-      Hospital: 5,
-      healthcare: 3,
-      "Medical Student": 8,
-      CountKYC: 4,
-    },
-    {
-      date: "4 Mar",
-      Hospital: 8,
-      healthcare: 5,
-      "Medical Student": 20,
-      CountKYC: 7,
-    },
-    {
-      date: "5 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 5,
-    },
-    {
-      date: "6 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-  ];
 
   return (
     <div className="">

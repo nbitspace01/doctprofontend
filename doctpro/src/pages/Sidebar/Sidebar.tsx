@@ -159,36 +159,36 @@ const Sidebar: React.FC = () => {
         },
       ],
     },
-    {
-      id: "organizations",
-      label: "Organizations",
-      icon: <Building2 />,
-      onClick: () => {
-        setSelectedItem("organizations");
-        toggleSubmenu("organizations");
-      },
-      subMenu: [
-        {
-          id: "clinics",
-          label: "Clinics",
-          icon: <Building2 />,
-          onClick: () => {
-            setSelectedItem("organizations");
-            setSelectedSubMenu("clinics");
-            setExpandedMenus(["organizations"]);
-            navigate({ to: "/app/clinics" });
-          },
-        },
-        {
-          id: "colleges",
-          label: "Colleges",
-          onClick: () => {
-            setSelectedSubMenu("colleges");
-            navigate({ to: "/app/colleges/list" });
-          },
-        },
-      ],
-    },
+    // {
+    //   id: "organizations",
+    //   label: "Organizations",
+    //   icon: <Building2 />,
+    //   onClick: () => {
+    //     setSelectedItem("organizations");
+    //     toggleSubmenu("organizations");
+    //   },
+    //   subMenu: [
+    //     {
+    //       id: "clinics",
+    //       label: "Clinics",
+    //       icon: <Building2 />,
+    //       onClick: () => {
+    //         setSelectedItem("organizations");
+    //         setSelectedSubMenu("clinics");
+    //         setExpandedMenus(["organizations"]);
+    //         navigate({ to: "/app/clinics" });
+    //       },
+    //     },
+    //     {
+    //       id: "colleges",
+    //       label: "Colleges",
+    //       onClick: () => {
+    //         setSelectedSubMenu("colleges");
+    //         navigate({ to: "/app/colleges/list" });
+    //       },
+    //     },
+    //   ],
+    // },
     {
       id: "people",
       label: "People Management",
@@ -214,124 +214,133 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/healthcare" });
           },
         },
-        {
-          id: "campaign",
-          label: "Campaign",
-          onClick: () => {
-            setSelectedSubMenu("campaign");
-            navigate({ to: "/app/campaign" });
-          },
-        },
+        // {
+        //   id: "campaign",
+        //   label: "Campaign",
+        //   onClick: () => {
+        //     setSelectedSubMenu("campaign");
+        //     navigate({ to: "/app/campaign" });
+        //   },
+        // },
       ],
     },
-    {
-      id: "job-post",
-      label: "Job post Management",
-      icon: <Briefcase />,
-      onClick: () => {
-        setSelectedItem("job-post");
-        setExpandedMenus([]);
-        navigate({ to: "/app/job-post" });
-      },
-    },
-    {
-      id: "ad-management",
-      label: "Ads Management",
-      icon: <FileText />,
-      onClick: () => {
-        toggleSubmenu("ad-management");
-        setSelectedItem("ad-management");
-      },
-      subMenu: [
-        {
-          id: "adspostlist",
-          label: "Ads Post List",
-          onClick: () => {
-            setSelectedSubMenu("adspostlist");
-            navigate({ to: "/app/ads" });
-          },
-        },
-      ],
-    },
-    {
-      id: "kyc",
-      label: "KYC Management",
-      icon: <UserRoundCog />,
-      onClick: () => {
-        setSelectedItem("kyc");
-        setExpandedMenus((prev) => (prev.includes("kyc") ? [] : ["kyc"]));
-        navigate({ to: "/app/kyc" });
-      },
-    },
-    { id: "settings", label: "Settings", icon: <Settings /> },
-    { id: "help", label: "Help & Support", icon: <MessageCircleQuestion /> },
-    {
-      id: "roles",
-      label: "Roles & Permission",
-      icon: <ShieldCheck />,
-    },
+    // {
+    //   id: "job-post",
+    //   label: "Job post Management",
+    //   icon: <Briefcase />,
+    //   onClick: () => {
+    //     setSelectedItem("job-post");
+    //     setExpandedMenus([]);
+    //     navigate({ to: "/app/job-post" });
+    //   },
+    // },
+    // {
+    //   id: "ad-management",
+    //   label: "Ads Management",
+    //   icon: <FileText />,
+    //   onClick: () => {
+    //     toggleSubmenu("ad-management");
+    //     setSelectedItem("ad-management");
+    //   },
+    //   subMenu: [
+    //     {
+    //       id: "adspostlist",
+    //       label: "Ads Post List",
+    //       onClick: () => {
+    //         setSelectedSubMenu("adspostlist");
+    //         navigate({ to: "/app/ads" });
+    //       },
+    //     },
+    //   ],
+    // },
+    // {
+    //   id: "kyc",
+    //   label: "KYC Management",
+    //   icon: <UserRoundCog />,
+    //   onClick: () => {
+    //     setSelectedItem("kyc");
+    //     setExpandedMenus((prev) => (prev.includes("kyc") ? [] : ["kyc"]));
+    //     navigate({ to: "/app/kyc" });
+    //   },
+    // },
+    // { id: "settings", label: "Settings", icon: <Settings /> },
+    // { id: "help", label: "Help & Support", icon: <MessageCircleQuestion /> },
+    // {
+    //   id: "roles",
+    //   label: "Roles & Permission",
+    //   icon: <ShieldCheck />,
+    // },
   ];
 
   // Filter menu items based on user role
   const getFilteredMenuItems = () => {
-    if (roleName === "hospital") {
-      // Hospital admin sees only: Hospital Dashboard, Job Post Management, and Healthcare Professionals
+    // Normalize role name for comparison (case-insensitive, handle variations)
+    const normalizedRoleName = roleName?.toLowerCase()?.trim() || "";
+    
+    // Debug: Log role name to help identify the issue
+    console.log("Sidebar - roleName:", roleName, "normalized:", normalizedRoleName);
+    
+    // Check for hospital admin role (handle various formats)
+    const isHospitalAdmin = normalizedRoleName === "hospital" || 
+                            normalizedRoleName === "hospital_admin" || 
+                            normalizedRoleName === "hospitaladmin" ||
+                            normalizedRoleName === "hospital admin";
+    
+    // Check for subadmin role
+    const isSubAdmin = normalizedRoleName === "subadmin" || 
+                       normalizedRoleName === "sub_admin" || 
+                       normalizedRoleName === "sub-admin";
+    
+    if (isHospitalAdmin) {
+      console.log("Filtering menu for Hospital Admin");
+      // Hospital admin sees: Hospital Dashboard, Master List, People Management (with Students and Healthcare Professionals), and Hospital Admin List
       const hospitalDashboard = allMenuItems.find((item) => item.id === "hospital-dashboard");
-      const jobPost = allMenuItems.find((item) => item.id === "job-post");
+      const mastersMenu = allMenuItems.find((item) => item.id === "masters");
       const peopleMenu = allMenuItems.find((item) => item.id === "people");
+      const hospitalAdminItem = allMenuItems.find((item) => item.id === "hospital-admin");
+      
+      // Get Students and Healthcare Professionals from the original People Management menu
+      const studentsSubItem = peopleMenu && "subMenu" in peopleMenu 
+        ? peopleMenu.subMenu?.find((subItem: any) => subItem.id === "students")
+        : null;
       const healthcareSubItem = peopleMenu && "subMenu" in peopleMenu 
         ? peopleMenu.subMenu?.find((subItem: any) => subItem.id === "healthcare")
         : null;
       
-      // Create Healthcare Professionals as a direct menu item
-      const healthcareMenuItem = healthcareSubItem ? {
-        id: "healthcare",
-        label: "Healthcare Professionals",
+      // Create People Management menu with only Students and Healthcare Professionals as submenus
+      const peopleMenuWithSubItems = {
+        id: "people",
+        label: "People Management",
         icon: <Building />,
         onClick: () => {
-          setSelectedItem("healthcare");
-          setExpandedMenus([]);
-          navigate({ to: "/app/healthcare" });
+          setSelectedItem("people");
+          toggleSubmenu("people");
         },
-      } : null;
+        subMenu: [
+          ...(studentsSubItem ? [studentsSubItem] : []),
+          ...(healthcareSubItem ? [healthcareSubItem] : []),
+        ],
+      };
 
       // Return filtered menu items
       const filteredItems: any[] = [];
       if (hospitalDashboard) filteredItems.push(hospitalDashboard);
-      if (jobPost) filteredItems.push(jobPost);
-      if (healthcareMenuItem) filteredItems.push(healthcareMenuItem);
+      if (mastersMenu) filteredItems.push(mastersMenu);
+      if (peopleMenuWithSubItems.subMenu.length > 0) filteredItems.push(peopleMenuWithSubItems);
+      if (hospitalAdminItem) filteredItems.push(hospitalAdminItem);
       
+      console.log("Hospital Admin filtered items:", filteredItems.length);
       return filteredItems;
-    } else if (roleName === "subadmin") {
-      // Subadmin sees: Sub-Admin Dashboard, Sub-Admin List, and Healthcare Professionals
-      const subAdminDashboard = allMenuItems.find((item) => item.id === "sub-admin-dashboard");
-      const subAdminList = allMenuItems.find((item) => item.id === "sub-admin");
-      const peopleMenu = allMenuItems.find((item) => item.id === "people");
-      const healthcareSubItem = peopleMenu && "subMenu" in peopleMenu 
-        ? peopleMenu.subMenu?.find((subItem: any) => subItem.id === "healthcare")
-        : null;
-      
-      // Create Healthcare Professionals as a direct menu item
-      const healthcareMenuItem = healthcareSubItem ? {
-        id: "healthcare",
-        label: "Healthcare Professionals",
-        icon: <Building />,
-        onClick: () => {
-          setSelectedItem("healthcare");
-          setExpandedMenus([]);
-          navigate({ to: "/app/healthcare" });
-        },
-      } : null;
-
-      // Return filtered menu items
-      const filteredItems: any[] = [];
-      if (subAdminDashboard) filteredItems.push(subAdminDashboard);
-      if (subAdminList) filteredItems.push(subAdminList);
-      if (healthcareMenuItem) filteredItems.push(healthcareMenuItem);
-      
-      return filteredItems;
+    } else if (isSubAdmin) {
+      console.log("Filtering menu for SubAdmin");
+      // Subadmin sees all modules except Super admin Dashboard
+      const filtered = allMenuItems.filter((item) => item.id !== "dashboard");
+      console.log("SubAdmin filtered items:", filtered.length);
+      return filtered;
     }
+    
     // Super admin (admin) sees all menu items
+    console.log("Showing all menu items for role:", roleName);
     return allMenuItems;
   };
 
