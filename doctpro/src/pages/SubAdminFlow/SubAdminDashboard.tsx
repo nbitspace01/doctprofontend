@@ -241,7 +241,6 @@ const SubAdminDashboard: React.FC = () => {
               </Card>
             ))
         ) : (
-          // Show fallback cards when data is not available
           [
             { key: "totalHospitals", label: "Total Hospitals", icon: totalHospital },
             { key: "pendingKycCount", label: "KYC Pending", icon: totalHealthCare },
