@@ -224,52 +224,52 @@ const Sidebar: React.FC = () => {
         // },
       ],
     },
-    // {
-    //   id: "job-post",
-    //   label: "Job post Management",
-    //   icon: <Briefcase />,
-    //   onClick: () => {
-    //     setSelectedItem("job-post");
-    //     setExpandedMenus([]);
-    //     navigate({ to: "/app/job-post" });
-    //   },
-    // },
-    // {
-    //   id: "ad-management",
-    //   label: "Ads Management",
-    //   icon: <FileText />,
-    //   onClick: () => {
-    //     toggleSubmenu("ad-management");
-    //     setSelectedItem("ad-management");
-    //   },
-    //   subMenu: [
-    //     {
-    //       id: "adspostlist",
-    //       label: "Ads Post List",
-    //       onClick: () => {
-    //         setSelectedSubMenu("adspostlist");
-    //         navigate({ to: "/app/ads" });
-    //       },
-    //     },
-    //   ],
-    // },
-    // {
-    //   id: "kyc",
-    //   label: "KYC Management",
-    //   icon: <UserRoundCog />,
-    //   onClick: () => {
-    //     setSelectedItem("kyc");
-    //     setExpandedMenus((prev) => (prev.includes("kyc") ? [] : ["kyc"]));
-    //     navigate({ to: "/app/kyc" });
-    //   },
-    // },
-    // { id: "settings", label: "Settings", icon: <Settings /> },
-    // { id: "help", label: "Help & Support", icon: <MessageCircleQuestion /> },
-    // {
-    //   id: "roles",
-    //   label: "Roles & Permission",
-    //   icon: <ShieldCheck />,
-    // },
+    {
+      id: "job-post",
+      label: "Job post Management",
+      icon: <Briefcase />,
+      onClick: () => {
+        setSelectedItem("job-post");
+        setExpandedMenus([]);
+        navigate({ to: "/app/job-post" });
+      },
+    },
+    {
+      id: "ad-management",
+      label: "Ads Management",
+      icon: <FileText />,
+      onClick: () => {
+        toggleSubmenu("ad-management");
+        setSelectedItem("ad-management");
+      },
+      subMenu: [
+        {
+          id: "adspostlist",
+          label: "Ads Post List",
+          onClick: () => {
+            setSelectedSubMenu("adspostlist");
+            navigate({ to: "/app/ads" });
+          },
+        },
+      ],
+    },
+    {
+      id: "kyc",
+      label: "KYC Management",
+      icon: <UserRoundCog />,
+      onClick: () => {
+        setSelectedItem("kyc");
+        setExpandedMenus((prev) => (prev.includes("kyc") ? [] : ["kyc"]));
+        navigate({ to: "/app/kyc" });
+      },
+    },
+    { id: "settings", label: "Settings", icon: <Settings /> },
+    { id: "help", label: "Help & Support", icon: <MessageCircleQuestion /> },
+    {
+      id: "roles",
+      label: "Roles & Permission",
+      icon: <ShieldCheck />,
+    },
   ];
 
   // Filter menu items based on user role
