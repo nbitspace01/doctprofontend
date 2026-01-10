@@ -21,6 +21,7 @@ import {
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
+import api from "../Common/axiosInstance";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -31,33 +32,29 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 
 const SubAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+
   const fetchDashboardCounts = async () => {
-    const res = await axios.get(
-      `${API_URL}/api/dashboard/subadmin-counts/location`,
-      {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      }
-    );
+    const res = await api.get("/api/dashboard/subadmin-counts/location");
+    console.log("dashboard counts: ", res.data);
     return res.data;
   };
 
   const fetchKycStats = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/getKycStatusCounts`, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-      },
-    });
+    const res = await api.get(`/api/dashboard/getKycStatusCounts`);
     return res.data;
   };
 
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    error: dashboardCountsError 
+  const fetchSubAdminHealthCare = async () => {
+    const res = await api.get(`/api/professinal`);
+    console.log(res.data, "res.data");
+    return res.data;
+  };
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error: dashboardCountsError,
   } = useQuery({
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
@@ -65,19 +62,6 @@ const SubAdminDashboard: React.FC = () => {
     // Make this query non-blocking - show UI even if it fails
     // We'll show fallback values
   });
-
-  const fetchSubAdminHealthCare = async () => {
-    const res = await axios.get(
-      `${API_URL}/api/professinal`,
-      {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      }
-    );
-    console.log(res.data, "res.data");
-    return res.data;
-  };
 
   const {
     data: subAdminHealthCare,
@@ -104,17 +88,19 @@ const SubAdminDashboard: React.FC = () => {
 
   // Only show loading for subAdminHealthCare (critical for the table)
   // dashboardCounts and kycStats are non-blocking - show UI even if they fail
-  if (subAdminHealthCareLoading)
-    return <Loader size="large" />;
-  
+  if (subAdminHealthCareLoading) return <Loader size="large" />;
+
   // Only block on subAdminHealthCare error since it's critical for the table
   if (subAdminHealthCareError) {
-    const errorMessage = 
+    const errorMessage =
       (subAdminHealthCareErrorObj as any)?.response?.data?.message ||
       (subAdminHealthCareErrorObj as any)?.message ||
       (subAdminHealthCareErrorObj as any)?.response?.statusText ||
       "An error occurred";
-    console.error("Healthcare professionals error:", subAdminHealthCareErrorObj);
+    console.error(
+      "Healthcare professionals error:",
+      subAdminHealthCareErrorObj
+    );
     return (
       <div className="p-4">
         <div className="text-red-600 font-semibold mb-2">
@@ -124,12 +110,15 @@ const SubAdminDashboard: React.FC = () => {
       </div>
     );
   }
-  
+
   // Log errors but don't block the UI - show fallback values instead
   if (isError) {
-    console.warn("Dashboard counts API error (non-blocking):", dashboardCountsError);
+    console.warn(
+      "Dashboard counts API error (non-blocking):",
+      dashboardCountsError
+    );
   }
-  
+
   if (kycStatsError) {
     console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
   }
@@ -154,7 +143,7 @@ const SubAdminDashboard: React.FC = () => {
   // Handle both response structures: array directly or wrapped in object
   const professionals = Array.isArray(subAdminHealthCare)
     ? subAdminHealthCare
-    : (subAdminHealthCare?.data || []);
+    : subAdminHealthCare?.data || [];
 
   const data1 = [
     {
@@ -205,60 +194,64 @@ const SubAdminDashboard: React.FC = () => {
     <div className="">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sub admin Dashboard</h1>
-        
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {data && Object.keys(data).length > 0 ? (
-          Object.entries(data)
-            .filter(([key]) =>
-              [
-                "totalHospitals",
-                "pendingKycCount",
-              ].includes(key)
-            )
-            .map(([key, value]) => (
+        {data && Object.keys(data).length > 0
+          ? Object.entries(data)
+              .filter(([key]) =>
+                ["totalHospitals", "pendingKycCount"].includes(key)
+              )
+              .map(([key, value]) => (
+                <Card key={key} className="shadow-sm bg-white p-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-3 rounded-full text-white`}>
+                      {(key === "totalHospitals" &&
+                        (totalHospital() as React.ReactNode)) ||
+                        (key === "pendingKycCount" &&
+                          (totalHealthCare() as React.ReactNode))}{" "}
+                    </div>
+                    <div>
+                      <p className="text-gray-600 text-sm">
+                        {key === "totalHospitals"
+                          ? "Total Hospitals"
+                          : key === "pendingKycCount"
+                          ? "KYC Pending"
+                          : key
+                              .replace(/([A-Z])/g, " $1")
+                              .replace("total ", "Total ")}
+                      </p>
+                      <p className="text-2xl font-bold">{value as number}</p>
+                    </div>
+                  </div>
+                </Card>
+              ))
+          : // Show fallback cards when data is not available
+            [
+              {
+                key: "totalHospitals",
+                label: "Total Hospitals",
+                icon: totalHospital,
+              },
+              {
+                key: "pendingKycCount",
+                label: "KYC Pending",
+                icon: totalHealthCare,
+              },
+            ].map(({ key, label, icon }) => (
               <Card key={key} className="shadow-sm bg-white p-2">
                 <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-full text-white`}>
-                    {(key === "totalHospitals" &&
-                      (totalHospital() as React.ReactNode)) ||
-                      (key === "pendingKycCount" &&
-                        (totalHealthCare() as React.ReactNode))}{" "}
+                  <div className="p-3 rounded-full text-white">
+                    {icon() as React.ReactNode}
                   </div>
                   <div>
-                    <p className="text-gray-600 text-sm">
-                      {key === "totalHospitals" 
-                        ? "Total Hospitals"
-                        : key === "pendingKycCount"
-                        ? "KYC Pending"
-                        : key.replace(/([A-Z])/g, " $1").replace("total ", "Total ")}
-                    </p>
-                    <p className="text-2xl font-bold">{value as number}</p>
+                    <p className="text-gray-600 text-sm">{label}</p>
+                    <p className="text-2xl font-bold">0</p>
                   </div>
                 </div>
               </Card>
-            ))
-        ) : (
-          // Show fallback cards when data is not available
-          [
-            { key: "totalHospitals", label: "Total Hospitals", icon: totalHospital },
-            { key: "pendingKycCount", label: "KYC Pending", icon: totalHealthCare },
-          ].map(({ key, label, icon }) => (
-            <Card key={key} className="shadow-sm bg-white p-2">
-              <div className="flex items-center gap-4">
-                <div className="p-3 rounded-full text-white">
-                  {icon() as React.ReactNode}
-                </div>
-                <div>
-                  <p className="text-gray-600 text-sm">{label}</p>
-                  <p className="text-2xl font-bold">0</p>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
+            ))}
       </div>
 
       {/* Reports Section */}
@@ -364,7 +357,10 @@ const SubAdminDashboard: React.FC = () => {
                     .slice(0, 5)
                     .map((professional: any, index: number) => {
                       const fullName = getFullName(professional);
-                      const avatarInitial = fullName !== "N/A" ? fullName.charAt(0).toUpperCase() : professional.email?.charAt(0).toUpperCase() || "N";
+                      const avatarInitial =
+                        fullName !== "N/A"
+                          ? fullName.charAt(0).toUpperCase()
+                          : professional.email?.charAt(0).toUpperCase() || "N";
                       return (
                         <tr key={professional.id} className="border-t">
                           <td className="py-3 px-4">{index + 1}</td>
@@ -386,24 +382,49 @@ const SubAdminDashboard: React.FC = () => {
                               <span className="text-sm">{fullName}</span>
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-sm">{professional.email || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.phone || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.email || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.phone || "N/A"}
+                          </td>
                           <td className="py-3 px-4">
                             {professional.dob ? (
-                              <FormattedDate dateString={professional.dob} format="long" />
+                              <FormattedDate
+                                dateString={professional.dob}
+                                format="long"
+                              />
                             ) : (
                               "N/A"
                             )}
                           </td>
-                          <td className="py-3 px-4 text-sm">{professional.gender || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.city || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.state || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.country || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.degree || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.specialization || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.startYear || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.endYear || "N/A"}</td>
-                          <td className="py-3 px-4 text-sm">{professional.role || "N/A"}</td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.gender || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.city || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.state || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.country || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.degree || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.specialization || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.startYear || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.endYear || "N/A"}
+                          </td>
+                          <td className="py-3 px-4 text-sm">
+                            {professional.role || "N/A"}
+                          </td>
                           <td className="py-3 px-4">
                             <span
                               className={`px-2 py-1 rounded-full text-sm ${

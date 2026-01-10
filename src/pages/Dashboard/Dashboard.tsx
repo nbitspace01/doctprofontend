@@ -21,6 +21,7 @@ import {
 import { getToken } from "../Common/authUtils";
 import Loader from "../Common/Loader";
 import CommonDropdown from "../Common/CommonActionsDropdown";
+import api from "../Common/axiosInstance";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -31,32 +32,30 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const [searchValue, setSearchValue] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+
   const fetchDashboardCounts = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/counts`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-    });
+    const res = await api.get(`/api/dashboard/counts`);
     return res.data;
   };
 
   const fetchKycStats = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/admin-counts/location`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-    });
+    const res = await api.get(`/api/dashboard/admin-counts/location`);
     return res.data;
   };
 
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    error: dashboardCountsError 
+  const fetchSubAdmin = async () => {
+    const res = await api.get(`/api/dashboard/sub-admin/list`);
+    console.log(res.data, "res.data");
+    return res.data;
+  };
+
+  const {
+    data,
+    isLoading,
+    isError,
+    error: dashboardCountsError,
   } = useQuery({
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
@@ -64,16 +63,6 @@ const Dashboard: React.FC = () => {
     // Make this query non-blocking - show UI even if it fails
     // We'll show 0 values as fallback
   });
-
-  const fetchSubAdmin = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/sub-admin/list`, {
-      headers: {
-        Authorization: `Bearer ${getToken()}`,
-      },
-    });
-    console.log(res.data, "res.data");
-    return res.data;
-  };
 
   const {
     data: subAdmin,
@@ -102,12 +91,11 @@ const Dashboard: React.FC = () => {
 
   // Only show loading for subAdmin (critical for the table)
   // dashboardCounts and kycStats are non-blocking - show UI even if they fail
-  if (subAdminLoading)
-    return <Loader size="large" />;
-  
+  if (subAdminLoading) return <Loader size="large" />;
+
   // Only block on subAdmin error since it's critical for the table
   if (subAdminError) {
-    const errorMessage = 
+    const errorMessage =
       (subAdminErrorObj as any)?.response?.data?.message ||
       (subAdminErrorObj as any)?.message ||
       (subAdminErrorObj as any)?.response?.statusText ||
@@ -122,76 +110,101 @@ const Dashboard: React.FC = () => {
       </div>
     );
   }
-  
+
   // Log errors but don't block the UI - show fallback values instead
   if (isError) {
-    console.warn("Dashboard counts API error (non-blocking):", dashboardCountsError);
+    console.warn(
+      "Dashboard counts API error (non-blocking):",
+      dashboardCountsError
+    );
   }
-  
+
   if (kycStatsError) {
     console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
   }
 
   // Filter sub-admin data based on search and filters
-  const filteredSubAdmin = subAdmin?.data?.filter((item: any) => {
-    // Apply search filter
-    if (searchValue) {
-      const searchLower = searchValue.toLowerCase();
-      const fullName = `${item.first_name || ""} ${item.last_name || ""}`.toLowerCase();
-      const matchesSearch =
-        fullName.includes(searchLower) ||
-        item.email?.toLowerCase().includes(searchLower) ||
-        item.phone?.toLowerCase().includes(searchLower) ||
-        item.location?.toLowerCase().includes(searchLower) ||
-        item.organization_type?.toLowerCase().includes(searchLower);
-      if (!matchesSearch) return false;
-    }
+  const filteredSubAdmin =
+    subAdmin?.data?.filter((item: any) => {
+      // Apply search filter
+      if (searchValue) {
+        const searchLower = searchValue.toLowerCase();
+        const fullName = `${item.first_name || ""} ${
+          item.last_name || ""
+        }`.toLowerCase();
+        const matchesSearch =
+          fullName.includes(searchLower) ||
+          item.email?.toLowerCase().includes(searchLower) ||
+          item.phone?.toLowerCase().includes(searchLower) ||
+          item.location?.toLowerCase().includes(searchLower) ||
+          item.organization_type?.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
 
-    // Apply text filters
-    if (filterValues.name) {
-      const fullName = `${item.first_name || ""} ${item.last_name || ""}`.toLowerCase();
-      if (!fullName.includes(filterValues.name.toLowerCase())) return false;
-    }
-    if (filterValues.email) {
-      if (!item.email?.toLowerCase().includes(filterValues.email.toLowerCase())) return false;
-    }
-    if (filterValues.phone) {
-      if (!item.phone?.toLowerCase().includes(filterValues.phone.toLowerCase())) return false;
-    }
-    if (filterValues.location) {
-      if (!item.location?.toLowerCase().includes(filterValues.location.toLowerCase())) return false;
-    }
+      // Apply text filters
+      if (filterValues.name) {
+        const fullName = `${item.first_name || ""} ${
+          item.last_name || ""
+        }`.toLowerCase();
+        if (!fullName.includes(filterValues.name.toLowerCase())) return false;
+      }
+      if (filterValues.email) {
+        if (
+          !item.email?.toLowerCase().includes(filterValues.email.toLowerCase())
+        )
+          return false;
+      }
+      if (filterValues.phone) {
+        if (
+          !item.phone?.toLowerCase().includes(filterValues.phone.toLowerCase())
+        )
+          return false;
+      }
+      if (filterValues.location) {
+        if (
+          !item.location
+            ?.toLowerCase()
+            .includes(filterValues.location.toLowerCase())
+        )
+          return false;
+      }
 
-    // Apply checkbox filters (role)
-    const selectedRoles = Object.keys(filterValues).filter(
-      (key) => key.startsWith("role_") && filterValues[key]
-    );
-    if (selectedRoles.length > 0) {
-      const roles = selectedRoles.map((key) => key.replace("role_", "").toLowerCase());
-      if (!roles.includes(item.role?.toLowerCase())) return false;
-    }
+      // Apply checkbox filters (role)
+      const selectedRoles = Object.keys(filterValues).filter(
+        (key) => key.startsWith("role_") && filterValues[key]
+      );
+      if (selectedRoles.length > 0) {
+        const roles = selectedRoles.map((key) =>
+          key.replace("role_", "").toLowerCase()
+        );
+        if (!roles.includes(item.role?.toLowerCase())) return false;
+      }
 
-    // Apply checkbox filters (organization_type)
-    const selectedOrgTypes = Object.keys(filterValues).filter(
-      (key) => key.startsWith("organization_type_") && filterValues[key]
-    );
-    if (selectedOrgTypes.length > 0) {
-      const orgTypes = selectedOrgTypes.map((key) => key.replace("organization_type_", "").toLowerCase());
-      if (!orgTypes.includes(item.organization_type?.toLowerCase())) return false;
-    }
+      // Apply checkbox filters (organization_type)
+      const selectedOrgTypes = Object.keys(filterValues).filter(
+        (key) => key.startsWith("organization_type_") && filterValues[key]
+      );
+      if (selectedOrgTypes.length > 0) {
+        const orgTypes = selectedOrgTypes.map((key) =>
+          key.replace("organization_type_", "").toLowerCase()
+        );
+        if (!orgTypes.includes(item.organization_type?.toLowerCase()))
+          return false;
+      }
 
-    // Apply checkbox filters (status)
-    const selectedStatuses = Object.keys(filterValues).filter(
-      (key) => key.startsWith("status_") && filterValues[key]
-    );
-    if (selectedStatuses.length > 0) {
-      const statuses = selectedStatuses.map((key) => key.replace("status_", "").toLowerCase());
-      if (!statuses.includes(item.status?.toLowerCase())) return false;
-    }
+      // Apply checkbox filters (status)
+      const selectedStatuses = Object.keys(filterValues).filter(
+        (key) => key.startsWith("status_") && filterValues[key]
+      );
+      if (selectedStatuses.length > 0) {
+        const statuses = selectedStatuses.map((key) =>
+          key.replace("status_", "").toLowerCase()
+        );
+        if (!statuses.includes(item.status?.toLowerCase())) return false;
+      }
 
-    return true;
-  }) || [];
-
+      return true;
+    }) || [];
 
   const data1 = [
     {
@@ -374,10 +387,18 @@ const Dashboard: React.FC = () => {
                         <td className="py-3 px-4">{index + 1}</td>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-2">
-                            {admin.imageUrl || admin.image_url || admin.profile_image ? (
+                            {admin.imageUrl ||
+                            admin.image_url ||
+                            admin.profile_image ? (
                               <img
-                                src={admin.imageUrl || admin.image_url || admin.profile_image}
-                                alt={`${admin.first_name || ""} ${admin.last_name || ""}`}
+                                src={
+                                  admin.imageUrl ||
+                                  admin.image_url ||
+                                  admin.profile_image
+                                }
+                                alt={`${admin.first_name || ""} ${
+                                  admin.last_name || ""
+                                }`}
                                 className="w-8 h-8 rounded-full"
                               />
                             ) : (
@@ -390,8 +411,11 @@ const Dashboard: React.FC = () => {
                                   : "U"}
                               </Avatar>
                             )}
-                            <span>{`${admin.first_name || ""} ${admin.last_name || ""
-                              }`.trim() || "N/A"}</span>
+                            <span>
+                              {`${admin.first_name || ""} ${
+                                admin.last_name || ""
+                              }`.trim() || "N/A"}
+                            </span>
                           </div>
                         </td>
                         <td className="py-3 px-4">{admin.email ?? "N/A"}</td>
@@ -402,22 +426,25 @@ const Dashboard: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-4">{admin.location ?? "N/A"}</td>
-                        <td className="py-3 px-4">{admin.organization_type ?? "N/A"}</td>
+                        <td className="py-3 px-4">
+                          {admin.organization_type ?? "N/A"}
+                        </td>
                         <td className="py-3 px-4">
                           <span
-                            className={`px-2 py-1 rounded-full text-sm ${admin.status === "ACTIVE"
+                            className={`px-2 py-1 rounded-full text-sm ${
+                              admin.status === "ACTIVE"
                                 ? "bg-green-100 text-green-600"
                                 : "bg-red-100 text-red-600"
-                              }`}
+                            }`}
                           >
                             {admin.status ?? "N/A"}
                           </span>
                         </td>
                         <td className="py-3 px-4">
                           <CommonDropdown
-                            onView={() => { }}
-                            onEdit={() => { }}
-                            onDelete={() => { }}
+                            onView={() => {}}
+                            onEdit={() => {}}
+                            onDelete={() => {}}
                           />
                         </td>
                       </tr>
