@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Modal, Form, Input, Select, Button, App } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
+import api from "../../Common/axiosInstance";
 import { showError, showSuccess } from "../../Common/Notification";
 
 interface DegreeData {
@@ -32,19 +32,17 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-
   const createDegreeMutation = useMutation({
     mutationFn: async (data: DegreePayload) => {
       try {
         if (initialValues) {
-          const response = await axios.put(
-            `${API_URL}/api/degree/${initialValues.id}`,
+          const response = await api.put(
+            `/api/degree/${initialValues.id}`,
             data
           );
           return response.data;
         }
-        const response = await axios.post(`${API_URL}/api/degree`, data);
+        const response = await api.post(`/api/degree`, data);
         return response.data;
       } catch (error) {
         console.error("API Error:", error);
@@ -131,7 +129,7 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
+        {/* <Form.Item
           name="graduationLevel"
           label="Graduation Level"
           rules={[
@@ -147,7 +145,7 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
               { value: "doctorate", label: "Doctorate" },
             ]}
           />
-        </Form.Item>
+        </Form.Item> */}
 
         <Form.Item
           name="specializations"

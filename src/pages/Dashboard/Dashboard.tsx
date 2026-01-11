@@ -36,8 +36,10 @@ const Dashboard: React.FC = () => {
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
 
   const fetchDashboardCounts = async () => {
-    const res = await api.get(`/api/dashboard/counts`);
-    return res.data;
+    const res = await api.get(`/api/stats/admin/stats`);
+    console.log(res.data, "res.data stats");
+    // console.log(res.data.data.sub_admins)
+    return res.data.data;
   };
 
   const fetchKycStats = async () => {
@@ -206,55 +208,11 @@ const Dashboard: React.FC = () => {
       return true;
     }) || [];
 
-  const data1 = [
-    {
-      date: "1 Mar",
-      "New Registration": 15,
-      "Job post": 8,
-      "Ads post": 5,
-      Appointment: 6,
-    },
-    {
-      date: "2 Mar",
-      "New Registration": 5,
-      "Job post": 10,
-      "Ads post": 2,
-      Appointment: 1,
-    },
-    {
-      date: "3 Mar",
-      "New Registration": 5,
-      "Job post": 3,
-      "Ads post": 8,
-      Appointment: 4,
-    },
-    {
-      date: "4 Mar",
-      "New Registration": 8,
-      "Job post": 5,
-      "Ads post": 20,
-      Appointment: 7,
-    },
-    {
-      date: "5 Mar",
-      "New Registration": 15,
-      "Job post": 8,
-      "Ads post": 5,
-      Appointment: 5,
-    },
-    {
-      date: "6 Mar",
-      "New Registration": 5,
-      "Job post": 10,
-      "Ads post": 2,
-      Appointment: 1,
-    },
-  ];
 
   return (
     <div className="">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Super admin Dashboard</h1>
+        <h1 className="text-2xl font-bold">Super Admin Dashboard</h1>
         {/* <span className="text-blue-500 cursor-pointer">See All →</span> */}
       </div>
 
@@ -266,9 +224,9 @@ const Dashboard: React.FC = () => {
               {totalHospital() as React.ReactNode}
             </div>
             <div>
-              <p className="text-gray-600 text-sm">Hospital Admin Count</p>
+              <p className="text-gray-600 text-sm">Hospital Count</p>
               <p className="text-2xl font-bold">
-                {kycStats?.hospitalAdminCount ?? 0}
+                {data?.organizations?.hospitals ?? 0}
               </p>
             </div>
           </div>
@@ -281,7 +239,7 @@ const Dashboard: React.FC = () => {
             <div>
               <p className="text-gray-600 text-sm">Sub Admin Count</p>
               <p className="text-2xl font-bold">
-                {kycStats?.subAdminCount ?? 0}
+                {data?.sub_admins ?? 0}
               </p>
             </div>
           </div>

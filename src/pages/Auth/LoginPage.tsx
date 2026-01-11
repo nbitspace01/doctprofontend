@@ -10,6 +10,7 @@ import axios, { AxiosError } from "axios";
 import loginIllustration from "../../assets/illustrationlogin.png";
 import { showError, showSuccess } from "../Common/Notification";
 import { Logo } from "../Common/SVG/svg.functions";
+import api from "../Common/axiosInstance";
 
 interface LoginFormValues {
   email: string;
@@ -21,13 +22,12 @@ interface LoginFormValues {
 const LoginPage = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { notification } = App.useApp();
 
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) => {
       try {
-        const response = await axios.post(`${URL}/api/user/login`, values);
+        const response = await api.post(`/api/user/login`, values);
         return response.data;
       } catch (error) {
         const axiosError = error as AxiosError<{ error: string }>;

@@ -8,7 +8,7 @@ import CommonDropdown from "../Common/CommonActionsDropdown";
 import CommonPagination from "../Common/CommonPagination";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { PlusOutlined } from "@ant-design/icons";
-import { ApiRequest } from "../Common/constant.function";
+import api from "../Common/axiosInstance";
 import Loader from "../Common/Loader";
 
 interface JobPost {
@@ -32,7 +32,6 @@ const JobPostList: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const [searchValue, setSearchValue] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
 
@@ -58,7 +57,7 @@ const JobPostList: React.FC = () => {
   ];
 
   const fetchJobs = async () => {
-    const res = await ApiRequest.get(`${API_URL}/api/job/jobs`);
+    const res = await api.get(`/api/job/jobs`);
     const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
     return data;
   };
@@ -270,7 +269,7 @@ const JobPostList: React.FC = () => {
           onSearch={handleSearch}
           onDownload={handleDownload}
           searchValue={searchValue}
-          filterOptions={filterOptions}
+          filterOption={filterOptions}
           onFilterChange={handleFilterChange}
         />
         <Table

@@ -1,18 +1,17 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Card, Input, Space, Typography, message } from "antd";
-import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../../Common/SVG/svg.functions";
 import { showMessage } from "../../Common/ResponseMessage";
 import { useAuth } from "../../Common/Context/AuthContext";
+import api from "../../Common/axiosInstance";
 
 const { Title, Link } = Typography;
 
 const Verification = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(50);
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const navigate = useNavigate();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { setToken } = useAuth();
@@ -93,7 +92,7 @@ const Verification = () => {
 
   const mutation = useMutation({
     mutationFn: async (payload: { email: string; otp: string }) => {
-      const response = await axios.post(`${URL}/api/user/verify-otp`, payload);
+      const response = await api.post(`/api/user/verify-otp`, payload);
       return response.data;
     },
     onSuccess: async (data) => {
