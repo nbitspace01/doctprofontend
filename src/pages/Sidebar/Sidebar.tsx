@@ -53,11 +53,8 @@ const Sidebar: React.FC = () => {
     () => localStorage.getItem(STORAGE_KEYS.selectedItem) ?? ""
   );
 
-  const [expandedMenus, setExpandedMenus] = React.useState<string[]>(
-    () =>
-      JSON.parse(
-        localStorage.getItem(STORAGE_KEYS.expandedMenus) ?? "[]"
-      )
+  const [expandedMenus, setExpandedMenus] = React.useState<string[]>(() =>
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.expandedMenus) ?? "[]")
   );
 
   const [selectedSubMenu, setSelectedSubMenu] = React.useState<string>(
@@ -71,23 +68,16 @@ const Sidebar: React.FC = () => {
       STORAGE_KEYS.expandedMenus,
       JSON.stringify(expandedMenus)
     );
-    localStorage.setItem(
-      STORAGE_KEYS.selectedSubMenu,
-      selectedSubMenu
-    );
+    localStorage.setItem(STORAGE_KEYS.selectedSubMenu, selectedSubMenu);
   }, [selectedItem, expandedMenus, selectedSubMenu]);
 
   /* -------------------- Helpers -------------------- */
   const toggleSubmenu = (menuId: string) => {
-    setExpandedMenus((prev) =>
-      prev.includes(menuId) ? [] : [menuId]
-    );
+    setExpandedMenus((prev) => (prev.includes(menuId) ? [] : [menuId]));
   };
 
   const handleLogout = () => {
-    Object.values(STORAGE_KEYS).forEach((key) =>
-      localStorage.removeItem(key)
-    );
+    Object.values(STORAGE_KEYS).forEach((key) => localStorage.removeItem(key));
     localStorage.clear();
     navigate({ to: "/auth/login" });
   };
@@ -283,7 +273,7 @@ const Sidebar: React.FC = () => {
 
   /* -------------------- Role Filter (UNCHANGED LOGIC) -------------------- */
   const menuItems =
-    roleName === "hospital"
+    roleName === "hospitaladmin"
       ? allMenuItems.filter((i) =>
           ["hospital-dashboard", "job-post"].includes(i.id)
         )
@@ -291,9 +281,19 @@ const Sidebar: React.FC = () => {
       ? allMenuItems.filter((i) =>
           ["sub-admin-dashboard", "organizations", "kyc"].includes(i.id)
         )
-      : allMenuItems.filter((i) =>
-          ["dashboard", "sub-admin", "masters", "organizations", "people", "job-post", "ad-management", "kyc"].includes(i.id)
-        );
+      : roleName === "admin"
+      ? allMenuItems.filter((i) =>
+          [
+            "dashboard",
+            "sub-admin",
+            "masters",
+            "organizations",
+            "people",
+            "job-post",
+            "kyc",
+          ].includes(i.id)
+        )
+      : [];
 
   /* -------------------- Render -------------------- */
   return (
@@ -315,9 +315,7 @@ const Sidebar: React.FC = () => {
             >
               <span
                 className={
-                  selectedItem === item.id
-                    ? "text-white"
-                    : "text-gray-500"
+                  selectedItem === item.id ? "text-white" : "text-gray-500"
                 }
               >
                 {item.icon}
@@ -345,7 +343,7 @@ const Sidebar: React.FC = () => {
           </React.Fragment>
         ))}
 
-        <div className="sticky bottom-5 py-3 w-full border-t bg-white">
+        <div className="fixed bottom-5">
           <div
             className="flex items-center h-[60px] text-base text-gray-500 hover:bg-gray-100 px-4 cursor-pointer"
             onClick={handleLogout}

@@ -122,6 +122,8 @@ const Verification = () => {
             // Token is available, now navigate
             if (data.user.role.name === "admin") {
               navigate({ to: "/app/dashboard", replace: true });
+            } else if (data.user.role.name === "hospitaladmin") {
+              navigate({ to: "/app/hospital/dashboard", replace: true });
             } else {
               navigate({ to: "/app/subadmin/dashboard", replace: true });
             }

@@ -21,6 +21,7 @@ import {
 import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
+import api from "../Common/axiosInstance";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -30,34 +31,23 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 );
 
 const HospitalDashboard: React.FC = () => {
-  const navigate = useNavigate();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const fetchDashboardCounts = async () => {
-    const res = await axios.get(
-      `${API_URL}/api/hospitaldashboard/hospitaladmin-count/location`,
-      {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      }
+    const res = await api.get(
+      `/api/hospitaldashboard/hospitaladmin-count/location`
     );
     return res.data;
   };
 
   const fetchKycStats = async () => {
-    const res = await axios.get(`${API_URL}/api/dashboard/getKycStatusCounts`, {
-      headers: {
-        Authorization: `Bearer ${TOKEN}`,
-      },
-    });
+    const res = await api.get(`/api/dashboard/getKycStatusCounts`);
     return res.data;
   };
 
-  const { 
-    data, 
-    isLoading, 
-    isError, 
-    error: dashboardCountsError 
+  const {
+    data,
+    isLoading,
+    isError,
+    error: dashboardCountsError,
   } = useQuery({
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
@@ -67,14 +57,7 @@ const HospitalDashboard: React.FC = () => {
   });
 
   const fetchSubAdminHealthCare = async () => {
-    const res = await axios.get(
-      `${API_URL}/api/professinal`,
-      {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      }
-    );
+    const res = await api.get(`/api/professinal`);
     console.log(res.data, "res.data");
     return res.data;
   };
@@ -98,23 +81,23 @@ const HospitalDashboard: React.FC = () => {
     queryKey: ["kycStats"],
     queryFn: fetchKycStats,
     retry: false,
-    // Make this query non-blocking - show UI even if it fails
-    // We'll show fallback values
   });
 
   // Only show loading for subAdminHealthCare (critical for the table)
   // dashboardCounts and kycStats are non-blocking - show UI even if they fail
-  if (subAdminHealthCareLoading)
-    return <Loader size="large" />;
-  
+  if (subAdminHealthCareLoading) return <Loader size="large" />;
+
   // Only block on subAdminHealthCare error since it's critical for the table
   if (subAdminHealthCareError) {
-    const errorMessage = 
+    const errorMessage =
       (subAdminHealthCareErrorObj as any)?.response?.data?.message ||
       (subAdminHealthCareErrorObj as any)?.message ||
       (subAdminHealthCareErrorObj as any)?.response?.statusText ||
       "An error occurred";
-    console.error("Healthcare professionals error:", subAdminHealthCareErrorObj);
+    console.error(
+      "Healthcare professionals error:",
+      subAdminHealthCareErrorObj
+    );
     return (
       <div className="p-4">
         <div className="text-red-600 font-semibold mb-2">
@@ -124,12 +107,15 @@ const HospitalDashboard: React.FC = () => {
       </div>
     );
   }
-  
+
   // Log errors but don't block the UI - show fallback values instead
   if (isError) {
-    console.warn("Dashboard counts API error (non-blocking):", dashboardCountsError);
+    console.warn(
+      "Dashboard counts API error (non-blocking):",
+      dashboardCountsError
+    );
   }
-  
+
   if (kycStatsError) {
     console.warn("KYC Stats API error (non-blocking):", kycStatsErrorObj);
   }
@@ -154,52 +140,7 @@ const HospitalDashboard: React.FC = () => {
   // Handle both response structures: array directly or wrapped in object
   const professionals = Array.isArray(subAdminHealthCare)
     ? subAdminHealthCare
-    : (subAdminHealthCare?.data || []);
-
-  const data1 = [
-    {
-      date: "1 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 6,
-    },
-    {
-      date: "2 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-    {
-      date: "3 Mar",
-      Hospital: 5,
-      healthcare: 3,
-      "Medical Student": 8,
-      CountKYC: 4,
-    },
-    {
-      date: "4 Mar",
-      Hospital: 8,
-      healthcare: 5,
-      "Medical Student": 20,
-      CountKYC: 7,
-    },
-    {
-      date: "5 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 5,
-    },
-    {
-      date: "6 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-  ];
+    : subAdminHealthCare?.data || [];
 
   return (
     <div className="">
@@ -220,7 +161,7 @@ const HospitalDashboard: React.FC = () => {
                   key.toLowerCase().includes("count") ||
                   key.toLowerCase().includes("total"))
             );
-            
+
             if (jobPostKey) {
               const value = (data as any)[jobPostKey];
               return (
@@ -230,7 +171,9 @@ const HospitalDashboard: React.FC = () => {
                       {totalCollege() as React.ReactNode}
                     </div>
                     <div>
-                      <p className="text-gray-600 text-sm">Total Job Post Count</p>
+                      <p className="text-gray-600 text-sm">
+                        Total Job Post Count
+                      </p>
                       <p className="text-2xl font-bold">{value as number}</p>
                     </div>
                   </div>
@@ -319,7 +262,7 @@ const HospitalDashboard: React.FC = () => {
         </div> */}
       </div>
 
-      <div className="flex justify-between items-center mb-4">
+      {/* <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Healthcare Professionals</h1>
         <span
           className="text-blue-500 cursor-pointer"
@@ -327,9 +270,9 @@ const HospitalDashboard: React.FC = () => {
         >
           See All →
         </span>
-      </div>
+      </div> */}
       {/* Sub Admin Section */}
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <Card className="shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full">
@@ -423,7 +366,7 @@ const HospitalDashboard: React.FC = () => {
             </table>
           </div>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 };
