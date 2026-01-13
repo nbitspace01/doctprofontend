@@ -22,6 +22,11 @@ import { getToken } from "../Common/authUtils";
 import Loader from "../Common/Loader";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import api from "../Common/axiosInstance";
+import {
+  fetchDashboardCounts,
+  fetchKycStats,
+  fetchSubAdmin,
+} from "../../api/dashboard.api";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -35,24 +40,6 @@ const Dashboard: React.FC = () => {
   const [searchValue, setSearchValue] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
 
-  const fetchDashboardCounts = async () => {
-    const res = await api.get(`/api/stats/admin/stats`);
-    console.log(res.data, "res.data stats");
-    // console.log(res.data.data.sub_admins)
-    return res.data.data;
-  };
-
-  const fetchKycStats = async () => {
-    const res = await api.get(`/api/dashboard/admin-counts/location`);
-    return res.data;
-  };
-
-  const fetchSubAdmin = async () => {
-    const res = await api.get(`/api/dashboard/sub-admin/list`);
-    console.log(res.data, "res.data");
-    return res.data;
-  };
-
   const {
     data,
     isLoading,
@@ -62,8 +49,6 @@ const Dashboard: React.FC = () => {
     queryKey: ["dashboardCounts"],
     queryFn: fetchDashboardCounts,
     retry: false,
-    // Make this query non-blocking - show UI even if it fails
-    // We'll show 0 values as fallback
   });
 
   const {
@@ -87,8 +72,6 @@ const Dashboard: React.FC = () => {
     queryKey: ["kycStats"],
     queryFn: fetchKycStats,
     retry: false,
-    // Make this query non-blocking since it's not currently used in the UI
-    // If it fails, we'll just log it but won't block the dashboard
   });
 
   // Only show loading for subAdmin (critical for the table)
@@ -98,19 +81,10 @@ const Dashboard: React.FC = () => {
   // Only block on subAdmin error since it's critical for the table
   if (subAdminError) {
     const errorMessage =
-      (subAdminErrorObj as any)?.response?.data?.message ||
-      (subAdminErrorObj as any)?.message ||
-      (subAdminErrorObj as any)?.response?.statusText ||
+      (subAdminErrorObj as { message?: string })?.message ||
       "An error occurred";
     console.error("Sub-admin list error:", subAdminErrorObj);
-    return (
-      <div className="p-4">
-        <div className="text-red-600 font-semibold mb-2">
-          Error loading sub-admin list
-        </div>
-        <div className="text-gray-700">{errorMessage}</div>
-      </div>
-    );
+    return <div className="p-4 text-red-600">{errorMessage}</div>;
   }
 
   // Log errors but don't block the UI - show fallback values instead
@@ -208,7 +182,6 @@ const Dashboard: React.FC = () => {
       return true;
     }) || [];
 
-
   return (
     <div className="">
       <div className="flex justify-between items-center mb-6">
@@ -238,9 +211,7 @@ const Dashboard: React.FC = () => {
             </div>
             <div>
               <p className="text-gray-600 text-sm">Sub Admin Count</p>
-              <p className="text-2xl font-bold">
-                {data?.sub_admins ?? 0}
-              </p>
+              <p className="text-2xl font-bold">{data?.sub_admins ?? 0}</p>
             </div>
           </div>
         </Card>

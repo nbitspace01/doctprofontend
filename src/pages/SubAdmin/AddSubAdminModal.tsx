@@ -17,6 +17,7 @@ import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
+import api from "../Common/axiosInstance";
 
 interface SubAdminData {
   id: string;
@@ -135,24 +136,20 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         formData.append("entity", "post");
         formData.append("userId", USER_ID || "");
 
-        const response = await axios.post(
-          `${API_URL}/api/post/upload`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${TOKEN}`,
-            },
-            onUploadProgress: (progressEvent) => {
-              if (progressEvent.total) {
-                const percent = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
-                onProgress?.({ percent });
-              }
-            },
-          }
-        );
+        const response = await api.post(`/api/post/upload`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+            Authorization: `Bearer ${TOKEN}`,
+          },
+          onUploadProgress: (progressEvent) => {
+            if (progressEvent.total) {
+              const percent = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              onProgress?.({ percent });
+            }
+          },
+        });
 
         const { url } = response.data;
 
@@ -179,19 +176,22 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         setImageUrl(initialData.profile_image || "");
 
         // Split the full name into first and last name
-        const nameParts = initialData.first_name.split(" ");
-        const firstName = nameParts[0] || "";
-        const lastName = nameParts.slice(1).join(" ") || "";
+        // const nameParts = initialData.first_name.split(" ");
+        // const firstName = nameParts[0] || "";
+        // const lastName = nameParts.slice(1).join(" ") || "";
 
         form.setFieldsValue({
-          first_name: firstName,
-          last_name: lastName,
+          first_name: initialData.first_name,
+          last_name: initialData.last_name,
           email: initialData.email,
           phone: initialData.phone,
           role: initialData.role,
           organization_type: initialData.organization_type,
           state: (initialData as any).state || initialData.location || "",
-          district: (initialData as any).district || initialData.associated_location || "",
+          district:
+            (initialData as any).district ||
+            initialData.associated_location ||
+            "",
           status: initialData.status,
           profile_image: initialData.profile_image,
         });
@@ -218,18 +218,14 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         password: values.password,
         role: values.role,
         organization_type: values.organization_type.toLowerCase(),
-        state: values.state,
-        district: values.district,
+        state: values.state.toLocaleLowerCase(),
+        district: values.district.toLocaleLowerCase(),
         profile_picture: imageUrl || "",
       };
 
       console.log("Create payload:", payload);
 
-      return axios.post(`${API_URL}/api/user/create-sub-admin`, payload, {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-        },
-      });
+      return api.post(`/api/user/create-sub-admin`, payload);
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
@@ -260,24 +256,16 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         email: values.email,
         phone: values.phone,
         password: values.password,
-        organization_type: values.organization_type,
+        organization_type: values.organization_type.toLocaleLowerCase(),
         role: values.role,
-        state: values.state,
-        district: values.district,
+        state: values.state.toLowerCase(),
+        district: values.district.toLowerCase(),
         profile_picture: imageUrl || "",
       };
 
       console.log("Update payload:", payload);
 
-      return axios.put(
-        `${API_URL}/api/user/update-sub-admin/${initialData?.id}`,
-        payload,
-        {
-          headers: {
-            Authorization: `Bearer ${TOKEN}`,
-          },
-        }
-      );
+      return api.put(`/api/user/update-sub-admin/${initialData?.id}`, payload);
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
@@ -408,9 +396,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         <Form.Item
           label="District"
           name="district"
-          rules={[
-            { required: true, message: "Please enter District" },
-          ]}
+          rules={[{ required: true, message: "Please enter District" }]}
         >
           <Input placeholder="Enter District" />
         </Form.Item>
@@ -420,13 +406,22 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Form.Item
             label="New Password"
             name="password"
-            rules={[
-              { required: true, message: "Please enter password" },
-              {
-                min: 8,
-                message: "Password must be at least 8 characters long",
-              },
-            ]}
+            rules={
+              initialData
+                ? [
+                    {
+                      min: 8,
+                      message: "Password must be at least 8 characters long",
+                    },
+                  ]
+                : [
+                    { required: true, message: "Please enter password" },
+                    {
+                      min: 8,
+                      message: "Password must be at least 8 characters long",
+                    },
+                  ]
+            }
           >
             <Input.Password placeholder="Enter password" />
           </Form.Item>
@@ -435,17 +430,34 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
             label="Confirm Password"
             name="confirmPassword"
             dependencies={["password"]}
-            rules={[
-              { required: true, message: "Please confirm password" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("password") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(new Error("Passwords do not match"));
-                },
-              }),
-            ]}
+            rules={
+              initialData
+                ? [
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        const password = getFieldValue("password");
+                        if (!password && !value) return Promise.resolve();
+                        if (password === value) return Promise.resolve();
+                        return Promise.reject(
+                          new Error("Passwords do not match")
+                        );
+                      },
+                    }),
+                  ]
+                : [
+                    { required: true, message: "Please confirm password" },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue("password") === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(
+                          new Error("Passwords do not match")
+                        );
+                      },
+                    }),
+                  ]
+            }
           >
             <Input.Password placeholder="Confirm password" />
           </Form.Item>
