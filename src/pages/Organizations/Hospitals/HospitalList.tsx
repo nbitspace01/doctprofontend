@@ -35,7 +35,7 @@ const fetchHospitals = async (
     if (!value || value === "" || value === null || value === undefined) {
       return;
     }
-    
+
     if (key.includes("_")) {
       // Handle checkbox-style filters like "status_Active"
       // Don't send status filter to API - handle it on frontend only
@@ -43,7 +43,7 @@ const fetchHospitals = async (
         // Skip status filters - we'll handle them on the frontend
         return;
       }
-      
+
       const [filterKey, filterValue] = key.split("_");
       if (value === true) {
         // For other checkbox filters, collect all selected values
@@ -53,7 +53,10 @@ const fetchHospitals = async (
         if (Array.isArray(processedFilters[filterKey])) {
           processedFilters[filterKey].push(filterValue);
         } else {
-          processedFilters[filterKey] = [processedFilters[filterKey], filterValue];
+          processedFilters[filterKey] = [
+            processedFilters[filterKey],
+            filterValue,
+          ];
         }
       }
     } else {
@@ -79,7 +82,9 @@ const fetchHospitals = async (
   });
 
   const filterParam = filterParams.length > 0 ? filterParams.join("&") : "";
-  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${filterParam ? `&${filterParam}` : ""}`;
+  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
+    filterParam ? `&${filterParam}` : ""
+  }`;
   const response = await fetch(fullUrl);
   if (!response.ok) {
     throw new Error("Failed to fetch hospitals");
@@ -109,7 +114,10 @@ const fetchHospitalById = async (id: string): Promise<ApiHospitalData> => {
   return data.data || data.hospital || data;
 };
 
-const updateHospital = async (data: { id: string; hospitalData: Partial<ApiHospitalData> }) => {
+const updateHospital = async (data: {
+  id: string;
+  hospitalData: Partial<ApiHospitalData>;
+}) => {
   const response = await fetch(`${API_URL}/api/hospital/${data.id}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -118,7 +126,6 @@ const updateHospital = async (data: { id: string; hospitalData: Partial<ApiHospi
   if (!response.ok) throw new Error("Failed to update hospital");
   return response.json();
 };
-
 
 const HospitalList: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -184,14 +191,18 @@ const HospitalList: React.FC = () => {
     staleTime: 0,
   });
 
-
-
   const updateHospitalMutation = useMutation({
     mutationFn: updateHospital,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-      if (viewHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
-      if (selectedHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", selectedHospitalId] });
+      if (viewHospitalId)
+        queryClient.invalidateQueries({
+          queryKey: ["hospital", viewHospitalId],
+        });
+      if (selectedHospitalId)
+        queryClient.invalidateQueries({
+          queryKey: ["hospital", selectedHospitalId],
+        });
     },
     onError: () => message.error("Failed to update hospital"),
   });
@@ -202,7 +213,7 @@ const HospitalList: React.FC = () => {
       const deleteUrl = `${API_URL}/api/hospital/${id}`;
       console.log("Delete API URL:", deleteUrl);
       console.log("API_URL:", API_URL);
-      
+
       try {
         const response = await fetch(deleteUrl, {
           method: "DELETE",
@@ -212,7 +223,9 @@ const HospitalList: React.FC = () => {
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           console.error("Delete API error response:", errorData);
-          throw new Error(errorData.message || `Failed to delete hospital: ${response.status}`);
+          throw new Error(
+            errorData.message || `Failed to delete hospital: ${response.status}`
+          );
         }
         const data = await response.json();
         console.log("Delete API response data:", data);
@@ -237,33 +250,42 @@ const HospitalList: React.FC = () => {
 
   const handleSuccess = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-    if (viewHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
-    if (selectedHospitalId) queryClient.invalidateQueries({ queryKey: ["hospital", selectedHospitalId] });
+    if (viewHospitalId)
+      queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
+    if (selectedHospitalId)
+      queryClient.invalidateQueries({
+        queryKey: ["hospital", selectedHospitalId],
+      });
     setIsModalOpen(false);
     setSelectedHospitalId(null);
   };
 
-  const handleUpdateHospital = async (hospitalData: Partial<ApiHospitalData>) => {
+  const handleUpdateHospital = async (
+    hospitalData: Partial<ApiHospitalData>
+  ) => {
     if (!selectedHospitalId) return;
-    const response = await updateHospitalMutation.mutateAsync({ id: selectedHospitalId, hospitalData });
+    const response = await updateHospitalMutation.mutateAsync({
+      id: selectedHospitalId,
+      hospitalData,
+    });
     showSuccess(notification, { message: response.message });
   };
 
   const handleDelete = (record: any) => {
     console.log("handleDelete called with record:", record);
-    
+
     if (!record) {
       console.error("Record is null or undefined");
       message.error("Cannot delete: Invalid record data");
       return;
     }
-    
+
     if (!record.key && !record.id) {
       console.error("Record key/ID is missing. Record:", record);
       message.error("Cannot delete: Missing record ID");
       return;
     }
-    
+
     const hospitalId = record.key || record.id;
     console.log("Calling deleteHospitalMutation.mutate with ID:", hospitalId);
     deleteHospitalMutation.mutate(hospitalId);
@@ -277,19 +299,38 @@ const HospitalList: React.FC = () => {
   };
 
   let filteredHospitals = hospitals?.data || [];
-  const { name: nameFilter, branchLocation: branchLocationFilter, updatedOn: updatedOnFilter } = filterValues;
+  const {
+    name: nameFilter,
+    branchLocation: branchLocationFilter,
+    updatedOn: updatedOnFilter,
+  } = filterValues;
   const statusFilters = Object.entries(filterValues)
     .filter(([key, value]) => key.startsWith("status_") && value === true)
     .map(([key]) => key.replace("status_", ""))
     .filter(Boolean);
-  
+
   const formatDate = (dateValue: string) => {
     if (!dateValue) return null;
     try {
       const dateObj = new Date(dateValue);
       if (isNaN(dateObj.getTime())) return null;
-      const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-      return `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      return `${dateObj.getDate()} ${
+        monthNames[dateObj.getMonth()]
+      } ${dateObj.getFullYear()}`;
     } catch {
       return null;
     }
@@ -297,49 +338,97 @@ const HospitalList: React.FC = () => {
 
   const transformStatus = (status: string) => {
     const statusLower = status?.toLowerCase() || "";
-    return statusLower === "active" ? "Active" : statusLower === "inactive" ? "Inactive" : "Pending";
+    return statusLower === "active"
+      ? "Active"
+      : statusLower === "inactive"
+      ? "Inactive"
+      : "Pending";
   };
 
-  const getDateValue = (hospital: ApiHospitalData) => (hospital as any).updatedAt || hospital.updated_at || "";
+  const getDateValue = (hospital: ApiHospitalData) =>
+    (hospital as any).updatedAt || hospital.updated_at || "";
 
-  if (nameFilter || branchLocationFilter || updatedOnFilter || statusFilters.length > 0) {
-    filteredHospitals = filteredHospitals.filter((hospital: ApiHospitalData) => {
-      const matchesName = !nameFilter || hospital.name?.toLowerCase().includes(String(nameFilter).toLowerCase().trim());
-      const matchesBranchLocation = !branchLocationFilter || hospital.branchLocation?.toLowerCase().includes(String(branchLocationFilter).toLowerCase().trim());
-      const matchesUpdatedOn = !updatedOnFilter || (() => {
-        try {
-          const hospitalDateValue = getDateValue(hospital);
-          if (!hospitalDateValue) return false;
-          const hospitalDate = new Date(hospitalDateValue);
-          const filterDate = new Date(updatedOnFilter);
-          if (isNaN(hospitalDate.getTime()) || isNaN(filterDate.getTime())) return false;
-          const hospitalDateOnly = new Date(hospitalDate.getFullYear(), hospitalDate.getMonth(), hospitalDate.getDate());
-          const filterDateOnly = new Date(filterDate.getFullYear(), filterDate.getMonth(), filterDate.getDate());
-          return hospitalDateOnly.getTime() === filterDateOnly.getTime();
-        } catch {
-          return false;
-        }
-      })();
-      const matchesStatus = statusFilters.length === 0 || statusFilters.some(filter => 
-        transformStatus(hospital.status || "").toLowerCase() === filter.toLowerCase().trim()
-      );
-      return matchesName && matchesBranchLocation && matchesUpdatedOn && matchesStatus;
-    });
+  if (
+    nameFilter ||
+    branchLocationFilter ||
+    updatedOnFilter ||
+    statusFilters.length > 0
+  ) {
+    filteredHospitals = filteredHospitals.filter(
+      (hospital: ApiHospitalData) => {
+        const matchesName =
+          !nameFilter ||
+          hospital.name
+            ?.toLowerCase()
+            .includes(String(nameFilter).toLowerCase().trim());
+        const matchesBranchLocation =
+          !branchLocationFilter ||
+          hospital.branchLocation
+            ?.toLowerCase()
+            .includes(String(branchLocationFilter).toLowerCase().trim());
+        const matchesUpdatedOn =
+          !updatedOnFilter ||
+          (() => {
+            try {
+              const hospitalDateValue = getDateValue(hospital);
+              if (!hospitalDateValue) return false;
+              const hospitalDate = new Date(hospitalDateValue);
+              const filterDate = new Date(updatedOnFilter);
+              if (isNaN(hospitalDate.getTime()) || isNaN(filterDate.getTime()))
+                return false;
+              const hospitalDateOnly = new Date(
+                hospitalDate.getFullYear(),
+                hospitalDate.getMonth(),
+                hospitalDate.getDate()
+              );
+              const filterDateOnly = new Date(
+                filterDate.getFullYear(),
+                filterDate.getMonth(),
+                filterDate.getDate()
+              );
+              return hospitalDateOnly.getTime() === filterDateOnly.getTime();
+            } catch {
+              return false;
+            }
+          })();
+        const matchesStatus =
+          statusFilters.length === 0 ||
+          statusFilters.some(
+            (filter) =>
+              transformStatus(hospital.status || "").toLowerCase() ===
+              filter.toLowerCase().trim()
+          );
+        return (
+          matchesName &&
+          matchesBranchLocation &&
+          matchesUpdatedOn &&
+          matchesStatus
+        );
+      }
+    );
   }
 
-  const hasClientSideFilters = nameFilter || branchLocationFilter || updatedOnFilter || statusFilters.length > 0;
-  const displayTotal = hasClientSideFilters ? filteredHospitals.length : (hospitals?.total ?? 0);
+  const hasClientSideFilters =
+    nameFilter ||
+    branchLocationFilter ||
+    updatedOnFilter ||
+    statusFilters.length > 0;
+  const displayTotal = hasClientSideFilters
+    ? filteredHospitals.length
+    : hospitals?.total ?? 0;
 
-  const tableData: HospitalData[] = filteredHospitals.map((hospital, index) => ({
-    key: hospital.id,
-    sNo: index + 1,
-    name: hospital.name,
-    logo: hospital.logoUrl,
-    branchLocation: hospital.branchLocation,
-    address: hospital.address,
-    updatedOn: getDateValue(hospital),
-    status: transformStatus(hospital.status || "") as HospitalData["status"],
-  }));
+  const tableData: HospitalData[] = filteredHospitals.map(
+    (hospital, index) => ({
+      key: hospital.id,
+      sNo: index + 1,
+      name: hospital.name,
+      logo: hospital.logoUrl,
+      branchLocation: hospital.branchLocation,
+      address: hospital.address,
+      updatedOn: getDateValue(hospital),
+      status: transformStatus(hospital.status || "") as HospitalData["status"],
+    })
+  );
 
   const columns: ColumnsType<HospitalData> = [
     {
@@ -372,11 +461,17 @@ const HospitalList: React.FC = () => {
                 className="w-10 h-10 rounded-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling?.classList.remove("hidden");
+                  e.currentTarget.nextElementSibling?.classList.remove(
+                    "hidden"
+                  );
                 }}
               />
             )}
-            <Avatar className={`bg-button-primary text-white ${hasValidImage ? "hidden" : ""}`}>
+            <Avatar
+              className={`bg-button-primary text-white ${
+                hasValidImage ? "hidden" : ""
+              }`}
+            >
               {text.charAt(0)}
             </Avatar>
             <span>{text}</span>
@@ -396,7 +491,11 @@ const HospitalList: React.FC = () => {
       width: 180,
       render: (dateValue: string) => {
         const formatted = formatDate(dateValue);
-        return <span className={formatted ? "" : "text-gray-500"}>{formatted || "N/A"}</span>;
+        return (
+          <span className={formatted ? "" : "text-gray-500"}>
+            {formatted || "N/A"}
+          </span>
+        );
       },
     },
     {
@@ -404,8 +503,17 @@ const HospitalList: React.FC = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => {
-        const statusClass = status === "Active" ? "text-green-600 bg-green-50" : status === "Inactive" ? "text-red-600 bg-red-50" : "text-orange-600 bg-orange-50";
-        return <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>{status}</span>;
+        const statusClass =
+          status === "Active"
+            ? "text-green-600 bg-green-50"
+            : status === "Inactive"
+            ? "text-red-600 bg-red-50"
+            : "text-orange-600 bg-orange-50";
+        return (
+          <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>
+            {status}
+          </span>
+        );
       },
     },
     {
@@ -450,15 +558,35 @@ const HospitalList: React.FC = () => {
   const handleDownload = (format: "excel" | "csv") => {
     if (!tableData?.length) return;
     const delimiter = format === "csv" ? "," : "\t";
-    const headers = ["S No", "Hospital/Clinic Name", "Branch Location", "Status"];
-    const rows = [headers.join(delimiter), ...tableData.map(row => 
-      [row.sNo, `"${row.name || "N/A"}"`, `"${row.branchLocation || "N/A"}"`, `"${row.status || "N/A"}"`].join(delimiter)
-    )];
-    const blob = new Blob([rows.join("\n")], { type: format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel" });
+    const headers = [
+      "S No",
+      "Hospital/Clinic Name",
+      "Branch Location",
+      "Status",
+    ];
+    const rows = [
+      headers.join(delimiter),
+      ...tableData.map((row) =>
+        [
+          row.sNo,
+          `"${row.name || "N/A"}"`,
+          `"${row.branchLocation || "N/A"}"`,
+          `"${row.status || "N/A"}"`,
+        ].join(delimiter)
+      ),
+    ];
+    const blob = new Blob([rows.join("\n")], {
+      type:
+        format === "csv"
+          ? "text/csv;charset=utf-8;"
+          : "application/vnd.ms-excel",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${format === "csv" ? "csv" : "xls"}`;
+    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${
+      format === "csv" ? "csv" : "xls"
+    }`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -531,22 +659,43 @@ const HospitalList: React.FC = () => {
                     JSON.parse(url);
                     return false;
                   } catch {
-                    return url.startsWith("http://") || url.startsWith("https://");
+                    return (
+                      url.startsWith("http://") || url.startsWith("https://")
+                    );
                   }
                 };
                 const hasValidImage = isValidImageUrl(viewHospital.logoUrl);
                 return hasValidImage ? (
-                  <img src={viewHospital.logoUrl!} alt={viewHospital.name} className="w-12 h-12 rounded-full object-cover" />
+                  <img
+                    src={viewHospital.logoUrl!}
+                    alt={viewHospital.name}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
                 ) : (
-                  <Avatar size={50} className="bg-button-primary">{viewHospital.name?.charAt(0) || ""}</Avatar>
+                  <Avatar size={50} className="bg-button-primary">
+                    {viewHospital.name?.charAt(0) || ""}
+                  </Avatar>
                 );
               })()}
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-semibold">{viewHospital.name}</h3>
                 {(() => {
-                  const transformedStatus = transformStatus(viewHospital.status || "");
-                  const statusClass = transformedStatus === "Active" ? "text-green-600 bg-green-50" : transformedStatus === "Inactive" ? "text-red-600 bg-red-50" : "text-orange-600 bg-orange-50";
-                  return <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>{transformedStatus}</span>;
+                  const transformedStatus = transformStatus(
+                    viewHospital.status || ""
+                  );
+                  const statusClass =
+                    transformedStatus === "Active"
+                      ? "text-green-600 bg-green-50"
+                      : transformedStatus === "Inactive"
+                      ? "text-red-600 bg-red-50"
+                      : "text-orange-600 bg-orange-50";
+                  return (
+                    <span
+                      className={`text-sm px-3 py-1 rounded-full ${statusClass}`}
+                    >
+                      {transformedStatus}
+                    </span>
+                  );
                 })()}
               </div>
             </div>
@@ -560,9 +709,18 @@ const HospitalList: React.FC = () => {
               <h4 className="font-medium mb-2">Updated on Portal</h4>
               <p>
                 {(() => {
-                  const dateValue = (viewHospital as any)?.updatedAt || viewHospital?.updated_at || (viewHospital as any)?.createdOn || (viewHospital as any)?.created_at || "";
+                  const dateValue =
+                    (viewHospital as any)?.updatedAt ||
+                    viewHospital?.updated_at ||
+                    (viewHospital as any)?.createdOn ||
+                    (viewHospital as any)?.created_at ||
+                    "";
                   const formatted = formatDate(String(dateValue).trim());
-                  return <span className={formatted ? "" : "text-gray-500"}>{formatted || "N/A"}</span>;
+                  return (
+                    <span className={formatted ? "" : "text-gray-500"}>
+                      {formatted || "N/A"}
+                    </span>
+                  );
                 })()}
               </p>
             </div>

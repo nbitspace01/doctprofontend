@@ -280,7 +280,9 @@ const Dashboard: React.FC = () => {
           </Card>
         </div> */}
       </div>
-      <div className="flex justify-between items-center mb-4">
+
+      {/* Sub Admin List */}
+      {/* <div className="flex justify-between items-center mb-4">
         <h1 className="text-2xl font-bold">Sub-Admin List</h1>
         <span
           className="text-blue-500 cursor-pointer"
@@ -288,9 +290,9 @@ const Dashboard: React.FC = () => {
         >
           See All →
         </span>
-      </div>
+      </div> */}
       {/* Sub Admin Section */}
-      <div className="mt-6">
+      {/* <div className="mt-6">
         <Card className="shadow-sm">
           <div className="overflow-x-auto">
             <table className="min-w-full">
@@ -389,7 +391,7 @@ const Dashboard: React.FC = () => {
             </table>
           </div>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 };

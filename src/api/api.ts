@@ -26,19 +26,21 @@ const request = async <T>(
   } catch (error) {
     const err = error as AxiosError<any>;
 
-    throw {
+    const apiError: ApiError = {
       message:
         err.response?.data?.message ||
         err.message ||
         "Something went wrong",
       status: err.response?.status || 500,
-    } as ApiError;
+    };
+
+    throw apiError;
   }
 };
 
 /* Exposed API Methods */
 export const apiClient = {
-  get: <T>(url: string, params?: unknown) =>
+  get: <T>(url: string, params?: Record<string, any>) =>
     request<T>("GET", url, undefined, { params }),
 
   post: <T>(url: string, data?: unknown) =>
@@ -50,6 +52,6 @@ export const apiClient = {
   patch: <T>(url: string, data?: unknown) =>
     request<T>("PATCH", url, data),
 
-  delete: <T>(url: string, params?: unknown) =>
+  delete: <T>(url: string, params?: Record<string, any>) =>
     request<T>("DELETE", url, undefined, { params }),
 };

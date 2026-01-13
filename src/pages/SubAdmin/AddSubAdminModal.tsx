@@ -12,12 +12,12 @@ import {
   Upload,
   message,
 } from "antd";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
 import api from "../Common/axiosInstance";
+import { SubAdminRegister, SubAdminUpdate } from "../../api/admin.api";
 
 interface SubAdminData {
   id: string;
@@ -66,7 +66,6 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   const [form] = Form.useForm();
   const [imageUrl, setImageUrl] = useState<string>("");
   const [uploading, setUploading] = useState(false);
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { notification } = App.useApp();
 
   const roleOptions = [{ value: "subadmin", label: "Sub Admin" }];
@@ -213,19 +212,22 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     mutationFn: (values: SubAdminFormValues) => {
       const payload = {
         name: values.first_name + " " + values.last_name,
+        // first_name: values.first_name,
+        // last_name: values.last_name,
         email: values.email,
         phone: values.phone,
         password: values.password,
+        confirmPassword: values.confirmPassword,
         role: values.role,
         organization_type: values.organization_type.toLowerCase(),
         state: values.state.toLocaleLowerCase(),
         district: values.district.toLocaleLowerCase(),
-        profile_picture: imageUrl || "",
+        profile_image: imageUrl || "",
       };
 
       console.log("Create payload:", payload);
-
-      return api.post(`/api/user/create-sub-admin`, payload);
+      return SubAdminRegister(payload);
+      // return api.post(`/api/user/create-sub-admin`, payload);
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
@@ -250,22 +252,27 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
   const updateSubAdminMutation = useMutation({
     mutationFn: (values: SubAdminFormValues) => {
-      const payload = {
+      const payload: any = {
         first_name: values.first_name,
         last_name: values.last_name,
         email: values.email,
         phone: values.phone,
-        password: values.password,
-        organization_type: values.organization_type.toLocaleLowerCase(),
+        organization_type: values.organization_type.toLowerCase(),
         role: values.role,
         state: values.state.toLowerCase(),
         district: values.district.toLowerCase(),
-        profile_picture: imageUrl || "",
+        profile_image: imageUrl || "",
       };
+
+      // ✅ add password ONLY if provided
+      if (values.password) {
+        payload.password = values.password;
+        payload.confirmPassword = values.confirmPassword;
+      }
 
       console.log("Update payload:", payload);
 
-      return api.put(`/api/user/update-sub-admin/${initialData?.id}`, payload);
+      return SubAdminUpdate(initialData!.id, payload);
     },
     onSuccess: (data: any) => {
       showSuccess(notification, {
