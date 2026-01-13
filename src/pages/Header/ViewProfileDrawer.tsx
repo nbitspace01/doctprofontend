@@ -1,0 +1,171 @@
+import React, { useState } from "react";
+import { Drawer, Avatar, Button } from "antd";
+import { CloseOutlined } from "@ant-design/icons";
+import EditProfileDrawer from "./EditProfileDrawer";
+import ResetPasswordModal from "./ResetPasswordModal";
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "../Common/axiosInstance";
+
+interface ViewProfileDrawerProps {
+  visible: boolean;
+  onClose: () => void;
+  profileData: {
+    name: string;
+    role: string;
+    title: string;
+    note: string;
+    email: string;
+    phone: string;
+  };
+}
+
+const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
+  visible,
+  onClose,
+  profileData: initialProfileData,
+}) => {
+  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const USER_ID = localStorage.getItem("userId");
+  
+  // Fetch fresh profile data when drawer is open
+  const { data: userProfile } = useQuery({
+    queryKey: ["userProfile", USER_ID],
+    queryFn: async () => {
+      const response = await axiosInstance.get(
+        `${URL}/api/user/profile/${USER_ID}`
+      );
+      return response.data;
+    },
+    enabled: !!USER_ID && visible, // Only fetch when drawer is visible
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+  });
+
+  // Use fresh data from query if available, otherwise fallback to initial data
+  const displayName = userProfile?.name || 
+    (userProfile?.first_name && userProfile?.last_name 
+      ? `${userProfile.first_name} ${userProfile.last_name}` 
+      : userProfile?.first_name || userProfile?.last_name || initialProfileData.name);
+  const displayRole = userProfile?.role || initialProfileData.role;
+  const displayEmail = userProfile?.email || initialProfileData.email;
+  const displayPhone = userProfile?.phone || initialProfileData.phone;
+  const displayNote = userProfile?.note ?? initialProfileData.note;
+
+  const profileData = {
+    name: displayName,
+    role: displayRole,
+    title: initialProfileData.title,
+    note: displayNote,
+    email: displayEmail,
+    phone: displayPhone,
+  };
+  const [editProfileVisible, setEditProfileVisible] = useState(false);
+  const [resetPasswordVisible, setResetPasswordVisible] = useState(false);
+
+  const handleEditProfile = () => {
+    setEditProfileVisible(true);
+  };
+
+  const handleEditProfileClose = () => {
+    setEditProfileVisible(false);
+  };
+
+  const handleSaveProfile = (values: any) => {
+    // Handle save profile logic here
+    console.log("Saving profile:", values);
+    setEditProfileVisible(false);
+  };
+
+  const handleChangePassword = () => {
+    setResetPasswordVisible(true);
+  };
+
+  return (
+    <>
+      <Drawer
+        title="View Profile"
+        placement="right"
+        onClose={onClose}
+        open={visible}
+        width={400}
+        closeIcon={<CloseOutlined className="text-gray-600" />}
+      >
+        <div className="flex flex-col space-y-6 h-full">
+          <div className="flex-1">
+            <div className="flex items-center space-x-4">
+              <Avatar size={64} className="bg-button-primary">
+                {profileData.name.charAt(0)}
+              </Avatar>
+              <div>
+                <h2 className="text-lg font-medium mt-1">{profileData.name}</h2>
+                {/* <p className="text-gray-600">{profileData.title}</p> */}
+              </div>
+            </div>
+
+            <div className="space-y-4 my-4">
+              <div className="flex justify-between">
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <p className="text-gray-600 mb-1">Note</p>
+                    <p>{profileData.note || "No note"}</p>
+                  </div>
+                  <div>
+                    <p className="text-gray-600 mb-1">Role</p>
+                    <p>{profileData.role}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <div>
+                    <p className="text-gray-600 mb-1">Email Address</p>
+                    <p>{profileData.email || "No email provided"}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-gray-600 mb-1">Phone Number</p>
+                    <p>{profileData.phone || "No phone number provided"}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-between gap-2 mt-auto">
+            <Button
+              variant="outlined"
+              className="w-full border-button-primary  text-button-primary py-2 px-4 rounded-md hover:!bg-button-primary hover:!text-white transition-colors"
+              onClick={handleChangePassword}
+            >
+              Change Password
+            </Button>
+            <Button
+              className="w-full bg-button-primary text-white py-2 px-4 rounded-md hover:!bg-button-primary transition-colors"
+              onClick={handleEditProfile}
+            >
+              Edit Profile
+            </Button>
+          </div>
+        </div>
+      </Drawer>
+
+      <EditProfileDrawer
+        visible={editProfileVisible}
+        onClose={handleEditProfileClose}
+        onSave={handleSaveProfile}
+        initialValues={{
+          fullName: profileData.name,
+          email: profileData.email,
+          note: profileData.note,
+          phoneNumber: profileData.phone,
+          role: profileData.role,
+        }}
+      />
+      <ResetPasswordModal
+        visible={resetPasswordVisible}
+        onCancel={() => setResetPasswordVisible(false)}
+        onConfirm={handleChangePassword}
+      />
+    </>
+  );
+};
+
+export default ViewProfileDrawer;
