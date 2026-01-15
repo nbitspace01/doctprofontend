@@ -1,8 +1,8 @@
 import React from "react";
 import { Drawer, Button, Avatar, Spin } from "antd";
 import { CloseOutlined, UserOutlined } from "@ant-design/icons";
-import { useCollegeById } from "../../../api/college";
 import StatusBadge from "../../Common/StatusBadge";
+import { useCollegeById } from "../../../api/college.api";
 
 interface CollegeViewDrawerProps {
   open: boolean;
@@ -18,6 +18,8 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
   collegeId,
 }) => {
   const { data: college, isLoading, error } = useCollegeById(collegeId);
+  console.log("Drawer collegeId:", collegeId);
+  console.log("College data:", college);
 
   return (
     <Drawer
@@ -86,10 +88,14 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
                 <div className="text-sm">{college.district || "N/A"}</div>
               </div>
               <div className="col-span-2">
-                <div className="text-xs text-gray-500">Associated Hospitals</div>
+                <div className="text-xs text-gray-500">
+                  Associated Hospitals
+                </div>
                 <div className="text-sm">
                   {college.hospitals && college.hospitals.length > 0
-                    ? college.hospitals.map((hospital: any) => hospital.name).join(", ")
+                    ? college.hospitals
+                        .map((hospital: any) => hospital.name)
+                        .join(", ")
                     : "No hospitals associated"}
                 </div>
               </div>

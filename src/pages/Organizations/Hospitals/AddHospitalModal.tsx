@@ -15,6 +15,7 @@ import { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showSuccess } from "../../Common/Notification";
 import { ApiHospitalData } from "../Hospital.types";
+import { apiClient } from "../../../api/api";
 
 // Define the props interface
 interface AddHospitalModalProps {
@@ -88,11 +89,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   console.log(uploading, "uploading");
 
   const createHospital = async (values: Partial<ApiHospitalData>) => {
-    const response = await fetch(`${API_URL}/api/hospital/`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
+    const response = await apiClient.post<any>(`/api/hospital`, values);
     if (!response.ok) throw new Error("Failed to add hospital");
     return response.json();
   };

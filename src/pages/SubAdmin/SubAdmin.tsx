@@ -8,7 +8,6 @@ import StatusBadge from "../Common/StatusBadge";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import CommonTable from "../../components/Common/CommonTable"; // 🔹 Our new table
 import { fetchSubAdmin, SubAdminDelete } from "../../api/admin.api";
-import { ApiRequest } from "../Common/constant.function";
 import { useListController } from "../../hooks/useListController";
 
 interface SubAdminData {
@@ -54,7 +53,7 @@ const SubAdmin: React.FC = () => {
 
   const { data: subAdminResponse, isFetching } = useQuery<SubAdminResponse, Error>({
     queryKey: [
-      "Colleges",
+      "subAdmin",
       currentPage,
       pageSize,
       searchValue,

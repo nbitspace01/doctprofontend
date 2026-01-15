@@ -39,7 +39,7 @@ const CollegeList: React.FC = () => {
   const { modal, message } = App.useApp();
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
-  const [selectedCollegeId, setSelectedCollegeId] = useState<string | null>(
+  const [selectedCollege, setSelectedCollege] = useState<CollegeData | null>(
     null
   );
   const [isOpen, setIsOpen] = useState(false);
@@ -73,6 +73,13 @@ const CollegeList: React.FC = () => {
       refetchOnWindowFocus: false,
     }
   );
+
+  const { tableData } = useCollegeListData({
+    apiData: fetchedColleges,
+    filterValues,
+    currentPage,
+    pageSize,
+  });
 
   const columns: ColumnsType<CollegeData> = [
     {
@@ -150,11 +157,12 @@ const CollegeList: React.FC = () => {
       render: (_: any, record: CollegeData) => (
         <CommonDropdown
           onView={() => {
-            setSelectedCollegeId(record.id);
+            console.log("VIEW RECORD:", record);
+            setSelectedCollege(record);
             setIsOpen(true);
           }}
           onEdit={() => {
-            setSelectedCollegeId(record.id);
+            setSelectedCollege(record);
             setIsEditModalVisible(true);
           }}
           onDelete={() => {
@@ -162,34 +170,13 @@ const CollegeList: React.FC = () => {
               title: "Confirm Delete",
               content: `Delete ${record.collegeName}?`,
               okType: "danger",
-              onOk: () => handleDelete(record.id),
+              onOk: () => deleteMutation.mutate(record.id),
             });
           }}
         />
       ),
     },
   ];
-
-  const { tableData } = useCollegeListData({
-    apiData: fetchedColleges,
-    filterValues,
-    currentPage,
-    pageSize,
-  });
-
-  const handleAddCollegeClick = () => {
-    setIsModalVisible(true);
-  };
-
-  const handleModalClose = () => {
-    setIsModalVisible(false);
-  };
-
-  const handleEditModalClose = () => {
-    setIsEditModalVisible(false);
-    setSelectedCollegeId(null);
-    queryClient.invalidateQueries({ queryKey: ["Colleges"] });
-  };
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCollegeApi(id),
@@ -202,10 +189,6 @@ const CollegeList: React.FC = () => {
       message.error("Failed to delete college");
     },
   });
-
-  const handleDelete = (id: string) => {
-    deleteMutation.mutate(id);
-  };
 
   const filterOptions = [
     {
@@ -298,18 +281,15 @@ const CollegeList: React.FC = () => {
         <Button
           type="primary"
           className="bg-button-primary hover:!bg-button-primary"
-          onClick={handleAddCollegeClick}
+          onClick={() => setIsModalVisible(true)}
         >
           <Plus /> Add New Colleges
         </Button>
       </div>
 
-      <AddCollegeModal visible={isModalVisible} onClose={handleModalClose} />
-
-      <EditCollegeModal
-        visible={isEditModalVisible}
-        onClose={handleEditModalClose}
-        collegeId={selectedCollegeId}
+      <AddCollegeModal
+        visible={isModalVisible}
+        onClose={() => setIsModalVisible(false)}
       />
 
       <div className="bg-white rounded-lg shadow-sm w-full">
@@ -337,12 +317,26 @@ const CollegeList: React.FC = () => {
           </>
         )}
       </div>
-      <CollegeViewDrawer
-        open={isOpen}
-        onClose={() => setIsOpen(false)}
-        setOpen={setIsOpen}
-        collegeId={selectedCollegeId ?? ""}
-      />
+      {selectedCollege && (
+        <EditCollegeModal
+          visible={isEditModalVisible}
+          onClose={() => {
+            setIsEditModalVisible(false);
+            setSelectedCollege(null);
+            queryClient.invalidateQueries({ queryKey: ["Colleges"] });
+          }}
+          collegeId={selectedCollege?.id ?? ""}
+        />
+      )}
+
+      {selectedCollege && (
+        <CollegeViewDrawer
+          open={isOpen}
+          onClose={() => setIsOpen(false)}
+          setOpen={setIsOpen}
+          collegeId={selectedCollege.id}
+        />
+      )}
     </div>
   );
 };

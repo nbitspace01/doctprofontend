@@ -2,6 +2,10 @@ import { Modal, Select, Form, Input, Button, notification } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
 import React from "react";
+import { apiClient } from "../../../api/api";
+import { fetchHospitalListApi } from "../../../api/hospital.api";
+import create from "@ant-design/icons/lib/components/IconFont";
+import { createCollegeApi } from "../../../api/college.api";
 
 interface AddCollegeModalProps {
   visible: boolean;
@@ -27,14 +31,16 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
 
   const associatedHospital = useQuery({
     queryKey: ["associatedHospital"],
-    queryFn: () => axios.get(`${API_URL}/api/hospital/hospitalNameList`),
+    // queryFn: () => axios.get(`${API_URL}/api/hospital/hospitalNameList`),
+    queryFn: fetchHospitalListApi,
   });
 
   // Move the mutation hook here
   const addCollegeMutation = useMutation({
     mutationFn: async (data: CollegePayload) => {
-      const response = await axios.post(`${API_URL}/api/college/`, data);
-      return response.data;
+      // const response = await axios.post(`${API_URL}/api/college/`, data);
+      // return response.data;
+      return createCollegeApi(data);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["colleges"] });
@@ -173,7 +179,7 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
             placeholder="Select Associated Hospital"
             className="w-full"
           >
-            {associatedHospital.data?.data?.map((hospital: any) => (
+            {associatedHospital.data?.map((hospital: any) => (
               <Select.Option key={hospital.id} value={hospital.id}>
                 {hospital.name}
               </Select.Option>

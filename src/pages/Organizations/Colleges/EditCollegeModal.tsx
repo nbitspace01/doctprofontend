@@ -1,8 +1,8 @@
 import { Modal, Select, Form, Input, Button, notification } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
 import React, { useEffect } from "react";
-import { useCollegeById, updateCollege } from "../../../api/college";
+import { updateCollegeApi, useCollegeById } from "../../../api/college.api";
+import { fetchHospitalListApi } from "../../../api/hospital.api";
 
 interface EditCollegeModalProps {
   visible: boolean;
@@ -26,23 +26,19 @@ const EditCollegeModal: React.FC<EditCollegeModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-
   // Fetch college data for editing
-  const { data: collegeData, isLoading: isLoadingCollege } = useCollegeById(
-    collegeId || ""
-  );
+  const { data: collegeData, isLoading: isLoadingCollege } = useCollegeById(collegeId!);
 
   // Fetch associated hospitals
   const associatedHospital = useQuery({
     queryKey: ["associatedHospital"],
-    queryFn: () => axios.get(`${API_URL}/api/hospital/hospitalNameList`),
+    queryFn: fetchHospitalListApi,
   });
 
   // Update college mutation
   const updateCollegeMutation = useMutation({
     mutationFn: async (data: CollegePayload) => {
-      return await updateCollege(collegeId!, data);
+      return await updateCollegeApi(collegeId!, data);
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["Colleges"] });
@@ -172,7 +168,7 @@ const EditCollegeModal: React.FC<EditCollegeModalProps> = ({
               placeholder="Select Associated Hospital"
               className="w-full"
             >
-              {associatedHospital.data?.data?.map((hospital: any) => (
+              {associatedHospital.data?.map((hospital: any) => (
                 <Select.Option key={hospital.id} value={hospital.id}>
                   {hospital.name}
                 </Select.Option>

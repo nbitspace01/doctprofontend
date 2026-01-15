@@ -26,7 +26,7 @@ import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
 import AdsPostList from "./pages/AdsManagement/AdsPostList";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
-import ListCollege from "./pages/Organizations/College/ListCollege";
+// import ListCollege from "./pages/Organizations/College/ListCollege";
 import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
 import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
 import PostManagementList from "./pages/PostManagement/PostManagementList";
@@ -133,11 +133,11 @@ const collegesRoute = createRoute({
   component: () => <CollegeList />,
 });
 
-const collegeListRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "colleges/list",
-  component: () => <ListCollege />,
-});
+// const collegeListRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "colleges/list",
+//   component: () => <ListCollege />,
+// });
 
 const degreeSpecializationRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -216,7 +216,7 @@ const routeTree = rootRoute.addChildren([
     hospitalAdminRoute,
     hospitalsRoute,
     collegesRoute,
-    collegeListRoute,
+    // collegeListRoute,
     degreeSpecializationRoute,
     clinicsRoute,
     studentsRoute,

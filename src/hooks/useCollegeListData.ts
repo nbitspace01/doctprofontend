@@ -24,8 +24,8 @@ export const useCollegeListData = ({
 }: any) => {
   const transformed: CollegeTableRow[] =
     apiData?.data?.map((college: any, index: number) => ({
-      key: college._id,
-      id: college._id,
+      key: college.id,
+      id: college.id,
       sNo: (currentPage - 1) * pageSize + index + 1,
 
       logo: college.logo ?? null,

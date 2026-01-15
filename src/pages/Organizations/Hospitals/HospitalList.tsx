@@ -8,8 +8,21 @@ import DownloadFilterButton from "../../Common/DownloadFilterButton";
 import CommonPagination from "../../Common/CommonPagination";
 import { ApiHospitalData } from "../Hospital.types";
 import AddHospitalModal from "./AddHospitalModal";
+import { useListController } from "../../../hooks/useListController";
+import CommonTable from "../../../components/Common/CommonTable";
 
 const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+
+interface HospitalData {
+  key: string;
+  sNo: number;
+  name: string;
+  logo: string | null;
+  branchLocation: string;
+  updatedOn: string;
+  address: string;
+  status: "Active" | "Inactive" | "Pending";
+}
 
 interface ApiResponse {
   total: number;
@@ -92,16 +105,7 @@ const fetchHospitals = async (
   return response.json();
 };
 
-interface HospitalData {
-  key: string;
-  sNo: number;
-  name: string;
-  logo: string | null;
-  branchLocation: string;
-  updatedOn: string;
-  address: string;
-  status: "Active" | "Inactive" | "Pending";
-}
+
 
 const fetchHospitalById = async (id: string): Promise<ApiHospitalData> => {
   const response = await fetch(`${API_URL}/api/hospital/byId`, {
@@ -136,10 +140,16 @@ const HospitalList: React.FC = () => {
   const [viewHospitalId, setViewHospitalId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchValue, setSearchValue] = useState("");
-  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const {
+      currentPage,
+      pageSize,
+      searchValue,
+      filterValues,
+      onPageChange,
+      onSearch,
+      onFilterChange,
+    } = useListController();
+
   const filterOptions = [
     {
       label: "Name",
@@ -272,8 +282,6 @@ const HospitalList: React.FC = () => {
   };
 
   const handleDelete = (record: any) => {
-    console.log("handleDelete called with record:", record);
-
     if (!record) {
       console.error("Record is null or undefined");
       message.error("Cannot delete: Invalid record data");
@@ -289,13 +297,6 @@ const HospitalList: React.FC = () => {
     const hospitalId = record.key || record.id;
     console.log("Calling deleteHospitalMutation.mutate with ID:", hospitalId);
     deleteHospitalMutation.mutate(hospitalId);
-  };
-
-  const handlePageChange = (page: number, pageSize?: number) => {
-    setCurrentPage(page);
-    if (pageSize) {
-      setPageSize(pageSize);
-    }
   };
 
   let filteredHospitals = hospitals?.data || [];
@@ -536,25 +537,6 @@ const HospitalList: React.FC = () => {
     },
   ];
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const handleFilterChange = (filters: Record<string, any>) => {
-    const cleanedFilters: Record<string, any> = {};
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value === "" || value === null || value === undefined) return;
-      if (key.includes("_")) {
-        if (value === true) cleanedFilters[key] = value;
-      } else {
-        const trimmed = String(value).trim();
-        if (trimmed) cleanedFilters[key] = trimmed;
-      }
-    });
-    setFilterValues(cleanedFilters);
-    setCurrentPage(1);
-  };
-
   const handleDownload = (format: "excel" | "csv") => {
     if (!tableData?.length) return;
     const delimiter = format === "csv" ? "," : "\t";
@@ -612,29 +594,22 @@ const HospitalList: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow w-full">
-        <DownloadFilterButton
-          onSearch={handleSearch}
-          searchValue={searchValue}
-          filterOptions={filterOptions}
-          onFilterChange={handleFilterChange}
-          onDownload={handleDownload}
-        />
 
-        <Table
-          columns={columns}
-          dataSource={tableData}
-          scroll={{ x: "max-content" }}
-          pagination={false}
-          loading={isFetching}
-          className="shadow-sm rounded-lg"
-        />
-        <CommonPagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={displayTotal}
-          onChange={handlePageChange}
-          onShowSizeChange={handlePageChange}
-        />
+          <CommonTable
+              rowKey="key"
+              columns={columns}
+              data={tableData}
+              loading={isFetching}
+              currentPage={currentPage}
+              pageSize={pageSize}
+              total={displayTotal}
+              onPageChange={onPageChange}
+              filters={filterOptions}
+              onFilterChange={onFilterChange}
+              onSearch={onSearch}
+              searchValue={searchValue}
+              onDownload={handleDownload}
+            />
       </div>
 
       <Drawer
