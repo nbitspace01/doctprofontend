@@ -1,15 +1,14 @@
-import { Modal, Select, Form, Input, Button, notification } from "antd";
+import React, { useEffect } from "react";
+import { Modal, Select, Form, Input, Button, notification, Spin } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import React from "react";
-import { apiClient } from "../../../api/api";
 import { fetchHospitalListApi } from "../../../api/hospital.api";
-import create from "@ant-design/icons/lib/components/IconFont";
-import { createCollegeApi } from "../../../api/college.api";
+import { createCollegeApi, updateCollegeApi } from "../../../api/college.api";
+import { CollegeData } from "./CollegeList";
 
 interface AddCollegeModalProps {
-  visible: boolean;
+  open: boolean;
   onClose: () => void;
+  initialData?: CollegeData | null;
 }
 
 interface CollegePayload {
@@ -17,197 +16,236 @@ interface CollegePayload {
   city: string;
   district: string;
   state: string;
-  associatedHospital: string;
   hospitalIds: string[];
 }
 
+export const STATE_OPTIONS = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+];
+
+export const DISTRICT_OPTIONS = [
+  "Chennai",
+  "Coimbatore",
+  "Madurai",
+  "Salem",
+  "Erode",
+  "Thanjavur",
+  "Tiruchirappalli",
+  "Bangalore",
+  "Mysore",
+  "Mangalore",
+  "Hyderabad",
+  "Warangal",
+  "Secunderabad",
+  "Mumbai",
+  "Pune",
+  "Nagpur",
+  "Ahmedabad",
+  "Surat",
+  "Vadodara",
+  "Jaipur",
+  "Jodhpur",
+  "Udaipur",
+  "Lucknow",
+  "Kanpur",
+  "Varanasi",
+  "Patna",
+  "Gaya",
+  "Ranchi",
+  "Jamshedpur",
+  "Bhopal",
+  "Indore",
+  "Gwalior",
+  "Thiruvananthapuram",
+  "Kochi",
+  "Kozhikode",
+  "Shillong",
+  "Gangtok",
+  "Imphal",
+  "Agartala",
+];
+
 const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
-  visible,
+  open,
   onClose,
+  initialData,
 }) => {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
-  const associatedHospital = useQuery({
-    queryKey: ["associatedHospital"],
-    // queryFn: () => axios.get(`${API_URL}/api/hospital/hospitalNameList`),
+  const { data: hospitals = [], isLoading } = useQuery({
+    queryKey: ["hospitalList"],
     queryFn: fetchHospitalListApi,
   });
 
-  // Move the mutation hook here
-  const addCollegeMutation = useMutation({
-    mutationFn: async (data: CollegePayload) => {
-      // const response = await axios.post(`${API_URL}/api/college/`, data);
-      // return response.data;
-      return createCollegeApi(data);
-    },
+  const collegeMutation = useMutation({
+    mutationFn: (payload: CollegePayload) =>
+      initialData
+        ? updateCollegeApi(initialData.id, payload)
+        : createCollegeApi(payload),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["colleges"] });
       notification.success({
-        message: "College Added Successfully",
+        message: initialData ? "College Updated" : "College Added",
         description: data.message,
       });
+      queryClient.invalidateQueries({ queryKey: ["colleges"] });
       form.resetFields();
       onClose();
     },
+    onError: (error: any) => {
+      notification.error({
+        message: "Operation Failed",
+        description: error?.response?.data?.message || "Something went wrong",
+      });
+    },
   });
 
-  // Early return if the modal is not visible
-  if (!visible) return null;
+  useEffect(() => {
+    if (!open) return;
 
-  const handleSubmit = async (values: CollegePayload) => {
-    console.log("Submitting college with values:", values);
-    try {
-      await addCollegeMutation.mutateAsync(values);
-    } catch (error) {
-      console.error("Error adding college:", error);
+    if (initialData) {
+      form.setFieldsValue({
+        name: initialData.collegeName,
+        city: initialData.city,
+        district: initialData.district,
+        state: initialData.state,
+        hospitalIds: initialData.hospitals?.map((h) => h.id) || [],
+      });
+    } else {
+      form.resetFields();
     }
+  }, [open, initialData, form]);
+
+  const handleSubmit = (values: any) => {
+    const payload: CollegePayload = {
+      name: values.name,
+      city: values.city,
+      district: values.district,
+      state: values.state,
+      hospitalIds: values.hospitalIds,
+    };
+    collegeMutation.mutate(payload);
   };
+
+  if (!open) return null;
 
   return (
     <Modal
-      title="Add New College"
-      open={visible}
-      onCancel={() => {
-        form.resetFields();
-        onClose();
-      }}
+      title={initialData ? "Edit College" : "Add New College"}
+      open={open}
+      onCancel={onClose}
       footer={null}
       width={600}
     >
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={handleSubmit}
-        className="mt-4"
-      >
-        <Form.Item
-          label="College Name"
-          name="name"
-          rules={[
-            { required: true, message: "Please enter college name" },
-            {
-              pattern: /^[a-zA-Z\s]+$/,
-              message: "Please enter a valid college name",
-            },
-          ]}
-        >
-          <Input placeholder="Enter College Name" className="w-full" />
-        </Form.Item>
-
-        <Form.Item
-          label="City/Town"
-          name="city"
-          rules={[{ required: true, message: "Please enter city" }]}
-        >
-          <Input placeholder="Enter Location" className="w-full" />
-        </Form.Item>
-
-        <Form.Item
-          label="District"
-          name="district"
-          rules={[{ required: true, message: "Please select district" }]}
-        >
-          <Select placeholder="Select District">
-            <Select.Option value="Chennai">Chennai</Select.Option>
-            <Select.Option value="Coimbatore">Coimbatore</Select.Option>
-            <Select.Option value="Madurai">Madurai</Select.Option>
-            <Select.Option value="Salem">Salem</Select.Option>
-            <Select.Option value="Erode">Erode</Select.Option>
-            <Select.Option value="Thanjavur">Thanjavur</Select.Option>
-            <Select.Option value="Tiruchirappalli">
-              Tiruchirappalli
-            </Select.Option>
-
-            {/* Add more districts as needed */}
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label="State"
-          name="state"
-          rules={[{ required: true, message: "Please select state" }]}
-        >
-          <Select 
-            placeholder="Select State"
-            showSearch
-            filterOption={(input, option) =>
-              (option?.children ?? "").toString().toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            <Select.Option value="Andhra Pradesh">Andhra Pradesh</Select.Option>
-            <Select.Option value="Arunachal Pradesh">Arunachal Pradesh</Select.Option>
-            <Select.Option value="Assam">Assam</Select.Option>
-            <Select.Option value="Bihar">Bihar</Select.Option>
-            <Select.Option value="Chhattisgarh">Chhattisgarh</Select.Option>
-            <Select.Option value="Goa">Goa</Select.Option>
-            <Select.Option value="Gujarat">Gujarat</Select.Option>
-            <Select.Option value="Haryana">Haryana</Select.Option>
-            <Select.Option value="Himachal Pradesh">Himachal Pradesh</Select.Option>
-            <Select.Option value="Jharkhand">Jharkhand</Select.Option>
-            <Select.Option value="Karnataka">Karnataka</Select.Option>
-            <Select.Option value="Kerala">Kerala</Select.Option>
-            <Select.Option value="Madhya Pradesh">Madhya Pradesh</Select.Option>
-            <Select.Option value="Maharashtra">Maharashtra</Select.Option>
-            <Select.Option value="Manipur">Manipur</Select.Option>
-            <Select.Option value="Meghalaya">Meghalaya</Select.Option>
-            <Select.Option value="Mizoram">Mizoram</Select.Option>
-            <Select.Option value="Nagaland">Nagaland</Select.Option>
-            <Select.Option value="Odisha">Odisha</Select.Option>
-            <Select.Option value="Punjab">Punjab</Select.Option>
-            <Select.Option value="Rajasthan">Rajasthan</Select.Option>
-            <Select.Option value="Sikkim">Sikkim</Select.Option>
-            <Select.Option value="Tamil Nadu">Tamil Nadu</Select.Option>
-            <Select.Option value="Telangana">Telangana</Select.Option>
-            <Select.Option value="Tripura">Tripura</Select.Option>
-            <Select.Option value="Uttar Pradesh">Uttar Pradesh</Select.Option>
-            <Select.Option value="Uttarakhand">Uttarakhand</Select.Option>
-            <Select.Option value="West Bengal">West Bengal</Select.Option>
-          </Select>
-        </Form.Item>
-
-        <Form.Item
-          label="Associated Hospital"
-          name="hospitalIds"
-          rules={[
-            { required: true, message: "Please select associated hospital" },
-          ]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select Associated Hospital"
-            className="w-full"
-          >
-            {associatedHospital.data?.map((hospital: any) => (
-              <Select.Option key={hospital.id} value={hospital.id}>
-                {hospital.name}
-              </Select.Option>
-            ))}
-
-            {/* Add more hospitals as needed */}
-          </Select>
-        </Form.Item>
-
-        <div className="flex justify-end gap-3 mt-6">
-          <Button
-            onClick={() => {
-              form.resetFields();
-              onClose();
-            }}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={addCollegeMutation.isPending}
-            className="bg-button-primary hover:!bg-button-primary"
-          >
-            Submit
-          </Button>
+      {isLoading ? (
+        <div className="flex justify-center py-10">
+          <Spin />
         </div>
-      </Form>
+      ) : (
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          className="mt-4"
+        >
+          <Form.Item
+            label="College Name"
+            name="name"
+            rules={[{ required: true, message: "Please enter college name" }]}
+          >
+            <Input placeholder="Enter college name" />
+          </Form.Item>
+
+          <Form.Item
+            label="City / Town"
+            name="city"
+            rules={[{ required: true, message: "Please enter city" }]}
+          >
+            <Input placeholder="Enter city" />
+          </Form.Item>
+
+          <Form.Item
+            label="District"
+            name="district"
+            rules={[{ required: true, message: "Please select district" }]}
+          >
+            <Select placeholder="Select district">
+              {DISTRICT_OPTIONS.map((d) => (
+                <Select.Option key={d} value={d}>
+                  {d}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="State"
+            name="state"
+            rules={[{ required: true, message: "Please select state" }]}
+          >
+            <Select showSearch placeholder="Select state">
+              {STATE_OPTIONS.map((s) => (
+                <Select.Option key={s} value={s}>
+                  {s}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Associated Hospital"
+            name="hospitalIds"
+            rules={[{ required: true, message: "Please select hospital" }]}
+          >
+            <Select mode="multiple" placeholder="Select hospitals">
+              {hospitals.map((h: any) => (
+                <Select.Option key={h.id} value={h.id}>
+                  {h.name}
+                </Select.Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <div className="flex justify-end gap-3 mt-6">
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={collegeMutation.isPending}
+              className="bg-button-primary"
+            >
+              {initialData ? "Update" : "Create"}
+            </Button>
+          </div>
+        </Form>
+      )}
     </Modal>
   );
 };

@@ -1,720 +1,235 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { App, Avatar, Button, Drawer, message, Skeleton, Table } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
-import CommonDropdown from "../../Common/CommonActionsDropdown";
-import { showSuccess } from "../../Common/Notification";
-import DownloadFilterButton from "../../Common/DownloadFilterButton";
-import CommonPagination from "../../Common/CommonPagination";
-import { ApiHospitalData } from "../Hospital.types";
-import AddHospitalModal from "./AddHospitalModal";
-import { useListController } from "../../../hooks/useListController";
-import CommonTable from "../../../components/Common/CommonTable";
+import { Button, App, Avatar } from "antd";
+import { PlusOutlined } from "@ant-design/icons";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
-const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+import CommonTable from "../../../components/Common/CommonTable";
+import CommonDropdown from "../../Common/CommonActionsDropdown";
+import StatusBadge from "../../Common/StatusBadge";
+
+import AddHospitalModal from "./AddHospitalModal";
+import HospitalViewDrawer from "./HospitalViewDrawer";
+
+import { useListController } from "../../../hooks/useListController";
+import {
+  fetchHospitalsApi,
+  deleteHospitalApi,
+} from "../../../api/hospital.api";
 
 interface HospitalData {
-  key: string;
-  sNo: number;
-  name: string;
-  logo: string | null;
-  branchLocation: string;
-  updatedOn: string;
-  address: string;
-  status: "Active" | "Inactive" | "Pending";
-}
-
-interface ApiResponse {
-  total: number;
-  page: number;
-  limit: number;
-  data: ApiHospitalData[];
-}
-
-const fetchHospitals = async (
-  currentPage: number,
-  pageSize: number,
-  searchValue: string,
-  filterValues: Record<string, any>
-): Promise<ApiResponse> => {
-  const validPage = currentPage || 1;
-  const validLimit = pageSize || 10;
-  const searchParam = searchValue ? `&search=${searchValue}` : "";
-
-  // Process filter values to convert checkbox-style filters to proper format
-  const processedFilters: Record<string, any> = {};
-  Object.entries(filterValues).forEach(([key, value]) => {
-    // Skip empty values
-    if (!value || value === "" || value === null || value === undefined) {
-      return;
-    }
-
-    if (key.includes("_")) {
-      // Handle checkbox-style filters like "status_Active"
-      // Don't send status filter to API - handle it on frontend only
-      if (key.startsWith("status_")) {
-        // Skip status filters - we'll handle them on the frontend
-        return;
-      }
-
-      const [filterKey, filterValue] = key.split("_");
-      if (value === true) {
-        // For other checkbox filters, collect all selected values
-        if (!processedFilters[filterKey]) {
-          processedFilters[filterKey] = [];
-        }
-        if (Array.isArray(processedFilters[filterKey])) {
-          processedFilters[filterKey].push(filterValue);
-        } else {
-          processedFilters[filterKey] = [
-            processedFilters[filterKey],
-            filterValue,
-          ];
-        }
-      }
-    } else {
-      // Handle regular text filters (name, branchLocation)
-      // Trim whitespace and only add if not empty after trim
-      const trimmedValue = String(value).trim();
-      if (trimmedValue) {
-        // Use the key as-is, but ensure proper encoding
-        processedFilters[key] = trimmedValue;
-      }
-    }
-  });
-
-  // Build filter parameters
-  const filterParams: string[] = [];
-  Object.entries(processedFilters).forEach(([key, value]) => {
-    if (Array.isArray(value)) {
-      // For arrays (multiple status selections), join with comma
-      filterParams.push(`${key}=${encodeURIComponent(value.join(","))}`);
-    } else {
-      filterParams.push(`${key}=${encodeURIComponent(value)}`);
-    }
-  });
-
-  const filterParam = filterParams.length > 0 ? filterParams.join("&") : "";
-  const fullUrl = `${API_URL}/api/hospital?page=${validPage}&limit=${validLimit}${searchParam}${
-    filterParam ? `&${filterParam}` : ""
-  }`;
-  const response = await fetch(fullUrl);
-  if (!response.ok) {
-    throw new Error("Failed to fetch hospitals");
-  }
-  return response.json();
-};
-
-
-
-const fetchHospitalById = async (id: string): Promise<ApiHospitalData> => {
-  const response = await fetch(`${API_URL}/api/hospital/byId`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ id }),
-  });
-  if (!response.ok) throw new Error("Failed to fetch hospital details");
-  const data = await response.json();
-  return data.data || data.hospital || data;
-};
-
-const updateHospital = async (data: {
   id: string;
-  hospitalData: Partial<ApiHospitalData>;
-}) => {
-  const response = await fetch(`${API_URL}/api/hospital/${data.id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data.hospitalData),
-  });
-  if (!response.ok) throw new Error("Failed to update hospital");
-  return response.json();
-};
+  name: string;
+  logoUrl: string | null;
+  branchLocation: string;
+  status: string;
+  updated_at: string;
+}
+
+interface HospitalResponse {
+  data: HospitalData[];
+  total: number;
+}
 
 const HospitalList: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
-    null
-  );
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [viewHospitalId, setViewHospitalId] = useState<string | null>(null);
+  const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
-  const { notification } = App.useApp();
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState<HospitalData | null>(null);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedHospital, setSelectedHospital] =
+    useState<string | null>(null);
+
   const {
-      currentPage,
-      pageSize,
-      searchValue,
-      filterValues,
-      onPageChange,
-      onSearch,
-      onFilterChange,
-    } = useListController();
+    currentPage,
+    pageSize,
+    searchValue,
+    filterValues,
+    onPageChange,
+    onSearch,
+    onFilterChange,
+  } = useListController();
 
-  const filterOptions = [
-    {
-      label: "Name",
-      key: "name",
-      type: "text" as const,
-    },
-    {
-      label: "Branch Location",
-      key: "branchLocation",
-      type: "text" as const,
-    },
-    {
-      label: "Updated on Portal",
-      key: "updatedOn",
-      type: "date" as const,
-    },
-    {
-      label: "Status",
-      key: "status",
-      type: "checkbox" as const,
-      options: ["Active", "Inactive", "Pending"],
-    },
-  ];
-  const { data: hospitals, isFetching } = useQuery<ApiResponse, Error>({
-    queryKey: ["hospitals", currentPage, pageSize, searchValue, filterValues],
+  const { data, isFetching } = useQuery<HospitalResponse>({
+    queryKey: ["hospital", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
-      fetchHospitals(currentPage, pageSize, searchValue, filterValues),
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
+      fetchHospitalsApi({
+        page: currentPage,
+        limit: pageSize,
+        searchValue,
+        filterValues,
+      }),
+    refetchOnWindowFocus: false,
   });
 
-  const { data: selectedHospital } = useQuery({
-    queryKey: ["hospital", selectedHospitalId],
-    queryFn: () =>
-      selectedHospitalId ? fetchHospitalById(selectedHospitalId) : null,
-    enabled: !!selectedHospitalId,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
+  const allHospitals = data?.data || [];
+  const totalHospitals = data?.total || 0;
 
-  const { data: viewHospital, isLoading: isViewLoading } = useQuery({
-    queryKey: ["hospital", viewHospitalId],
-    queryFn: () => (viewHospitalId ? fetchHospitalById(viewHospitalId) : null),
-    enabled: !!viewHospitalId,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
-
-  const updateHospitalMutation = useMutation({
-    mutationFn: updateHospital,
+  const deleteMutation = useMutation({
+    mutationFn: deleteHospitalApi,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-      if (viewHospitalId)
-        queryClient.invalidateQueries({
-          queryKey: ["hospital", viewHospitalId],
-        });
-      if (selectedHospitalId)
-        queryClient.invalidateQueries({
-          queryKey: ["hospital", selectedHospitalId],
-        });
-    },
-    onError: () => message.error("Failed to update hospital"),
-  });
-
-  const deleteHospitalMutation = useMutation({
-    mutationFn: async (id: string) => {
-      console.log("deleteHospitalMutation.mutationFn called with ID:", id);
-      const deleteUrl = `${API_URL}/api/hospital/${id}`;
-      console.log("Delete API URL:", deleteUrl);
-      console.log("API_URL:", API_URL);
-
-      try {
-        const response = await fetch(deleteUrl, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-        });
-        console.log("Delete API response status:", response.status);
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Delete API error response:", errorData);
-          throw new Error(
-            errorData.message || `Failed to delete hospital: ${response.status}`
-          );
-        }
-        const data = await response.json();
-        console.log("Delete API response data:", data);
-        return data;
-      } catch (error) {
-        console.error("Delete API error in mutationFn:", error);
-        throw error;
-      }
-    },
-    onSuccess: (data) => {
-      console.log("Delete mutation success:", data);
-      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+      queryClient.invalidateQueries({ queryKey: ["hospital"] });
       message.success("Hospital deleted successfully");
     },
-    onError: (error: any) => {
-      console.error("Delete mutation onError:", error);
-      console.error("Error message:", error?.message);
-      const errorMessage = error?.message || "Failed to delete hospital";
-      message.error(errorMessage);
+    onError: () => {
+      message.error("Failed to delete hospital");
     },
   });
 
-  const handleSuccess = () => {
-    queryClient.invalidateQueries({ queryKey: ["hospitals"] });
-    if (viewHospitalId)
-      queryClient.invalidateQueries({ queryKey: ["hospital", viewHospitalId] });
-    if (selectedHospitalId)
-      queryClient.invalidateQueries({
-        queryKey: ["hospital", selectedHospitalId],
-      });
-    setIsModalOpen(false);
-    setSelectedHospitalId(null);
-  };
-
-  const handleUpdateHospital = async (
-    hospitalData: Partial<ApiHospitalData>
-  ) => {
-    if (!selectedHospitalId) return;
-    const response = await updateHospitalMutation.mutateAsync({
-      id: selectedHospitalId,
-      hospitalData,
-    });
-    showSuccess(notification, { message: response.message });
-  };
-
-  const handleDelete = (record: any) => {
-    if (!record) {
-      console.error("Record is null or undefined");
-      message.error("Cannot delete: Invalid record data");
-      return;
-    }
-
-    if (!record.key && !record.id) {
-      console.error("Record key/ID is missing. Record:", record);
-      message.error("Cannot delete: Missing record ID");
-      return;
-    }
-
-    const hospitalId = record.key || record.id;
-    console.log("Calling deleteHospitalMutation.mutate with ID:", hospitalId);
-    deleteHospitalMutation.mutate(hospitalId);
-  };
-
-  let filteredHospitals = hospitals?.data || [];
-  const {
-    name: nameFilter,
-    branchLocation: branchLocationFilter,
-    updatedOn: updatedOnFilter,
-  } = filterValues;
-  const statusFilters = Object.entries(filterValues)
-    .filter(([key, value]) => key.startsWith("status_") && value === true)
-    .map(([key]) => key.replace("status_", ""))
-    .filter(Boolean);
-
-  const formatDate = (dateValue: string) => {
-    if (!dateValue) return null;
-    try {
-      const dateObj = new Date(dateValue);
-      if (isNaN(dateObj.getTime())) return null;
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      return `${dateObj.getDate()} ${
-        monthNames[dateObj.getMonth()]
-      } ${dateObj.getFullYear()}`;
-    } catch {
-      return null;
-    }
-  };
-
-  const transformStatus = (status: string) => {
-    const statusLower = status?.toLowerCase() || "";
-    return statusLower === "active"
-      ? "Active"
-      : statusLower === "inactive"
-      ? "Inactive"
-      : "Pending";
-  };
-
-  const getDateValue = (hospital: ApiHospitalData) =>
-    (hospital as any).updatedAt || hospital.updated_at || "";
-
-  if (
-    nameFilter ||
-    branchLocationFilter ||
-    updatedOnFilter ||
-    statusFilters.length > 0
-  ) {
-    filteredHospitals = filteredHospitals.filter(
-      (hospital: ApiHospitalData) => {
-        const matchesName =
-          !nameFilter ||
-          hospital.name
-            ?.toLowerCase()
-            .includes(String(nameFilter).toLowerCase().trim());
-        const matchesBranchLocation =
-          !branchLocationFilter ||
-          hospital.branchLocation
-            ?.toLowerCase()
-            .includes(String(branchLocationFilter).toLowerCase().trim());
-        const matchesUpdatedOn =
-          !updatedOnFilter ||
-          (() => {
-            try {
-              const hospitalDateValue = getDateValue(hospital);
-              if (!hospitalDateValue) return false;
-              const hospitalDate = new Date(hospitalDateValue);
-              const filterDate = new Date(updatedOnFilter);
-              if (isNaN(hospitalDate.getTime()) || isNaN(filterDate.getTime()))
-                return false;
-              const hospitalDateOnly = new Date(
-                hospitalDate.getFullYear(),
-                hospitalDate.getMonth(),
-                hospitalDate.getDate()
-              );
-              const filterDateOnly = new Date(
-                filterDate.getFullYear(),
-                filterDate.getMonth(),
-                filterDate.getDate()
-              );
-              return hospitalDateOnly.getTime() === filterDateOnly.getTime();
-            } catch {
-              return false;
-            }
-          })();
-        const matchesStatus =
-          statusFilters.length === 0 ||
-          statusFilters.some(
-            (filter) =>
-              transformStatus(hospital.status || "").toLowerCase() ===
-              filter.toLowerCase().trim()
-          );
-        return (
-          matchesName &&
-          matchesBranchLocation &&
-          matchesUpdatedOn &&
-          matchesStatus
-        );
-      }
-    );
-  }
-
-  const hasClientSideFilters =
-    nameFilter ||
-    branchLocationFilter ||
-    updatedOnFilter ||
-    statusFilters.length > 0;
-  const displayTotal = hasClientSideFilters
-    ? filteredHospitals.length
-    : hospitals?.total ?? 0;
-
-  const tableData: HospitalData[] = filteredHospitals.map(
-    (hospital, index) => ({
-      key: hospital.id,
-      sNo: index + 1,
-      name: hospital.name,
-      logo: hospital.logoUrl,
-      branchLocation: hospital.branchLocation,
-      address: hospital.address,
-      updatedOn: getDateValue(hospital),
-      status: transformStatus(hospital.status || "") as HospitalData["status"],
-    })
-  );
-
-  const columns: ColumnsType<HospitalData> = [
+  const columns = [
     {
       title: "S No",
-      dataIndex: "sNo",
-      key: "sNo",
       width: 70,
+      render: (_: any, __: any, index: number) =>
+        (currentPage - 1) * pageSize + index + 1,
     },
     {
-      title: "Hospital/Clinic Name",
-      dataIndex: "name",
-      key: "name",
-      render: (text, record) => {
-        const isValidImageUrl = (url: string | null) => {
-          if (!url || url === "null") return false;
-          try {
-            JSON.parse(url);
-            return false;
-          } catch {
-            return url.startsWith("http://") || url.startsWith("https://");
-          }
-        };
-        const hasValidImage = isValidImageUrl(record.logo);
-        return (
-          <div className="flex items-center gap-3">
-            {hasValidImage && (
-              <img
-                src={record.logo!}
-                alt={text}
-                className="w-10 h-10 rounded-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none";
-                  e.currentTarget.nextElementSibling?.classList.remove(
-                    "hidden"
-                  );
-                }}
-              />
-            )}
-            <Avatar
-              className={`bg-button-primary text-white ${
-                hasValidImage ? "hidden" : ""
-              }`}
-            >
-              {text.charAt(0)}
-            </Avatar>
-            <span>{text}</span>
-          </div>
-        );
-      },
+      title: "Hospital Name",
+      render: (_: any, record: HospitalData) => (
+        <div className="flex items-center gap-2">
+          <Avatar size={40} className="bg-button-primary text-white">
+            {record.name.charAt(0)}
+          </Avatar>
+          {record.name}
+        </div>
+      ),
     },
     {
       title: "Branch Location",
       dataIndex: "branchLocation",
-      key: "branchLocation",
-    },
-    {
-      title: "Updated on Portal",
-      dataIndex: "updatedOn",
-      key: "updatedOn",
-      width: 180,
-      render: (dateValue: string) => {
-        const formatted = formatDate(dateValue);
-        return (
-          <span className={formatted ? "" : "text-gray-500"}>
-            {formatted || "N/A"}
-          </span>
-        );
-      },
     },
     {
       title: "Status",
       dataIndex: "status",
-      key: "status",
-      render: (status) => {
-        const statusClass =
-          status === "Active"
-            ? "text-green-600 bg-green-50"
-            : status === "Inactive"
-            ? "text-red-600 bg-red-50"
-            : "text-orange-600 bg-orange-50";
-        return (
-          <span className={`text-sm px-3 py-1 rounded-full ${statusClass}`}>
-            {status}
-          </span>
-        );
-      },
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
-      title: "Action",
-      key: "action",
-
-      render: (_, record) => (
+      title: "Actions",
+      render: (_: any, record: HospitalData) => (
         <CommonDropdown
           onView={() => {
-            setViewHospitalId(record.key);
-            setIsDrawerOpen(true);
+            setSelectedHospital(record.id);
+            console.log("selected hospital ", selectedHospital);
+            setIsViewDrawerOpen(true);
           }}
-          onEdit={async () => {
-            setSelectedHospitalId(record.key);
+          onEdit={() => {
+            setEditData(record);
             setIsModalOpen(true);
           }}
-          onDelete={() => handleDelete(record)}
+          onDelete={() =>
+            modal.confirm({
+              title: "Confirm Delete",
+              content: `Delete ${record.name}?`,
+              okType: "danger",
+              onOk: () => deleteMutation.mutate(record.id),
+            })
+          }
         />
       ),
     },
   ];
 
+  const filterOptions = [
+    { label: "Hospital Name", key: "name", type: "text" as const },
+    { label: "Branch Location", key: "branchLocation", type: "text" as const },
+    {
+      label: "Status",
+      key: "status",
+      type: "checkbox" as const,
+      options: ["ACTIVE", "INACTIVE"],
+    },
+  ];
+
+  
   const handleDownload = (format: "excel" | "csv") => {
-    if (!tableData?.length) return;
-    const delimiter = format === "csv" ? "," : "\t";
+    if (!allHospitals.length) return;
     const headers = [
       "S No",
-      "Hospital/Clinic Name",
-      "Branch Location",
+      "Name",
+      "Email",
+      "Phone",
+      "Role",
+      "State",
+      "District",
+      "Organization Type",
       "Status",
     ];
-    const rows = [
-      headers.join(delimiter),
-      ...tableData.map((row) =>
-        [
-          row.sNo,
-          `"${row.name || "N/A"}"`,
-          `"${row.branchLocation || "N/A"}"`,
-          `"${row.status || "N/A"}"`,
-        ].join(delimiter)
-      ),
-    ];
-    const blob = new Blob([rows.join("\n")], {
-      type:
-        format === "csv"
-          ? "text/csv;charset=utf-8;"
-          : "application/vnd.ms-excel",
+    const rows = allHospitals.map((row, i) => [
+      i + 1,
+      `${row.name}`,
+      row.branchLocation || "N/A",
+      row.status || "N/A",
+    ]);
+    const content = [headers, ...rows]
+      .map((r) => r.join(format === "csv" ? "," : "\t"))
+      .join("\n");
+    const blob = new Blob([content], {
+      type: format === "csv" ? "text/csv" : "application/vnd.ms-excel",
     });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `hospitals-report-${new Date().toISOString().split("T")[0]}.${
-      format === "csv" ? "csv" : "xls"
-    }`;
+    a.href = URL.createObjectURL(blob);
+    a.download = `hospital-report.${format === "csv" ? "csv" : "xls"}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
+
+  
 
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-semibold">
           Hospital & Clinics Management
         </h1>
         <Button
           type="primary"
-          onClick={() => {
-            setSelectedHospitalId(null);
-            setIsModalOpen(true);
-          }}
-          className="bg-button-primary hover:!bg-button-primary"
+          icon={<PlusOutlined />}
+          onClick={() => setIsModalOpen(true)}
+          className="bg-button-primary"
         >
-          + Add New Hospital & Clinics
+          Add New Hospital
         </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow w-full">
-
-          <CommonTable
-              rowKey="key"
-              columns={columns}
-              data={tableData}
-              loading={isFetching}
-              currentPage={currentPage}
-              pageSize={pageSize}
-              total={displayTotal}
-              onPageChange={onPageChange}
-              filters={filterOptions}
-              onFilterChange={onFilterChange}
-              onSearch={onSearch}
-              searchValue={searchValue}
-              onDownload={handleDownload}
-            />
-      </div>
-
-      <Drawer
-        title="Hospital & Clinics Management"
-        placement="right"
-        onClose={() => {
-          setIsDrawerOpen(false);
-          setViewHospitalId(null);
-        }}
-        open={isDrawerOpen}
-        width={500}
-      >
-        {isViewLoading ? (
-          <Skeleton active />
-        ) : viewHospital && typeof viewHospital === "object" ? (
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              {(() => {
-                const isValidImageUrl = (url: string | null) => {
-                  if (!url || url === "null") return false;
-                  try {
-                    JSON.parse(url);
-                    return false;
-                  } catch {
-                    return (
-                      url.startsWith("http://") || url.startsWith("https://")
-                    );
-                  }
-                };
-                const hasValidImage = isValidImageUrl(viewHospital.logoUrl);
-                return hasValidImage ? (
-                  <img
-                    src={viewHospital.logoUrl!}
-                    alt={viewHospital.name}
-                    className="w-12 h-12 rounded-full object-cover"
-                  />
-                ) : (
-                  <Avatar size={50} className="bg-button-primary">
-                    {viewHospital.name?.charAt(0) || ""}
-                  </Avatar>
-                );
-              })()}
-              <div className="flex items-center gap-3">
-                <h3 className="text-lg font-semibold">{viewHospital.name}</h3>
-                {(() => {
-                  const transformedStatus = transformStatus(
-                    viewHospital.status || ""
-                  );
-                  const statusClass =
-                    transformedStatus === "Active"
-                      ? "text-green-600 bg-green-50"
-                      : transformedStatus === "Inactive"
-                      ? "text-red-600 bg-red-50"
-                      : "text-orange-600 bg-orange-50";
-                  return (
-                    <span
-                      className={`text-sm px-3 py-1 rounded-full ${statusClass}`}
-                    >
-                      {transformedStatus}
-                    </span>
-                  );
-                })()}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Branch Location</h4>
-              <p>{viewHospital.branchLocation || "N/A"}</p>
-            </div>
-
-            <div>
-              <h4 className="font-medium mb-2">Updated on Portal</h4>
-              <p>
-                {(() => {
-                  const dateValue =
-                    (viewHospital as any)?.updatedAt ||
-                    viewHospital?.updated_at ||
-                    (viewHospital as any)?.createdOn ||
-                    (viewHospital as any)?.created_at ||
-                    "";
-                  const formatted = formatDate(String(dateValue).trim());
-                  return (
-                    <span className={formatted ? "" : "text-gray-500"}>
-                      {formatted || "N/A"}
-                    </span>
-                  );
-                })()}
-              </p>
-            </div>
-          </div>
-        ) : null}
-      </Drawer>
+      <CommonTable
+        rowKey="id"
+        columns={columns}
+        data={data?.data ?? []}
+        loading={isFetching}
+        total={data?.total ?? 0}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        filters={filterOptions}
+        onPageChange={onPageChange}
+        onSearch={onSearch}
+        onFilterChange={onFilterChange}
+        searchValue={searchValue}
+        onDownload={handleDownload}
+      />
 
       <AddHospitalModal
-        key={selectedHospitalId || "new"}
         isOpen={isModalOpen}
+        isEditing={!!editData}
+        initialData={editData}
         onClose={() => {
           setIsModalOpen(false);
-          setSelectedHospitalId(null);
+          setEditData(null);
         }}
-        onSuccess={handleSuccess}
-        initialData={selectedHospital}
-        onUpdate={handleUpdateHospital}
-        isEditing={!!selectedHospitalId}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ["hospital"] });
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
       />
+
+      {selectedHospital && (
+        <HospitalViewDrawer
+          open={isViewDrawerOpen}
+          hospitalId={selectedHospital}
+          onClose={() => setIsViewDrawerOpen(false)}
+        />
+      )}
     </div>
   );
 };

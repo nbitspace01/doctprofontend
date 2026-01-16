@@ -27,12 +27,12 @@ export const fetchHospitalsApi = ({
     return apiClient.get<any>(url);
 };
 
-// ----- Fetch Hospital By ID API -----
+// ----- Update Hospital By ID API -----
 export const updateHospitalApi = (id: string, data: any) => {
   return apiClient.put<any>(`/api/hospital/${id}`, data);
 }
 
-// -----Update Hospital API -----
+// ----- Fetch Hospital By ID API -----
 export const fetchHospitalByIdApi = (id: string) => {
   return apiClient.get<any>(`/api/hospital/${id}`);
 };

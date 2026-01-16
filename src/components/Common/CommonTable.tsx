@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Table, Pagination } from "antd";
 import SearchFilterDownloadButton from "../../pages/Common/SearchFilterDownloadButton";
 import Loader from "../../pages/Common/Loader";
@@ -31,53 +30,14 @@ const CommonTable = <T extends { [key: string]: any }>({
   loading,
   currentPage,
   pageSize,
+  total,
   filters,
-  filterValues = {},
   onFilterChange,
   onSearch,
   searchValue,
   onPageChange,
   onDownload,
 }: CommonTableProps<T>) => {
-  // 🔹 Apply search + filters
-  const filteredData = useMemo(() => {
-    return data.filter((row) => {
-      let matches = true;
-
-      // Search
-      if (searchValue) {
-        const lowerSearch = searchValue.toLowerCase();
-        const rowValues = Object.values(row)
-          .filter((v) => typeof v === "string")
-          .join(" ")
-          .toLowerCase();
-        if (!rowValues.includes(lowerSearch)) matches = false;
-      }
-
-      // Filters
-      Object.entries(filterValues).forEach(([key, value]) => {
-        if (!value) return;
-
-        if (Array.isArray(value)) {
-          // Checkbox filter
-          if (!value.includes(row[key])) matches = false;
-        } else {
-          // Text filter
-          if (!row[key]?.toString().toLowerCase().includes(value.toLowerCase()))
-            matches = false;
-        }
-      });
-
-      return matches;
-    });
-  }, [data, searchValue, filterValues]);
-
-  // 🔹 Paginate filtered data
-  const paginatedData = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [filteredData, currentPage, pageSize]);
-
   return (
     <div className="bg-white rounded-lg shadow w-full">
       <SearchFilterDownloadButton
@@ -96,17 +56,17 @@ const CommonTable = <T extends { [key: string]: any }>({
         <>
           <Table<T>
             columns={columns}
-            dataSource={paginatedData}
+            dataSource={data}   // ✅ DIRECT API DATA
             rowKey={rowKey}
             pagination={false}
             scroll={{ x: "max-content" }}
           />
 
-          <div className="flex justify-end my-2 py-3">
+          <div className="flex justify-end py-7 px-8">
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={filteredData.length} // 🔹 total of filtered rows
+              total={total}     // ✅ API total
               showSizeChanger
               showQuickJumper
               showTotal={(total, range) =>

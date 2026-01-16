@@ -1,15 +1,10 @@
 import { CloseOutlined, MinusOutlined } from "@ant-design/icons";
-import {
-  Avatar,
-  Button,
-  Drawer,
-  Modal,
-  Table,
-  Tag,
-} from "antd";
+import { Avatar, Button, Drawer, Modal, Table, Tag } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import React, { useState } from "react";
 import PaymentModal from "./PaymentModal";
+import { fetchJobPostByIdApi } from "../../api/jobpost.api";
+import { useQuery } from "@tanstack/react-query";
 
 interface JobPostDetail {
   id: string;
@@ -53,11 +48,32 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
   const [isHospitalBioExpanded, setIsHospitalBioExpanded] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
+  const { data, isFetching, error, refetch } = useQuery({
+    queryKey: ["jobPosts", jobPostId],
+    queryFn: () => fetchJobPostByIdApi(jobPostId as string),
+    enabled: !!jobPostId, // 👈 VERY IMPORTANT
+    refetchOnWindowFocus: false,
+  });
+
+  console.log(data);
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "";
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
@@ -68,7 +84,6 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       "3": "Expired",
       "4": "Pending",
     };
-    
     return {
       id: id || "1",
       jobTitle: "Senior Consultant",
@@ -90,20 +105,47 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
         "Liaises between medical staff, patients, and hospital management for smooth communication.",
       ],
       candidates: [
-        { id: "1", name: "Vinoth Kumar", appliedOn: "2025-06-12", resume: "", status: "Hired" },
-        { id: "2", name: "Vinoth Kumar", appliedOn: "2025-06-12", resume: "", status: "Shortlisted" },
-        { id: "3", name: "Vinoth Kumar", appliedOn: "2025-06-12", resume: "", status: "Rejected" },
+        {
+          id: "1",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Hired",
+        },
+        {
+          id: "2",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Shortlisted",
+        },
+        {
+          id: "3",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Rejected",
+        },
       ],
     };
   };
 
   const jobPost = getMockJobPost(jobPostId || "1");
 
-  const getStatusColor = (status: string) => 
-    ({ Active: "green", Expired: "red", "Expiring Soon": "orange", Pending: "orange" }[status] || "default");
+  const getStatusColor = (status: string) =>
+    ({
+      Active: "green",
+      Expired: "red",
+      "Expiring Soon": "orange",
+      Pending: "orange",
+    }[status] || "default");
 
   const getCandidateStatusTag = (status: string) => {
-    const colors: Record<string, string> = { Hired: "green", Shortlisted: "blue", Rejected: "red" };
+    const colors: Record<string, string> = {
+      Hired: "green",
+      Shortlisted: "blue",
+      Rejected: "red",
+    };
     return <Tag color={colors[status]}>{status}</Tag>;
   };
 
@@ -141,7 +183,6 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
     });
   };
 
-
   const candidateColumns: ColumnsType<Candidate> = [
     {
       title: "S No",
@@ -158,7 +199,9 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       title: "Applied On",
       dataIndex: "appliedOn",
       key: "appliedOn",
-      render: (date: string) => <span className="text-blue-600">{formatDate(date)}</span>,
+      render: (date: string) => (
+        <span className="text-blue-600">{formatDate(date)}</span>
+      ),
     },
     {
       title: "Status",
@@ -186,11 +229,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       title={
         <div className="flex justify-between items-center">
           <span>Job post Management</span>
-          <Button
-            type="text"
-            icon={<CloseOutlined />}
-            onClick={onClose}
-          />
+          <Button type="text" icon={<CloseOutlined />} onClick={onClose} />
         </div>
       }
     >
@@ -256,7 +295,9 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
             </div>
             <div>
               <p className="text-gray-500">Payment Status</p>
-              <span className="text-blue-600">{jobPost.paymentStatus || "Paid"}</span>
+              <span className="text-blue-600">
+                {jobPost.paymentStatus || "Paid"}
+              </span>
             </div>
           </div>
         </div>
@@ -308,7 +349,10 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
         <div className="flex gap-2 justify-between pt-4 border-t">
           <div>
             {jobPost.status === "Active" && (
-              <Button onClick={handleRepost} className="border-blue-600 text-blue-600 hover:bg-blue-50">
+              <Button
+                onClick={handleRepost}
+                className="border-blue-600 text-blue-600 hover:bg-blue-50"
+              >
                 Repost
               </Button>
             )}
@@ -317,21 +361,34 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
             {jobPost.status === "Active" ? (
               <>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button type="primary" onClick={handleClosePost} className="bg-button-primary">
+                <Button
+                  type="primary"
+                  onClick={handleClosePost}
+                  className="bg-button-primary"
+                >
                   Close Post
                 </Button>
               </>
-            ) : jobPost.status === "Expired" || jobPost.status === "Expiring Soon" ? (
+            ) : jobPost.status === "Expired" ||
+              jobPost.status === "Expiring Soon" ? (
               <>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button type="primary" onClick={handleRenewPost} className="bg-button-primary">
+                <Button
+                  type="primary"
+                  onClick={handleRenewPost}
+                  className="bg-button-primary"
+                >
                   Renew Post
                 </Button>
               </>
             ) : jobPost.status === "Pending" ? (
               <>
                 <Button onClick={onClose}>Cancel</Button>
-                <Button type="primary" onClick={handleProceedToPay} className="bg-button-primary">
+                <Button
+                  type="primary"
+                  onClick={handleProceedToPay}
+                  className="bg-button-primary"
+                >
                   Proceed to Pay
                 </Button>
               </>

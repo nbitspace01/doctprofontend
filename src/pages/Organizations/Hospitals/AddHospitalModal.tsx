@@ -15,16 +15,19 @@ import { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showSuccess } from "../../Common/Notification";
 import { ApiHospitalData } from "../Hospital.types";
-import { apiClient } from "../../../api/api";
+import {
+  createHospitalApi,
+  updateHospitalApi,
+} from "../../../api/hospital.api";
 
 // Define the props interface
 interface AddHospitalModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  initialData?: ApiHospitalData | null;
-  onUpdate: (data: Partial<ApiHospitalData>) => void;
-  isEditing: boolean;
+  initialData: any | null;
+  onUpdate?: (data: Partial<ApiHospitalData>) => void;
+  isEditing?: boolean;
 }
 
 const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
@@ -89,37 +92,35 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   console.log(uploading, "uploading");
 
   const createHospital = async (values: Partial<ApiHospitalData>) => {
-    const response = await apiClient.post<any>(`/api/hospital`, values);
-    if (!response.ok) throw new Error("Failed to add hospital");
-    return response.json();
+    const response = await createHospitalApi(values);
+    return response.data;
   };
 
   const updateHospital = async (values: Partial<ApiHospitalData>) => {
-    onUpdate(values);
+    await updateHospitalApi(initialData.id, values);
     return { message: "Hospital updated successfully" };
   };
 
   const handleSubmit = async (values: Partial<ApiHospitalData>) => {
     try {
-      // Include the logoUrl from hospitalData in the submission
       const submissionData = {
         ...values,
         logoUrl: hospitalData.logoUrl,
       };
 
-      const handler = isEditing ? updateHospital : createHospital;
-      const data = await handler(submissionData);
+      const data = isEditing
+        ? await updateHospital(submissionData)
+        : await createHospital(submissionData);
+
       showSuccess(notification, {
         message: isEditing
           ? "Hospital updated successfully"
           : "Hospital added successfully",
-        description: data.message,
+        description: data?.message || "Operation completed successfully",
       });
-      onSuccess();
-      // Close modal for both new hospital creation and updates
-      handleClose();
+
+      onSuccess(); // parent closes modal
     } catch (error) {
-      console.error("Error handling hospital:", error);
       notification.error({
         message: "Error",
         description: `Failed to ${isEditing ? "update" : "add"} hospital`,
@@ -269,7 +270,9 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
               }
               showSearch
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
               options={[
                 { value: "Andhra Pradesh", label: "Andhra Pradesh" },
@@ -300,9 +303,15 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
                 { value: "Uttar Pradesh", label: "Uttar Pradesh" },
                 { value: "Uttarakhand", label: "Uttarakhand" },
                 { value: "West Bengal", label: "West Bengal" },
-                { value: "Andaman and Nicobar Islands", label: "Andaman and Nicobar Islands" },
+                {
+                  value: "Andaman and Nicobar Islands",
+                  label: "Andaman and Nicobar Islands",
+                },
                 { value: "Chandigarh", label: "Chandigarh" },
-                { value: "Dadra and Nagar Haveli and Daman and Diu", label: "Dadra and Nagar Haveli and Daman and Diu" },
+                {
+                  value: "Dadra and Nagar Haveli and Daman and Diu",
+                  label: "Dadra and Nagar Haveli and Daman and Diu",
+                },
                 { value: "Delhi", label: "Delhi" },
                 { value: "Jammu and Kashmir", label: "Jammu and Kashmir" },
                 { value: "Ladakh", label: "Ladakh" },

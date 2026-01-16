@@ -4,20 +4,21 @@ import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { getToken } from "../Common/authUtils";
 import dayjs from "dayjs";
+import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
 
 interface JobPost {
   id?: string;
-  jobTitle: string;
+  title: string;
   specialization: string;
   location: string;
-  expRequired: string;
-  employmentType: string;
-  postDate?: string;
-  endDate?: string;
+  experience_required: string;
+  workType: string;
+  valid_from?: string;
+  expires_at?: string;
   description?: string;
-  hospitalBio?: string[];
+  hospitalBio?: string;
   salary?: string;
-  degreeRequired?: string;
+  degree_required?: string;
   hospitalWebsite?: string;
 }
 
@@ -27,25 +28,32 @@ interface CreateJobPostProps {
   editingJob?: JobPost | null;
 }
 
-const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob }) => {
+const CreateJobPost: React.FC<CreateJobPostProps> = ({
+  open,
+  onClose,
+  editingJob,
+}) => {
   const [form] = Form.useForm();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
 
   useEffect(() => {
     if (open && editingJob) {
       form.setFieldsValue({
-        jobTitle: editingJob.jobTitle,
-        expRequired: editingJob.expRequired,
+        jobTitle: editingJob.title,
+        expRequired: editingJob.experience_required,
         salary: editingJob.salary,
         location: editingJob.location,
-        employmentType: editingJob.employmentType,
-        degreeRequired: editingJob.degreeRequired,
+        employmentType: editingJob.workType,
+        degreeRequired: editingJob.degree_required,
         specialization: editingJob.specialization,
         jobDescription: editingJob.description || "",
         hospitalWebsite: editingJob.hospitalWebsite || "http://www.appolo.com",
-        bio: editingJob.hospitalBio?.join("\n") || "",
-        startDate: editingJob.postDate ? dayjs(editingJob.postDate, "YYYY-MM-DD") : undefined,
-        endDate: editingJob.endDate ? dayjs(editingJob.endDate, "YYYY-MM-DD") : undefined,
+        bio: editingJob.hospitalBio || "",
+        startDate: editingJob.valid_from
+          ? dayjs(editingJob.valid_from, "YYYY-MM-DD")
+          : undefined,
+        endDate: editingJob.expires_at
+          ? dayjs(editingJob.expires_at, "YYYY-MM-DD")
+          : undefined,
       });
     } else if (open) {
       form.resetFields();
@@ -56,17 +64,10 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
   }, [open, editingJob, form]);
 
   const createJobPostMutation = useMutation({
-    mutationFn: (jobData: any) => {
-      const url = editingJob?.id 
-        ? `${API_URL}/api/job/jobs${editingJob.id}`
-        : `${API_URL}/api/job/jobs`;
-      const method = editingJob?.id ? "put" : "post";
-      return axios[method](url, jobData, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-      });
-    },
+    mutationFn: (jobData: any) =>
+      editingJob?.id
+        ? updateJobPostApi(editingJob.id, jobData)
+        : createJobPostApi(jobData),
     onSuccess: () => {
       form.resetFields();
       onClose();
@@ -87,7 +88,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
       specialization: values.specialization,
       description: values.jobDescription,
       hospitalWebsite: values.hospitalWebsite,
-      hospitalBio: values.bio?.split("\n").filter((line: string) => line.trim()),
+      hospitalBio: values.bio,
       postDate: values.startDate?.format("YYYY-MM-DD"),
       endDate: values.endDate?.format("YYYY-MM-DD"),
     };
@@ -142,7 +143,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
             <Form.Item
               label="Salary"
               name="salary"
-              rules={[{ required: true, message: "Please select salary range" }]}
+              rules={[
+                { required: true, message: "Please select salary range" },
+              ]}
             >
               <Select placeholder="Select Salary Range">
                 <Select.Option value="0-2 LPA">0-2 LPA</Select.Option>
@@ -165,7 +168,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
           <Form.Item
             label="Employment Type"
             name="employmentType"
-            rules={[{ required: true, message: "Please select employment type" }]}
+            rules={[
+              { required: true, message: "Please select employment type" },
+            ]}
           >
             <Select placeholder="Select type">
               <Select.Option value="Full Time">Full Time</Select.Option>
@@ -192,10 +197,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
           <Form.Item
             label="Specialization"
             name="specialization"
-            rules={[{ required: true, message: "Please select specialization" }]}
+            rules={[
+              { required: true, message: "Please select specialization" },
+            ]}
           >
             <Select placeholder="Select Specialization">
-              <Select.Option value="General Medicine">General Medicine</Select.Option>
+              <Select.Option value="General Medicine">
+                General Medicine
+              </Select.Option>
               <Select.Option value="Cardiology">Cardiology</Select.Option>
               <Select.Option value="Dentistry">Dentistry</Select.Option>
               <Select.Option value="Orthopedics">Orthopedics</Select.Option>
@@ -207,7 +216,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
           <Form.Item
             label="Job Description"
             name="jobDescription"
-            rules={[{ required: true, message: "Please enter job description" }]}
+            rules={[
+              { required: true, message: "Please enter job description" },
+            ]}
           >
             <Input.TextArea
               rows={4}
@@ -221,7 +232,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
               <Form.Item
                 label="Hospital Website"
                 name="hospitalWebsite"
-                rules={[{ required: true, message: "Please enter hospital website" }]}
+                rules={[
+                  { required: true, message: "Please enter hospital website" },
+                ]}
               >
                 <Input placeholder="http://www.appolo.com" />
               </Form.Item>
@@ -242,7 +255,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
               <Form.Item
                 label="Start Date"
                 name="startDate"
-                rules={[{ required: true, message: "Please select start date" }]}
+                rules={[
+                  { required: true, message: "Please select start date" },
+                ]}
               >
                 <DatePicker
                   className="w-full"
@@ -282,7 +297,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
                 className="px-6 bg-button-primary"
                 loading={createJobPostMutation.isPending}
               >
-                Proceed
+                Post
               </Button>
             </div>
           </div>

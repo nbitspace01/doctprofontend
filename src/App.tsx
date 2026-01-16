@@ -14,7 +14,7 @@ import SignUp from "./pages/Auth/Signup/Signup";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
-import Dashboard from "./pages/Dashboard/Dashboard";
+import Dashboard, { UserRole } from "./pages/Dashboard/Dashboard";
 import SubAdmin from "./pages/SubAdmin/SubAdmin";
 import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
 import HospitalList from "./pages/Organizations/Hospitals/HospitalList";
@@ -35,6 +35,17 @@ import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 import { AuthProvider } from "./pages/Common/Context/AuthContext";
 import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
 import JobPostList from "./pages/JobPostManagement/JobPostList";
+
+const userType = localStorage.getItem("roleName") || "guest";
+
+// Map/validate to UserRole
+const userRole: UserRole =
+  userType === "sub_admin"
+    ? "sub_admin"
+    : userType === "hospital_admin"
+    ? "hospital_admin"
+    : "admin"; // default fallback
+
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -44,7 +55,7 @@ const rootIndexRoute = createRoute({
   path: "/",
   beforeLoad: () => {
     throw redirect({
-      to: "/app",
+      to: "/app/dashboard",
     });
   },
 });
@@ -100,7 +111,7 @@ const appRoute = createRoute({
 const dashboardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "dashboard",
-  component: () => <Dashboard />,
+  component: () => <Dashboard role={userRole} />,
 });
 
 const subadminDashboardRoute = createRoute({

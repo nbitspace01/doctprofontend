@@ -3,11 +3,12 @@ import { Modal, Form, Input, Select, Button, App } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../../Common/axiosInstance";
 import { showError, showSuccess } from "../../Common/Notification";
+import { createDegreeApi, updateDegreeApi } from "../../../api/degree.api";
 
 interface DegreeData {
   id: string;
   name: string;
-  graduation_level: string;
+  // graduation_level: string;
   specialization: string;
 }
 interface DegreeAddModalProps {
@@ -19,7 +20,7 @@ interface DegreeAddModalProps {
 
 interface DegreePayload {
   name: string;
-  graduation_level: string;
+  // graduation_level: string;
   specialization: string;
 }
 
@@ -36,13 +37,10 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
     mutationFn: async (data: DegreePayload) => {
       try {
         if (initialValues) {
-          const response = await api.put(
-            `/api/degree/${initialValues.id}`,
-            data
-          );
+          const response = await updateDegreeApi(initialValues.id, data);
           return response.data;
         }
-        const response = await api.post(`/api/degree`, data);
+        const response = await createDegreeApi(data);
         return response.data;
       } catch (error) {
         console.error("API Error:", error);
@@ -81,7 +79,7 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
     if (initialValues) {
       const formValues = {
         degreeName: initialValues.name,
-        graduationLevel: initialValues.graduation_level,
+        // graduationLevel: initialValues.graduation_level,
         specializations: initialValues.specialization,
       };
       form.setFieldsValue(formValues);
@@ -92,7 +90,7 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
     form.validateFields().then((values) => {
       const payload: DegreePayload = {
         name: values.degreeName,
-        graduation_level: values.graduationLevel,
+        // graduation_level: values.graduationLevel,
         specialization: values.specializations,
       };
       createDegreeMutation.mutate(payload);

@@ -4,15 +4,25 @@ export const buildQueryParams = (
 ) => {
   const params: string[] = [];
 
-  if (searchValue) {
-    params.push(`search=${encodeURIComponent(searchValue)}`);
+  // 🔍 search
+  if (searchValue?.trim()) {
+    params.push(`search=${encodeURIComponent(searchValue.trim())}`);
   }
 
   Object.entries(filterValues).forEach(([key, value]) => {
-    if (!value) return;
+    if (value === undefined || value === null) return;
 
-    if (!key.includes("_")) {
-      params.push(`${key}=${encodeURIComponent(String(value).trim())}`);
+    // ✅ checkbox (array) - append each separately
+    if (Array.isArray(value) && value.length > 0) {
+      value.forEach((v) => {
+        params.push(`${key}=${encodeURIComponent(v)}`);
+      });
+      return;
+    }
+
+    // ✅ text input
+    if (typeof value === "string" && value.trim() !== "") {
+      params.push(`${key}=${encodeURIComponent(value.trim())}`);
     }
   });
 

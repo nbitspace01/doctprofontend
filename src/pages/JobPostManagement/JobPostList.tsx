@@ -1,88 +1,85 @@
 import React, { useState } from "react";
-import { Table, Button, Tag, Modal } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import { PlusOutlined } from "@ant-design/icons";
 import CreateJobPost from "./CreateJobPost";
 import JobPostViewDrawer from "./JobPostViewDrawer";
-import DownloadFilterButton from "../Common/DownloadFilterButton";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CommonDropdown from "../Common/CommonActionsDropdown";
-import CommonPagination from "../Common/CommonPagination";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { PlusOutlined } from "@ant-design/icons";
-import api from "../Common/axiosInstance";
-import Loader from "../Common/Loader";
+import { useListController } from "../../hooks/useListController";
+import CommonTable from "../../components/Common/CommonTable";
+import { App, Button, message, Modal } from "antd";
+import { deleteJobPostApi, fetchJobPostsApi } from "../../api/jobpost.api";
 
-interface JobPost {
-  key: string;
-  sNo: number;
-  jobTitle: string;
-  expRequired: string;
-  location: string;
+export interface JobPost {
+  id: string;
+  title: string;
   specialization: string;
-  employmentType: string;
-  noOfApplications: number;
+  location: string;
+  experience_required: string;
+  workType: string;
   status: string;
-  id?: string;
+  noOfApplications?: number;
 }
 
 const JobPostList: React.FC = () => {
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedJobId, setSelectedJobId] = useState<string>("");
   const [editingJob, setEditingJob] = useState<JobPost | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const queryClient = useQueryClient();
-  const [searchValue, setSearchValue] = useState("");
-  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
-
-  const filterOptions = [
-    {
-      label: "Job Title",
-      key: "jobTitle",
-    },
-    {
-      label: "Location",
-      key: "location",
-    },
-    {
-      label: "Status",
-      key: "status",
-      options: ["Active", "Expired", "Expiring Soon", "Pending"],
-    },
-    {
-      label: "Employment Type",
-      key: "employmentType",
-      options: ["Full Time", "Part Time", "Contract"],
-    },
-  ];
-
-  const fetchJobs = async () => {
-    const res = await api.get(`/api/job/jobs`);
-    const data = Array.isArray(res.data) ? res.data : res.data?.data ?? [];
-    return data;
-  };
 
   const {
-    data: jobsData,
-    isLoading: jobsLoading,
-    isError: jobsError,
-  } = useQuery({
+    currentPage,
+    pageSize,
+    searchValue,
+    filterValues,
+    onPageChange,
+    onSearch,
+    onFilterChange,
+  } = useListController();
+  const { modal, message } = App.useApp();
+
+  const { data, isFetching, error, refetch } = useQuery({
     queryKey: ["jobPosts", currentPage, pageSize, searchValue, filterValues],
-    queryFn: fetchJobs,
+    queryFn: () =>
+      fetchJobPostsApi({
+        page: currentPage,
+        limit: pageSize,
+        searchValue,
+        filterValues,
+      }),
+    refetchOnWindowFocus: false,
   });
 
-  const jobsList: JobPost[] = (jobsData || []).map((job: any, index: number) => ({
-    key: job.id || job._id || index.toString(),
-    sNo: index + 1,
-    jobTitle: job.jobTitle || job.title || "-",
-    expRequired: job.expRequired || job.experienceRequired || "-",
-    location: job.location || "-",
-    specialization: job.specialization || "-",
-    employmentType: job.employmentType || job.employment_type || "-",
-    noOfApplications: job.noOfApplications || job.no_of_applications || job.applicationsCount || 0,
-    status: job.status || "Pending",
-    id: job.id || job._id || index.toString(),
-  }));
+  const { mutate: deleteJobPost, isPending: isDeleting } = useMutation({
+    mutationFn: (id: string) => deleteJobPostApi(id),
+
+    onSuccess: () => {
+      message.success("Job post deleted successfully");
+
+      // 🔥 Refetch job post list
+      queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
+    },
+
+    onError: () => {
+      message.error("Failed to delete job post");
+    },
+  });
+
+  const handleDelete = (id: string) => {
+    modal.confirm({
+      title: "Delete Job Post?",
+      content: "Are you sure you want to delete this job post?",
+      okText: "Yes",
+      cancelText: "No",
+      okType: "danger",
+      onOk: () => {
+        deleteJobPost(id);
+      },
+    });
+  };
+
+  const jobs: JobPost[] = data?.data ?? [];
+  const totalCount = data?.total ?? 0;
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -91,73 +88,57 @@ const JobPostList: React.FC = () => {
       case "Expired":
         return "red";
       case "Expiring Soon":
+      case "Pending":
         return "orange";
       case "Permanent":
         return "blue";
       case "Inactive":
         return "purple";
-      case "Pending":
-        return "orange";
       default:
         return "default";
     }
   };
 
-  const columns: ColumnsType<JobPost> = [
+  const columns = [
     {
       title: "S No",
-      dataIndex: "sNo",
-      key: "sNo",
-      render: (_: any, __: any, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
       width: 80,
+      render: (_: any, __: JobPost, index: number) =>
+        (currentPage - 1) * pageSize + index + 1,
     },
+    { title: "Job Title", dataIndex: "title", width: 220 },
+    { title: "Exp Required", dataIndex: "experience_required", width: 140 },
+    { title: "Location", dataIndex: "location", width: 160 },
+    { title: "Specialization", dataIndex: "specialization", width: 180 },
+    { title: "Employment Type", dataIndex: "workType", width: 140 },
     {
-      title: "Job Title",
-      dataIndex: "jobTitle",
-      key: "jobTitle",
-    },
-    {
-      title: "Exp Required",
-      dataIndex: "expRequired",
-      key: "expRequired",
-    },
-    {
-      title: "Location",
-      dataIndex: "location",
-      key: "location",
-    },
-    {
-      title: "Specialization",
-      dataIndex: "specialization",
-      key: "specialization",
-    },
-    {
-      title: "Employment Type",
-      dataIndex: "employmentType",
-      key: "employmentType",
-    },
-    {
-      title: "No of Applications Received",
+      title: "No of Applications",
       dataIndex: "noOfApplications",
-      key: "noOfApplications",
-      render: (value: number) => value.toLocaleString(),
+      width: 160,
+      render: (v?: number | null) => (v != null ? v.toLocaleString() : "0"),
     },
+
     {
       title: "Status",
       dataIndex: "status",
-      key: "status",
+      width: 120,
       render: (status: string) => (
-        <Tag color={getStatusColor(status)}>{status}</Tag>
+        <span
+          className={`px-3 py-1 rounded-full bg-${getStatusColor(
+            status
+          )}-100 text-${getStatusColor(status)}-600`}
+        >
+          {status}
+        </span>
       ),
     },
     {
-      title: "Action",
-      key: "action",
+      title: "Actions",
+      width: 100,
       render: (_: any, record: JobPost) => (
         <CommonDropdown
           onView={() => {
-            setSelectedJobId(record.id || "");
+            setSelectedJobId(record.id);
             setIsViewDrawerOpen(true);
           }}
           onEdit={() => {
@@ -165,130 +146,109 @@ const JobPostList: React.FC = () => {
             setIsCreateModalOpen(true);
           }}
           onDelete={() => {
-            Modal.confirm({
-              title: "Delete Job Post",
-              content: "Are you sure you want to delete this job post?",
-              okText: "Delete",
-              okType: "danger",
-              onOk: () => {
-                // Handle delete logic here
-                queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
-              },
-            });
+            handleDelete(record.id);
+            queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
           }}
+          showEdit
+          showDelete
         />
       ),
     },
   ];
 
-  const handleModalClose = () => {
-    setIsCreateModalOpen(false);
-    setEditingJob(null);
-    queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
-  };
-
-  const handlePageChange = (page: number, pageSize?: number) => {
-    setCurrentPage(page);
-    if (pageSize) {
-      setPageSize(pageSize);
-    }
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const handleFilterChange = (filters: Record<string, any>) => {
-    setFilterValues(filters);
-  };
+  const filterOptions = [
+    { label: "Job Title", key: "jobTitle", type: "text" as const },
+    { label: "Location", key: "location", type: "text" as const },
+    {
+      label: "Status",
+      key: "status",
+      type: "checkbox" as const,
+      options: ["Active", "Expired", "Expiring Soon", "Pending"],
+    },
+    {
+      label: "Employment Type",
+      key: "employmentType",
+      type: "checkbox" as const,
+      options: ["Full Time", "Part Time", "Contract"],
+    },
+  ];
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!jobsList || jobsList.length === 0) {
-      console.log("No data to download");
-      return;
-    }
-
-    // Define headers
-    const headers = ["S No", "Job Title", "Exp Required", "Location", "Specialization", "Employment Type", "No of Applications", "Status"];
-    
-    // Create rows
-    const rows = [];
-    rows.push(headers.join(format === "csv" ? "," : "\t"));
-
-    jobsList.forEach((row, index) => {
-      const values = [
-        index + 1,
-        `"${row.jobTitle || "N/A"}"`,
-        `"${row.expRequired || "N/A"}"`,
-        `"${row.location || "N/A"}"`,
-        `"${row.specialization || "N/A"}"`,
-        `"${row.employmentType || "N/A"}"`,
-        row.noOfApplications || 0,
-        `"${row.status || "N/A"}"`,
-      ];
-      rows.push(values.join(format === "csv" ? "," : "\t"));
+    if (!jobs.length) return;
+    const headers = [
+      "S No",
+      "Job Title",
+      "Exp Required",
+      "Location",
+      "Specialization",
+      "Employment Type",
+      "No of Applications",
+      "Status",
+    ];
+    const rows = jobs.map((j, i) => [
+      i + 1,
+      j.title,
+      j.experience_required,
+      j.location,
+      j.specialization,
+      j.workType,
+      j.noOfApplications,
+      j.status,
+    ]);
+    const content = [headers, ...rows]
+      .map((r) => r.join(format === "csv" ? "," : "\t"))
+      .join("\n");
+    const blob = new Blob([content], {
+      type: format === "csv" ? "text/csv" : "application/vnd.ms-excel",
     });
-
-    const content = rows.join("\n");
-    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
-    const fileExtension = format === "csv" ? "csv" : "xls";
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `job-posts-report-${new Date().toISOString().split("T")[0]}.${fileExtension}`;
+    a.href = URL.createObjectURL(blob);
+    a.download = `job-posts-${new Date().toISOString().split("T")[0]}.${
+      format === "csv" ? "csv" : "xls"
+    }`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
-  if (jobsLoading) {
-    return <Loader size="large" />;
-  }
-
-  if (jobsError) {
-    return <div className="p-6">Error loading job posts</div>;
-  }
+  // if (isFetching) return <Loader size="large" />;
+  // if (error)
+  //   return <div className="p-6 text-red-600">Error loading job posts</div>;
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Job post Management</h1>
+        <h1 className="text-2xl font-semibold">Job Post Management</h1>
         <Button
           type="primary"
-          className="bg-button-primary hover:!bg-button-primary"
-          icon={<PlusOutlined />}
           onClick={() => setIsCreateModalOpen(true)}
+          className="bg-button-primary hover:!bg-button-primary"
         >
-          Post A New Job
+          <PlusOutlined /> Post A New Job
         </Button>
       </div>
-      <div className="bg-white rounded-lg shadow w-full">
-        <DownloadFilterButton
-          onSearch={handleSearch}
-          onDownload={handleDownload}
-          searchValue={searchValue}
-          filterOption={filterOptions}
-          onFilterChange={handleFilterChange}
-        />
-        <Table
-          columns={columns}
-          dataSource={jobsList}
-          scroll={{ x: "max-content" }}
-          pagination={false}
-          rowKey="id"
-        />
-        <CommonPagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={jobsList.length}
-          onChange={handlePageChange}
-          onShowSizeChange={handlePageChange}
-        />
-      </div>
 
-      <CreateJobPost open={isCreateModalOpen} onClose={handleModalClose} editingJob={editingJob} />
+      <CommonTable<JobPost>
+        rowKey="id"
+        columns={columns}
+        data={jobs}
+        loading={isFetching}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={totalCount}
+        filters={filterOptions}
+        searchValue={searchValue}
+        onPageChange={onPageChange}
+        onSearch={onSearch}
+        onFilterChange={onFilterChange}
+        onDownload={handleDownload}
+      />
+
+      <CreateJobPost
+        open={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        editingJob={editingJob}
+      />
       <JobPostViewDrawer
         visible={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}

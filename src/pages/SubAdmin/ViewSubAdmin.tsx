@@ -1,5 +1,7 @@
-import React from "react";
-import { Avatar, Drawer, Image, Tag } from "antd";
+import React, { useMemo } from "react";
+import { App, Avatar, Button, Drawer, Image, Tag } from "antd";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { SubAdminUpdate } from "../../api/admin.api";
 
 interface SubAdminData {
   id: string;
@@ -30,49 +32,123 @@ const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
   onClose,
   subAdminData,
 }) => {
-  // Determine title based on role or data presence
-  const drawerTitle = subAdminData.role?.toLowerCase().includes("hospital") 
-    ? "Hospital Admin" 
-    : "Sub Admin";
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
 
-  // Get display name - handle both name (single field) and first_name/last_name (separate fields)
-  const getDisplayName = () => {
-    if (subAdminData.name) {
-      return subAdminData.name;
-    }
-    const firstName = subAdminData.first_name || "";
-    const lastName = subAdminData.last_name || "";
-    return `${firstName} ${lastName}`.trim() || "N/A";
+  /* -------------------- Derived Values -------------------- */
+  const displayName = useMemo(() => {
+    if (subAdminData.name) return subAdminData.name;
+
+    const fullName = `${subAdminData.first_name || ""} ${
+      subAdminData.last_name || ""
+    }`.trim();
+
+    return fullName || "N/A";
+  }, [subAdminData]);
+
+  const avatarInitial = useMemo(() => {
+    if (subAdminData.name) return subAdminData.name[0].toUpperCase();
+    if (subAdminData.first_name)
+      return subAdminData.first_name[0].toUpperCase();
+    return subAdminData.email?.[0]?.toUpperCase() || "A";
+  }, [subAdminData]);
+
+  const profileImage =
+    subAdminData.profile_image || subAdminData.image_url || "";
+
+  const isActive = subAdminData.status === "ACTIVE";
+
+  /* -------------------- Update Status -------------------- */
+  const { mutate: updateStatus, isPending } = useMutation({
+    mutationFn: ({
+      subAdminId,
+      status,
+    }: {
+      subAdminId: string;
+      status: "ACTIVE" | "INACTIVE";
+    }) => SubAdminUpdate(subAdminId, { status }),
+
+    onSuccess: (_, variables) => {
+      // Update all matching subAdmin queries in cache
+      queryClient.setQueriesData<any>(
+        { queryKey: ["subAdmin"], exact: false },
+        (oldData: any) => {
+          if (!oldData) return oldData;
+          return {
+            ...oldData,
+            data: oldData.data.map((item: any) =>
+              item.id === variables.subAdminId
+                ? { ...item, status: variables.status }
+                : item
+            ),
+          };
+        }
+      );
+
+      message.success("Status updated successfully");
+      onClose();
+    },
+
+    onError: () => {
+      message.error("Failed to update sub admin status");
+    },
+  });
+
+  /* -------------------- Handlers -------------------- */
+  const handleStatusToggle = () => {
+    const nextStatus = isActive ? "INACTIVE" : "ACTIVE";
+
+    modal.confirm({
+      title: isActive ? "Deactivate Sub Admin?" : "Activate Sub Admin?",
+      content: `Are you sure you want to ${
+        isActive ? "deactivate" : "activate"
+      } "${displayName}"?`,
+      okText: "Yes",
+      cancelText: "No",
+      okType: isActive ? "danger" : "primary",
+      onOk: () =>
+        updateStatus({
+          subAdminId: subAdminData.id,
+          status: nextStatus,
+        }),
+    });
   };
-
-  // Get avatar initial
-  const getAvatarInitial = () => {
-    if (subAdminData.name) {
-      return subAdminData.name.charAt(0).toUpperCase();
-    }
-    if (subAdminData.first_name) {
-      return subAdminData.first_name.charAt(0).toUpperCase();
-    }
-    if (subAdminData.email) {
-      return subAdminData.email.charAt(0).toUpperCase();
-    }
-    return "A";
-  };
-
-  // Get profile image - check both profile_image and image_url
-  const profileImage = subAdminData.profile_image || subAdminData.image_url || "";
 
   return (
     <Drawer
-      title={drawerTitle}
+      title="Sub Admin"
       placement="right"
-      onClose={onClose}
       open={open}
+      onClose={onClose}
       width={400}
       className="custom-drawer"
+      footer={
+        <div className="flex justify-between items-center">
+          <Button
+            size="large"
+            className="bg-gray-200 text-gray-700 px-8"
+            onClick={onClose}
+          >
+            Back
+          </Button>
+
+          <Button
+            size="large"
+            loading={isPending}
+            className={`px-8 ${
+              isActive
+                ? "border-red-500 text-red-500"
+                : "border-green-500 text-green-500"
+            }`}
+            onClick={handleStatusToggle}
+          >
+            {isActive ? "Deactivate" : "Activate"} Sub Admin
+          </Button>
+        </div>
+      }
     >
       <div className="flex flex-col space-y-6">
-        {/* Profile Header */}
+        {/* Profile */}
         <div className="flex items-center space-x-4">
           {profileImage ? (
             <Image
@@ -85,45 +161,50 @@ const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
           ) : (
             <Avatar
               size={40}
-              className="bg-button-primary rounded-full mr-2 text-white"
+              className="bg-button-primary text-white rounded-full"
             >
-              {getAvatarInitial()}
+              {avatarInitial}
             </Avatar>
           )}
+
           <div>
-            <h3 className="text-lg font-semibold">
-              {getDisplayName()}
-            </h3>
+            <h3 className="text-lg font-semibold">{displayName}</h3>
             <p className="text-gray-600">{subAdminData.email || "N/A"}</p>
           </div>
         </div>
 
-        {/* Contact Details */}
+        {/* Contact */}
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-500">Phone Number</p>
             <p className="font-medium">{subAdminData.phone || "N/A"}</p>
           </div>
+
           <div>
             <p className="text-sm text-gray-500">Role</p>
             <Tag color="green">{subAdminData.role || "N/A"}</Tag>
           </div>
         </div>
 
-        {/* Organization Details */}
+        {/* Organization */}
         <div className="space-y-4">
           <div>
             <p className="text-sm text-gray-500">Organisation Type</p>
-            <p className="text-purple-600">{subAdminData.organization_type || "N/A"}</p>
+            <p className="text-purple-600">
+              {subAdminData.organization_type || "N/A"}
+            </p>
           </div>
+
           <div>
             <p className="text-sm text-gray-500">State</p>
             <p className="font-medium">{subAdminData.state || "N/A"}</p>
           </div>
+
           <div>
             <p className="text-sm text-gray-500">District</p>
             <p className="font-medium">{subAdminData.district || "N/A"}</p>
           </div>
+
           {subAdminData.location && (
             <div>
               <p className="text-sm text-gray-500">Location</p>
@@ -142,7 +223,7 @@ const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
         <div>
           <p className="text-sm text-gray-500">Active User</p>
           <p className="font-medium">
-            {subAdminData.active_user !== undefined ? (subAdminData.active_user ? "Yes" : "No") : "N/A"}
+            {subAdminData.active_user ? "Yes" : "No"}
           </p>
         </div>
       </div>
