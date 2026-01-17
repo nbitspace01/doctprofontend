@@ -27,7 +27,7 @@ interface ViewSubAdminProps {
   subAdminData: SubAdminData;
 }
 
-const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
+const SubAdminViewDrawer: React.FC<ViewSubAdminProps> = ({
   open,
   onClose,
   subAdminData,
@@ -231,4 +231,4 @@ const ViewSubAdmin: React.FC<ViewSubAdminProps> = ({
   );
 };
 
-export default ViewSubAdmin;
+export default SubAdminViewDrawer;

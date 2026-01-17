@@ -4,13 +4,13 @@ import { Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import AddSubAdminModal from "../SubAdmin/AddSubAdminModal";
-import ViewSubAdmin from "./ViewSubAdmin";
 import StatusBadge from "../Common/StatusBadge";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import CommonTable from "../../components/Common/CommonTable";
 
 import { fetchSubAdmin, SubAdminDelete } from "../../api/admin.api";
 import { useListController } from "../../hooks/useListController";
+import SubAdminViewDrawer from "./SubAdminViewDrawer";
 
 interface SubAdminData {
   id: string;
@@ -75,6 +75,9 @@ const SubAdmin: React.FC = () => {
     staleTime: 0,
   });
 
+  const allSubAdmins = subAdminResponse?.data ?? [];
+  const totalCount = subAdminResponse?.total ?? 0;
+
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => SubAdminDelete(id),
@@ -86,9 +89,6 @@ const SubAdmin: React.FC = () => {
       message.error(error?.message || "Failed to delete sub-admin");
     },
   });
-
-  const allSubAdmins = subAdminResponse?.data ?? [];
-  const totalCount = subAdminResponse?.total ?? 0;
 
   /* -------------------- Handlers -------------------- */
   const handleView = (record: SubAdminData) => {
@@ -308,7 +308,7 @@ const SubAdmin: React.FC = () => {
       />
 
       {selectedSubAdmin && (
-        <ViewSubAdmin
+        <SubAdminViewDrawer
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
           subAdminData={selectedSubAdmin}

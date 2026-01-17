@@ -1,6 +1,6 @@
 import { Button, App } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DegreeAddModal from "./DegreeAddModal";
 import DegreeView from "./DegreeView";
@@ -20,7 +20,7 @@ interface DegreeData {
   created_at: string;
 }
 
-interface PaginatedResponse {
+interface DegreeResponse {
   data: DegreeData[];
   total: number;
 }
@@ -29,11 +29,13 @@ const DegreeSpecializationList: React.FC = () => {
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
 
+  /* -------------------- State -------------------- */
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState<DegreeData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedDegree, setSelectedDegree] = useState<DegreeData | null>(null);
 
+  /* -------------------- List Controller -------------------- */
   const {
     currentPage,
     pageSize,
@@ -44,14 +46,9 @@ const DegreeSpecializationList: React.FC = () => {
     onFilterChange,
   } = useListController();
 
-  const { data, isFetching } = useQuery<PaginatedResponse, Error>({
-    queryKey: [
-      "degreeSpecialization",
-      currentPage,
-      pageSize,
-      searchValue,
-      filterValues,
-    ],
+  /* -------------------- Query -------------------- */
+  const { data: degreeResponse, isFetching } = useQuery<DegreeResponse, Error>({
+    queryKey: ["degree", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
       fetchDegreesApi({
         page: currentPage,
@@ -64,79 +61,88 @@ const DegreeSpecializationList: React.FC = () => {
     staleTime: 0,
   });
 
-  const degreeList = data?.data ?? [];
-  const totalCount = data?.total ?? 0;
+  const allDegrees = degreeResponse?.data ?? [];
+  const totalCount = degreeResponse?.total ?? 0;
 
+  /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDegreeApi(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["degreeSpecialization"] });
+      queryClient.invalidateQueries({ queryKey: ["degree"] });
       message.success("Degree deleted successfully");
     },
-    onError: () => {
-      message.error("Failed to delete degree");
+    onError: (error: any) => {
+      message.error(error?.message || "Failed to delete degree");
     },
   });
 
-  const columns = [
-    {
-      title: "S No",
-      width: 70,
-      render: (_: unknown, __: DegreeData, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: "Degree Name",
-      dataIndex: "name",
-    },
-    {
-      title: "Level",
-      dataIndex: "graduation_level",
-    },
-    {
-      title: "Specialization",
-      dataIndex: "specialization",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      render: (status: string) => <StatusBadge status={status} />,
-    },
-    {
-      title: "Created On",
-      dataIndex: "created_at",
-      render: (date: string) => (
-        <FormattedDate dateString={date} format="long" />
-      ),
-    },
-    {
-      title: "Actions",
-      render: (_: unknown, record: DegreeData) => (
-        <CommonDropdown
-          onView={() => {
-            setSelectedDegree(record);
-            setIsViewDrawerOpen(true);
-          }}
-          onEdit={() => {
-            setEditData(record);
-            setIsModalOpen(true);
-          }}
-          onDelete={() =>
-            modal.confirm({
-              title: "Confirm Delete",
-              content: `Delete ${record.name}?`,
-              okType: "danger",
-              onOk: () => deleteMutation.mutate(record.id),
-            })
-          }
-        />
-      ),
-    },
-  ];
+  /* -------------------- Handlers -------------------- */
+  const handleView = (record: DegreeData) => {
+    setSelectedDegree(record);
+    setIsViewDrawerOpen(true);
+  };
 
+  const handleEdit = (record: DegreeData) => {
+    setEditData(record);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (record: DegreeData) => {
+    modal.confirm({
+      title: "Confirm Delete",
+      content: `Delete ${record.name}?`,
+      okType: "danger",
+      onOk: () => deleteMutation.mutate(record.id),
+    });
+  };
+
+  /* -------------------- Columns -------------------- */
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        width: 70,
+        render: (_: unknown, __: DegreeData, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
+      },
+      {
+        title: "Degree Name",
+        dataIndex: "name",
+      },
+      {
+        title: "Specialization",
+        dataIndex: "specialization",
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        render: (status: string) => <StatusBadge status={status} />,
+      },
+      {
+        title: "Created On",
+        dataIndex: "created_at",
+        render: (date: string) => (
+          <FormattedDate dateString={date} format="long" />
+        ),
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        render: (_: any, record: DegreeData) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            onEdit={() => handleEdit(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
+
+  /* -------------------- Filters -------------------- */
   const filterOptions = [
     { label: "Degree Name", key: "name", type: "text" as const },
-    { label: "Level", key: "graduation_level", type: "text" as const },
     { label: "Specialization", key: "specialization", type: "text" as const },
     {
       label: "Status",
@@ -146,22 +152,21 @@ const DegreeSpecializationList: React.FC = () => {
     },
   ];
 
+  /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {
-    if (!degreeList.length) return;
+    if (!allDegrees.length) return;
 
     const headers = [
       "S No",
       "Degree Name",
-      "Level",
       "Specialization",
       "Status",
       "Created On",
     ];
 
-    const rows = degreeList.map((row, i) => [
+    const rows = allDegrees.map((row, i) => [
       i + 1,
       row.name,
-      row.graduation_level,
       row.specialization,
       row.status,
       row.created_at,
@@ -172,10 +177,7 @@ const DegreeSpecializationList: React.FC = () => {
       .join("\n");
 
     const blob = new Blob([content], {
-      type:
-        format === "csv"
-          ? "text/csv"
-          : "application/vnd.ms-excel",
+      type: format === "csv" ? "text/csv" : "application/vnd.ms-excel",
     });
 
     const a = document.createElement("a");
@@ -189,9 +191,7 @@ const DegreeSpecializationList: React.FC = () => {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">
-          Degree & Specialization
-        </h1>
+        <h1 className="text-2xl font-semibold">Degree & Specialization</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -205,7 +205,7 @@ const DegreeSpecializationList: React.FC = () => {
       <CommonTable<DegreeData>
         rowKey="id"
         columns={columns}
-        data={degreeList}
+        data={allDegrees}
         loading={isFetching}
         currentPage={currentPage}
         pageSize={pageSize}
@@ -219,26 +219,25 @@ const DegreeSpecializationList: React.FC = () => {
       />
 
       <DegreeAddModal
-        isOpen={isModalOpen}
-        onClose={() => {
+        open={isModalOpen}
+        onCancel={() => {
           setIsModalOpen(false);
           setEditData(null);
         }}
-        initialValues={editData}
-        onSave={() => {
-          queryClient.invalidateQueries({
-            queryKey: ["degreeSpecialization"],
-          });
+        onSubmit={(values) => {
+          console.log(editData ? "Update" : "Add", values);
+          queryClient.invalidateQueries({ queryKey: ["degree"] });
           setIsModalOpen(false);
           setEditData(null);
         }}
+        initialData={editData}
       />
 
       {selectedDegree && (
         <DegreeView
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
-          degreeId={selectedDegree.id}
+          degreeData={selectedDegree}
         />
       )}
     </div>

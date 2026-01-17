@@ -44,11 +44,3 @@ export const updateCollegeApi = (id: string, data: any) => {
 export const deleteCollegeApi = (id: string) => {
   return apiClient.delete<any>(`/api/college/${id}`);
 };
-
-export const useCollegeById = (collegeId: string) => {
-  return useQuery({
-    queryKey: ["collegeById", collegeId],
-    queryFn: () => fetchCollegeByIdApi(collegeId),
-    enabled: !!collegeId, // 🔥 THIS LINE FIXES EVERYTHING
-  });
-};
