@@ -2,7 +2,10 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Avatar, Button, Drawer, Tag } from "antd";
 import axios from "axios";
 import { useMemo } from "react";
-import { updateStudentApi } from "../../../api/student.api";
+import {
+  updateStudentApi,
+  updateStudentStatusApi,
+} from "../../../api/student.api";
 
 interface StudentData {
   studentId: string;
@@ -18,7 +21,7 @@ interface StudentData {
   startYear: number;
   endYear: number;
   kycStatus: boolean;
-  userStatus: string;
+  status: string;
 }
 
 interface StudentViewProps {
@@ -27,7 +30,7 @@ interface StudentViewProps {
   studentData: StudentData;
 }
 
-type StudentStatus = "pending" | "active" | "inactive";
+type StudentStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const StudentView: React.FC<StudentViewProps> = ({
   open,
@@ -64,7 +67,7 @@ const StudentView: React.FC<StudentViewProps> = ({
     }: {
       studentId: string;
       status: StudentStatus;
-    }) => updateStudentApi(studentId, { status }),
+    }) => updateStudentStatusApi(studentId, { status }),
 
     onSuccess: () => {
       message.success("Student status updated");
@@ -78,26 +81,25 @@ const StudentView: React.FC<StudentViewProps> = ({
   });
 
   /* -------------------- Handlers -------------------- */
-  const status = studentData.userStatus;
+  // const status = studentData.status;
 
-  const isPending = status === "pending";
-  const isActive = status === "active";
-  const isInactive = status === "inactive";
+  const status = studentData.status;
 
-  const getNextStatus = (): StudentStatus => {
-    if (status === "pending") return "active";
-    if (status === "active") return "inactive";
-    return "active";
-  };
+  const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  const isInactive = status === "INACTIVE";
+
+  const getNextStatus = (): StudentStatus =>
+    status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
 
   const handleStatusToggle = () => {
     const nextStatus = getNextStatus();
 
     modal.confirm({
       title:
-        nextStatus === "active" ? "Activate Student?" : "Deactivate Student?",
+        nextStatus === "ACTIVE" ? "Activate Student?" : "Deactivate Student?",
       content: `Are you sure you want to ${nextStatus} "${studentData.studentName}"?`,
-      okType: nextStatus === "active" ? "primary" : "danger",
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
         updateStatus({
           studentId: studentData.studentId,
@@ -126,7 +128,7 @@ const StudentView: React.FC<StudentViewProps> = ({
             }`}
             onClick={handleStatusToggle}
           >
-            {isActive ? "Deactivate" : "Activate"} Hospital
+            {isActive ? "Deactivate" : "Activate"} Student
           </Button>
           <div className="space-x-2">
             <Button onClick={onClose}>Cancel</Button>
@@ -154,11 +156,9 @@ const StudentView: React.FC<StudentViewProps> = ({
                   {studentData.studentName}
                 </h3>
                 <Tag
-                  color={
-                    studentData.userStatus === "ACTIVE" ? "success" : "error"
-                  }
+                  color={studentData.status === "ACTIVE" ? "success" : "error"}
                 >
-                  {studentData.userStatus}
+                  {studentData.status}
                 </Tag>
               </div>
               <p className="text-gray-500">

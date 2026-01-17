@@ -8,15 +8,20 @@ import { useQuery } from "@tanstack/react-query";
 
 interface JobPostDetail {
   id: string;
-  jobTitle: string;
+  title: string;
   specialization: string;
   location: string;
-  postDate: string;
-  noOfApplications: number;
-  expRequired: string;
-  employmentType: string;
+  experience_required: string;
+  workType: string;
   status: string;
-  endDate: string;
+  noOfApplications?: number;
+  valid_from?: Date;
+  expires_at?: Date;
+  description?: string;
+  hospital_bio?: string;
+  salary?: string;
+  degree_required?: string;
+  hospital_website?: string;
   paymentStatus?: string;
   postedBy?: {
     name: string;
@@ -35,27 +40,27 @@ interface Candidate {
 }
 
 interface JobPostViewDrawerProps {
-  visible: boolean;
+  open: boolean;
   onClose: () => void;
   jobPostId: string;
 }
 
 const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
-  visible,
+  open,
   onClose,
   jobPostId,
 }) => {
   const [isHospitalBioExpanded, setIsHospitalBioExpanded] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  const { data, isFetching, error, refetch } = useQuery({
+  const { data: jobPost, isFetching } = useQuery({
     queryKey: ["jobPosts", jobPostId],
-    queryFn: () => fetchJobPostByIdApi(jobPostId as string),
+    queryFn: () => fetchJobPostByIdApi(jobPostId),
     enabled: !!jobPostId, // 👈 VERY IMPORTANT
     refetchOnWindowFocus: false,
   });
 
-  console.log(data);
+  console.log(jobPost);
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -77,60 +82,60 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  const getMockJobPost = (id: string): JobPostDetail => {
-    const statusMap: Record<string, string> = {
-      "1": "Active",
-      "2": "Expiring Soon",
-      "3": "Expired",
-      "4": "Pending",
-    };
-    return {
-      id: id || "1",
-      jobTitle: "Senior Consultant",
-      specialization: "MBBS - General Medicine",
-      location: "Chennai",
-      postDate: "2025-06-12",
-      noOfApplications: 23,
-      expRequired: "5 - 8 Yrs",
-      employmentType: "Full Time",
-      endDate: "2025-08-12",
-      paymentStatus: "Paid",
-      status: statusMap[id] || "Active",
-      postedBy: { name: "Vinoth Kumar", imageUrl: "" },
-      hospitalBio: [
-        "Oversees day-to-day administrative operations in medical departments or healthcare facilities.",
-        "Coordinates schedules, staff assignments, and workflow to ensure efficient patient care services.",
-        "Ensures compliance with healthcare regulations, hospital policies, and accreditation standards.",
-        "Manages medical records, patient data systems, and documentation processes.",
-        "Liaises between medical staff, patients, and hospital management for smooth communication.",
-      ],
-      candidates: [
-        {
-          id: "1",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Hired",
-        },
-        {
-          id: "2",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Shortlisted",
-        },
-        {
-          id: "3",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Rejected",
-        },
-      ],
-    };
-  };
+  // const getMockJobPost = (id: string): JobPostDetail => {
+  //   const statusMap: Record<string, string> = {
+  //     "1": "Active",
+  //     "2": "Expiring Soon",
+  //     "3": "Expired",
+  //     "4": "Pending",
+  //   };
+  //   return {
+  //     id: id || "1",
+  //     jobTitle: "Senior Consultant",
+  //     specialization: "MBBS - General Medicine",
+  //     location: "Chennai",
+  //     valid_from: "2025-06-12",
+  //     noOfApplications: 23,
+  //     experience_required: "5 - 8 Yrs",
+  //     workType: "Full Time",
+  //     expires_at: "2025-08-12",
+  //     paymentStatus: "Paid",
+  //     status: statusMap[id] || "Active",
+  //     postedBy: { name: "Vinoth Kumar", imageUrl: "" },
+  //     hospital_bio: [
+  //       "Oversees day-to-day administrative operations in medical departments or healthcare facilities.",
+  //       "Coordinates schedules, staff assignments, and workflow to ensure efficient patient care services.",
+  //       "Ensures compliance with healthcare regulations, hospital policies, and accreditation standards.",
+  //       "Manages medical records, patient data systems, and documentation processes.",
+  //       "Liaises between medical staff, patients, and hospital management for smooth communication.",
+  //     ],
+  //     candidates: [
+  //       {
+  //         id: "1",
+  //         name: "Vinoth Kumar",
+  //         appliedOn: "2025-06-12",
+  //         resume: "",
+  //         status: "Hired",
+  //       },
+  //       {
+  //         id: "2",
+  //         name: "Vinoth Kumar",
+  //         appliedOn: "2025-06-12",
+  //         resume: "",
+  //         status: "Shortlisted",
+  //       },
+  //       {
+  //         id: "3",
+  //         name: "Vinoth Kumar",
+  //         appliedOn: "2025-06-12",
+  //         resume: "",
+  //         status: "Rejected",
+  //       },
+  //     ],
+  //   };
+  // };
 
-  const jobPost = getMockJobPost(jobPostId || "1");
+  // const jobPost = getMockJobPost(jobPostId || "1");
 
   const getStatusColor = (status: string) =>
     ({
@@ -138,7 +143,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       Expired: "red",
       "Expiring Soon": "orange",
       Pending: "orange",
-    }[status] || "default");
+    })[status] || "default";
 
   const getCandidateStatusTag = (status: string) => {
     const colors: Record<string, string> = {
@@ -222,7 +227,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
 
   return (
     <Drawer
-      open={visible}
+      open={open}
       onClose={onClose}
       width={800}
       closeIcon={null}
@@ -240,7 +245,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-gray-500">Job Tittle</p>
-              <p className="font-medium">{jobPost.jobTitle}</p>
+              <p className="font-medium">{jobPost.title}</p>
             </div>
             <div>
               <p className="text-gray-500">Specialisation</p>
@@ -252,7 +257,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
             </div>
             <div>
               <p className="text-gray-500">Start Date</p>
-              <p className="text-blue-600">{formatDate(jobPost.postDate)}</p>
+              <p className="text-blue-600">{formatDate(jobPost?.valid_from)}</p>
             </div>
             <div>
               <p className="text-gray-500">No of Applications Received</p>
@@ -279,11 +284,11 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-gray-500">Exp Required</p>
-              <p>{jobPost.expRequired}</p>
+              <p>{jobPost.experience_required}</p>
             </div>
             <div>
               <p className="text-gray-500">Employment Type</p>
-              <p>{jobPost.employmentType}</p>
+              <p>{jobPost.workType}</p>
             </div>
             <div>
               <p className="text-gray-500">Status</p>
@@ -291,19 +296,21 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
             </div>
             <div>
               <p className="text-gray-500">End Date</p>
-              <p className="text-orange-600">{formatDate(jobPost.endDate)}</p>
+              <p className="text-orange-600">
+                {formatDate(jobPost?.expires_at)}
+              </p>
             </div>
             <div>
               <p className="text-gray-500">Payment Status</p>
               <span className="text-blue-600">
-                {jobPost.paymentStatus || "Paid"}
+                {jobPost?.paymentStatus || "Paid"}
               </span>
             </div>
           </div>
         </div>
 
         {/* Hospital Bio */}
-        {jobPost.hospitalBio && jobPost.hospitalBio.length > 0 && (
+        {jobPost.hospital_bio && jobPost.hospital_bio.length > 0 && (
           <div className="border-2 border-dashed border-blue-300 p-4 rounded">
             <div
               className="flex justify-between items-center cursor-pointer mb-2"
@@ -317,13 +324,10 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
               )}
             </div>
             {isHospitalBioExpanded && (
-              <ol className="list-decimal list-inside space-y-1 ml-4">
-                {jobPost.hospitalBio.map((bio, index) => (
-                  <li key={index} className="text-gray-700">
-                    {bio}
-                  </li>
-                ))}
-              </ol>
+              <p className="mt-6"> {jobPost.hospital_bio}</p>
+              // <ol className="list-decimal list-inside space-y-1 ml-4">
+
+              // </ol>
             )}
           </div>
         )}

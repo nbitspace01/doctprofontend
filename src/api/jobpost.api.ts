@@ -11,13 +11,20 @@ export interface FetchJobPostsParams {
 
 export interface JobPost {
   id: string;
-  jobTitle: string;
-  expRequired: string;
-  location: string;
+  title: string;
   specialization: string;
-  employmentType: string;
-  noOfApplications: number;
+  location: string;
+  experience_required: string;
+  workType: string;
   status: string;
+  noOfApplications?: number;
+  valid_from?: Date;
+  expires_at?: Date;
+  description?: string;
+  hospital_bio?: string;
+  salary?: string;
+  degree_required?: string;
+  hospital_website?: string;
 }
 
 export interface JobPostsResponse {

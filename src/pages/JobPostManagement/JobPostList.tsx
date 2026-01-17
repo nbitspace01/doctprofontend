@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import CreateJobPost from "./CreateJobPost";
 import JobPostViewDrawer from "./JobPostViewDrawer";
@@ -6,10 +6,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import { useListController } from "../../hooks/useListController";
 import CommonTable from "../../components/Common/CommonTable";
-import { App, Button, message, Modal } from "antd";
+import { App, Button } from "antd";
 import { deleteJobPostApi, fetchJobPostsApi } from "../../api/jobpost.api";
+import StatusBadge from "../Common/StatusBadge";
 
-export interface JobPost {
+interface JobPostData {
   id: string;
   title: string;
   specialization: string;
@@ -18,15 +19,33 @@ export interface JobPost {
   workType: string;
   status: string;
   noOfApplications?: number;
+  valid_from?: Date;
+  expires_at?: Date;
+  description?: string;
+  hospital_bio?: string;
+  salary?: string;
+  degree_required?: string;
+  hospital_website?: string;
+}
+
+interface JobPostResponse {
+  data: JobPostData[];
+  total: number;
 }
 
 const JobPostList: React.FC = () => {
-  const [selectedJobId, setSelectedJobId] = useState<string>("");
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [editingJob, setEditingJob] = useState<JobPost | null>(null);
+  const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
 
+  /* -------------------- State -------------------- */
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState<JobPostData | null>(null);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedJobPost, setSelectedJobPost] = useState<JobPostData | null>(
+    null,
+  );
+
+  /* -------------------- List Controller -------------------- */
   const {
     currentPage,
     pageSize,
@@ -36,9 +55,9 @@ const JobPostList: React.FC = () => {
     onSearch,
     onFilterChange,
   } = useListController();
-  const { modal, message } = App.useApp();
 
-  const { data, isFetching, error, refetch } = useQuery({
+  /* -------------------- Query -------------------- */
+  const { data: jobPostData, isFetching } = useQuery<JobPostResponse, Error>({
     queryKey: ["jobPosts", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
       fetchJobPostsApi({
@@ -47,134 +66,111 @@ const JobPostList: React.FC = () => {
         searchValue,
         filterValues,
       }),
+    refetchOnMount: true,
     refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
-  const { mutate: deleteJobPost, isPending: isDeleting } = useMutation({
+  const allJobPost = jobPostData?.data ?? [];
+  const totalCount = jobPostData?.total ?? 0;
+
+  /* -------------------- Mutation -------------------- */
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteJobPostApi(id),
-
     onSuccess: () => {
-      message.success("Job post deleted successfully");
-
-      // 🔥 Refetch job post list
       queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
+      message.success("Job post deleted successfully");
     },
-
-    onError: () => {
-      message.error("Failed to delete job post");
+    onError: (error: any) => {
+      message.error(error?.message || "Failed to delete job post");
     },
   });
 
-  const handleDelete = (id: string) => {
+  /* -------------------- Handlers -------------------- */
+  const handleView = (record: JobPostData) => {
+    setSelectedJobPost(record);
+    setIsViewDrawerOpen(true);
+  };
+
+  const handleEdit = (record: JobPostData) => {
+    setEditData(record);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (record: JobPostData) => {
     modal.confirm({
-      title: "Delete Job Post?",
-      content: "Are you sure you want to delete this job post?",
-      okText: "Yes",
-      cancelText: "No",
+      title: "Confirm Delete",
+      content: `Delete ${record.title}?`,
       okType: "danger",
-      onOk: () => {
-        deleteJobPost(id);
-      },
+      onOk: () => deleteMutation.mutate(record.id),
     });
   };
 
-  const jobs: JobPost[] = data?.data ?? [];
-  const totalCount = data?.total ?? 0;
+  /* -------------------- Columns -------------------- */
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        width: 80,
+        render: (_: any, __: JobPostData, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
+      },
+      { title: "Job Title", dataIndex: "title", width: 220 },
+      { title: "Exp Required", dataIndex: "experience_required", width: 140 },
+      { title: "Location", dataIndex: "location", width: 160 },
+      { title: "Specialization", dataIndex: "specialization", width: 180 },
+      { title: "Employment Type", dataIndex: "workType", width: 140 },
+      {
+        title: "No of Applications",
+        dataIndex: "noOfApplications",
+        width: 160,
+        render: (v?: number | null) => (v != null ? v.toLocaleString() : "0"),
+      },
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "green";
-      case "Expired":
-        return "red";
-      case "Expiring Soon":
-      case "Pending":
-        return "orange";
-      case "Permanent":
-        return "blue";
-      case "Inactive":
-        return "purple";
-      default:
-        return "default";
-    }
-  };
+      {
+        title: "Status",
+        dataIndex: "status",
+        width: 120,
+        render: (status?: string) => <StatusBadge status={status || ""} />,
+      },
+      {
+        title: "Actions",
+        width: 100,
+        render: (_: any, record: JobPostData) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            onEdit={() => handleEdit(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
 
-  const columns = [
-    {
-      title: "S No",
-      width: 80,
-      render: (_: any, __: JobPost, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    { title: "Job Title", dataIndex: "title", width: 220 },
-    { title: "Exp Required", dataIndex: "experience_required", width: 140 },
-    { title: "Location", dataIndex: "location", width: 160 },
-    { title: "Specialization", dataIndex: "specialization", width: 180 },
-    { title: "Employment Type", dataIndex: "workType", width: 140 },
-    {
-      title: "No of Applications",
-      dataIndex: "noOfApplications",
-      width: 160,
-      render: (v?: number | null) => (v != null ? v.toLocaleString() : "0"),
-    },
-
-    {
-      title: "Status",
-      dataIndex: "status",
-      width: 120,
-      render: (status: string) => (
-        <span
-          className={`px-3 py-1 rounded-full bg-${getStatusColor(
-            status
-          )}-100 text-${getStatusColor(status)}-600`}
-        >
-          {status}
-        </span>
-      ),
-    },
-    {
-      title: "Actions",
-      width: 100,
-      render: (_: any, record: JobPost) => (
-        <CommonDropdown
-          onView={() => {
-            setSelectedJobId(record.id);
-            setIsViewDrawerOpen(true);
-          }}
-          onEdit={() => {
-            setEditingJob(record);
-            setIsCreateModalOpen(true);
-          }}
-          onDelete={() => {
-            handleDelete(record.id);
-            queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
-          }}
-          showEdit
-          showDelete
-        />
-      ),
-    },
-  ];
-
-  const filterOptions = [
-    { label: "Job Title", key: "jobTitle", type: "text" as const },
-    { label: "Location", key: "location", type: "text" as const },
-    {
-      label: "Status",
-      key: "status",
-      type: "checkbox" as const,
-      options: ["Active", "Expired", "Expiring Soon", "Pending"],
-    },
-    {
-      label: "Employment Type",
-      key: "employmentType",
-      type: "checkbox" as const,
-      options: ["Full Time", "Part Time", "Contract"],
-    },
-  ];
+  /* -------------------- Filters -------------------- */
+  const filterOptions = useMemo(
+    () => [
+      { label: "Job Title", key: "title", type: "text" as const },
+      { label: "Location", key: "location", type: "text" as const },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["Active", "Expired", "Expiring Soon", "Pending"],
+      },
+      {
+        label: "Employment Type",
+        key: "employmentType",
+        type: "checkbox" as const,
+        options: ["Full Time", "Part Time", "Contract"],
+      },
+    ],
+    [],
+  );
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!jobs.length) return;
+    if (!allJobPost.length) return;
     const headers = [
       "S No",
       "Job Title",
@@ -185,7 +181,7 @@ const JobPostList: React.FC = () => {
       "No of Applications",
       "Status",
     ];
-    const rows = jobs.map((j, i) => [
+    const rows = allJobPost.map((j, i) => [
       i + 1,
       j.title,
       j.experience_required,
@@ -221,17 +217,17 @@ const JobPostList: React.FC = () => {
         <h1 className="text-2xl font-semibold">Job Post Management</h1>
         <Button
           type="primary"
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => setIsModalOpen(true)}
           className="bg-button-primary hover:!bg-button-primary"
         >
           <PlusOutlined /> Post A New Job
         </Button>
       </div>
 
-      <CommonTable<JobPost>
+      <CommonTable<JobPostData>
         rowKey="id"
         columns={columns}
-        data={jobs}
+        data={allJobPost}
         loading={isFetching}
         currentPage={currentPage}
         pageSize={pageSize}
@@ -245,15 +241,27 @@ const JobPostList: React.FC = () => {
       />
 
       <CreateJobPost
-        open={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        editingJob={editingJob}
+        open={isModalOpen}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
+        onSubmit={(values) => {
+          console.log(editData ? "Update" : "Add", values);
+          queryClient.invalidateQueries({ queryKey: ["jobPosts"] });
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
+        initialData={editData}
       />
-      <JobPostViewDrawer
-        visible={isViewDrawerOpen}
-        onClose={() => setIsViewDrawerOpen(false)}
-        jobPostId={selectedJobId}
-      />
+
+      {selectedJobPost && (
+        <JobPostViewDrawer
+          open={isViewDrawerOpen}
+          onClose={() => setIsViewDrawerOpen(false)}
+          jobPostId={selectedJobPost.id}
+        />
+      )}
     </div>
   );
 };

@@ -24,7 +24,7 @@ interface StudentData {
   startYear: number;
   endYear: number;
   kycStatus: boolean;
-  userStatus: string;
+  status: string;
 }
 
 interface StudentResponse {
@@ -168,7 +168,7 @@ const StudentList: React.FC = () => {
       },
       {
         title: "Account Status",
-        dataIndex: "userStatus",
+        dataIndex: "status",
         width: 150,
         render: (status: string) => (
           <span
@@ -218,7 +218,7 @@ const StudentList: React.FC = () => {
       },
       {
         label: "Account Status",
-        key: "userStatus",
+        key: "status",
         type: "checkbox" as const,
         options: ["Active", "Inactive"],
       },
@@ -256,7 +256,7 @@ const StudentList: React.FC = () => {
       s.degree,
       s.specialization,
       s.kycStatus ? "Verified" : "Pending",
-      s.userStatus,
+      s.status,
     ]);
 
     const content = [headers, ...rows]
