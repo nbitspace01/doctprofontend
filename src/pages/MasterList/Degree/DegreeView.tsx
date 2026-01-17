@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { App, Button, Drawer } from "antd";
-import { CloseOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import FormattedDate from "../../Common/FormattedDate";
 import { updateDegreeApi } from "../../../api/degree.api";

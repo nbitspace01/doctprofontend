@@ -1,8 +1,10 @@
-import { Avatar, Button, Drawer, Image, Skeleton } from "antd";
+import { App, Avatar, Button, Drawer, Image, Skeleton } from "antd";
 import FormattedDate from "../../Common/FormattedDate";
-import { HealthcareProfessional } from "./HealthCareList";
+import { useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateHealthcareProfessionalApi } from "../../../api/healthcare.api";
 
-interface College {
+interface CollegeData {
   id: string;
   name: string;
   city: string;
@@ -11,7 +13,7 @@ interface College {
   country: string | null;
 }
 
-interface Hospital {
+interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
@@ -20,10 +22,11 @@ interface Hospital {
   country: string | null;
 }
 
-interface HealthCareProfessional {
+interface HealthcareProfessionalData {
   id: string;
-  firstName: string | null;
-  lastName: string | null;
+  // firstName: string | null;
+  // lastName: string | null;
+  name: string;
   email: string;
   phone: string;
   dob: string | null;
@@ -39,78 +42,47 @@ interface HealthCareProfessional {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
-  endMonth: string | null;
-  endYearExp: string | null;
-  currentlyWorking: boolean;
-  college: College | null;
-  hospital: Hospital | null;
   isActive: boolean;
+  college: CollegeData | null;
+  hospital: HospitalData | null;
   created_at: string;
 }
 
 interface HealthCareViewProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  professionalData: HealthcareProfessional | null;
+  professionalData: HealthcareProfessionalData;
 }
 
+type HealthcareStatus = true | false;
+
 const HealthCareView: React.FC<HealthCareViewProps> = ({
-  isOpen,
+  open,
   onClose,
   professionalData,
 }) => {
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  // const { professionalData, isLoading, error } = useQuery({
-  //   queryKey: ["healthcareProfessional", professionalId],
-  //   queryFn: async () => {
-  //     if (!professionalId) {
-  //       throw new Error("Professional ID is required");
-  //     }
-  //     console.log("Fetching professional with ID:", professionalId);
-      
-  //     // Try POST with byId endpoint first (common pattern in this codebase)
-  //     try {
-  //       const response = await axios.post<HealthCareProfessional>(
-  //         `${API_URL}/api/professinal/byId`,
-  //         { id: professionalId }
-  //       );
-  //       console.log("POST API Response:", response.professionalData);
-  //       return response.professionalData;
-  //     } catch (postError: any) {
-  //       // If POST fails, try GET
-  //       console.log("POST failed, trying GET:", postError);
-  //       try {
-  //         const response = await axios.get<HealthCareProfessional>(
-  //           `${API_URL}/api/professinal/${professionalId}`
-  //         );
-  //         console.log("GET API Response:", response.professionalData);
-  //         return response.professionalData;
-  //       } catch (getError: any) {
-  //         console.error("Both POST and GET failed:", getError);
-  //         throw new Error(
-  //           postError.response?.professionalData?.message || 
-  //           getError?.response?.professionalData?.message ||
-  //           (getError instanceof Error ? getError.message : String(getError)) || 
-  //           "Failed to fetch professional professionalData"
-  //         );
-  //       }
-  //     }
-  //   },
-  //   enabled: !!professionalId && isOpen,
-  //   retry: 1,
-  // });
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  /* -------------------- Derived Values -------------------- */
+  const displayName = useMemo(() => {
+    if (professionalData.name) return professionalData.name;
+
+    const fullName = `${professionalData.name || ""}`.trim();
+
+    return fullName || "N/A";
+  }, [professionalData]);
+
+  const avatarInitial = useMemo(() => {
+    if (professionalData.name) return professionalData.name[0].toUpperCase();
+    if (professionalData.name) return professionalData.name[0].toUpperCase();
+  }, [professionalData]);
 
   // Helper function to get full name
   const getFullName = () => {
     if (!professionalData) return "N/A";
-    if (professionalData.firstName && professionalData.lastName) {
-      return `${professionalData.firstName} ${professionalData.lastName}`;
-    }
-    if (professionalData.firstName) {
-      return professionalData.firstName;
-    }
-    if (professionalData.lastName) {
-      return professionalData.lastName;
+    if (professionalData.name) {
+      return `${professionalData.name}`;
     }
     return "N/A";
   };
@@ -128,16 +100,105 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
     return "N";
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  /* -------------------- Update Status -------------------- */
+  const { mutate: updateStatus, isPending: isPendingMutation } = useMutation({
+    mutationFn: ({
+      professionalId,
+      isActive,
+    }: {
+      professionalId: string;
+      isActive: HealthcareStatus;
+    }) => updateHealthcareProfessionalApi(professionalId, { isActive }),
+
+    onSuccess: () => {
+      message.success("Healcare professional status updated");
+      queryClient.invalidateQueries({ queryKey: ["healthcareProfessionals"] });
+      onClose();
+    },
+
+    onError: () => {
+      message.error("Failed to update healthcare professional status");
+    },
+  });
+
+  /* -------------------- Handlers -------------------- */
+  const isActive = professionalData.isActive;
+
+  const isActiveYes = isActive === true;
+  const isInactive = isActive === false;
+  // const isPending = status === "pending";
+  // const isActive = status === "active";
+  // const isInactive = status === "inactive";
+
+  const getNextStatus = (): HealthcareStatus => {
+    if (isActive === false) return true;
+    if (isActive === true) return false;
+    return true;
+  };
+  // const getNextStatus = (): HealthcareStatus => {
+  //   if (status === "pending") return "active";
+  //   if (status === "active") return "inactive";
+  //   return "active";
+  // };
+
+  const handleStatusToggle = () => {
+    const nextStatus = getNextStatus();
+
+    modal.confirm({
+      title: nextStatus === true ? "Activate Degree?" : "Deactivate Degree?",
+      content: `Are you sure you want to ${nextStatus} "${professionalData.name}"?`,
+      okType: nextStatus === true ? "primary" : "danger",
+      onOk: () =>
+        updateStatus({
+          professionalId: professionalData.id,
+          isActive: nextStatus,
+        }),
+    });
+    // modal.confirm({
+    //   title:
+    //     nextStatus === "active" ? "Activate Degree?" : "Deactivate Degree?",
+    //   content: `Are you sure you want to ${nextStatus} "${degreeData.name}"?`,
+    //   okType: nextStatus === "active" ? "primary" : "danger",
+    //   onOk: () =>
+    //     updateStatus({
+    //       degreeId: degreeData.id,
+    //       status: nextStatus,
+    //     }),
+    // });
+  };
 
   return (
     <Drawer
-      open={isOpen}
+      open={open}
       onClose={onClose}
       width={500}
+      className="custom-drawer"
       title="Healthcare Professional"
+      footer={
+        <div className="flex justify-between items-center">
+          <Button
+            size="large"
+            className="bg-gray-200 text-gray-700 px-8"
+            onClick={onClose}
+          >
+            Back
+          </Button>
+
+          <Button
+            size="large"
+            loading={isPendingMutation}
+            disabled={isPendingMutation}
+            className={`px-8 ${
+              isActive
+                ? "border-red-500 text-red-500"
+                : "border-green-500 text-green-500"
+            }`}
+            onClick={handleStatusToggle}
+          >
+            {isActive ? "Deactivate" : "Activate"} Hospital
+          </Button>
+        </div>
+      }
     >
       {professionalData ? (
         <div className="space-y-6">
@@ -152,10 +213,7 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
                 className="rounded-full object-cover"
               />
             ) : (
-              <Avatar
-                size={48}
-                className="bg-button-primary text-white"
-              >
+              <Avatar size={48} className="bg-button-primary text-white">
                 {getAvatarInitial()}
               </Avatar>
             )}
@@ -179,7 +237,10 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
               <p className="text-sm text-gray-500">DOB</p>
               <p className="font-medium">
                 {professionalData.dob ? (
-                  <FormattedDate dateString={professionalData.dob} format="long" />
+                  <FormattedDate
+                    dateString={professionalData.dob}
+                    format="long"
+                  />
                 ) : (
                   "N/A"
                 )}
@@ -207,11 +268,15 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500">Specialization</p>
-              <p className="font-medium">{professionalData.specialization || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.specialization || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Year</p>
-              <p className="font-medium">{professionalData.startYear || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startYear || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">End Year</p>
@@ -219,22 +284,30 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Month</p>
-              <p className="font-medium">{professionalData.startMonth || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startMonth || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Year Exp</p>
-              <p className="font-medium">{professionalData.startYearExp || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startYearExp || "N/A"}
+              </p>
             </div>
             {professionalData.college && (
               <div>
                 <p className="text-sm text-gray-500">College</p>
-                <p className="font-medium">{professionalData.college.name || "N/A"}</p>
+                <p className="font-medium">
+                  {professionalData.college.name || "N/A"}
+                </p>
               </div>
             )}
             {professionalData.hospital && (
               <div>
                 <p className="text-sm text-gray-500">Hospital</p>
-                <p className="font-medium">{professionalData.hospital.name || "N/A"}</p>
+                <p className="font-medium">
+                  {professionalData.hospital.name || "N/A"}
+                </p>
               </div>
             )}
             <div>
@@ -247,7 +320,10 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
               <p className="text-sm text-gray-500">Created At</p>
               <p className="font-medium">
                 {professionalData.created_at ? (
-                  <FormattedDate dateString={professionalData.created_at} format="long" />
+                  <FormattedDate
+                    dateString={professionalData.created_at}
+                    format="long"
+                  />
                 ) : (
                   "N/A"
                 )}
@@ -256,7 +332,9 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-center text-gray-500">No professionalData available</div>
+        <div className="text-center text-gray-500">
+          No professionalData available
+        </div>
       )}
     </Drawer>
   );

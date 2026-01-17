@@ -1,15 +1,19 @@
-import React, { useState } from "react";
-import { Avatar } from "antd";
-import { useQuery } from "@tanstack/react-query";
+import React, { useMemo, useState } from "react";
+import { App, Avatar } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import CommonTable from "../../../components/Common/CommonTable";
 import HealthCareView from "./HealthCareView";
 import { useListController } from "../../../hooks/useListController";
 import FormattedDate from "../../Common/FormattedDate";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import { fetchHealthcareProfessionalsApi } from "../../../api/healthcare.api"; // assume we move axios call here
+import {
+  deleteHealthcareProfessionalApi,
+  fetchHealthcareProfessionalsApi,
+} from "../../../api/healthcare.api"; // assume we move axios call here
+import StatusBadge from "../../Common/StatusBadge";
 
-interface College {
+interface CollegeData {
   id: string;
   name: string;
   city: string;
@@ -18,7 +22,7 @@ interface College {
   country: string | null;
 }
 
-interface Hospital {
+interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
@@ -27,10 +31,11 @@ interface Hospital {
   country: string | null;
 }
 
-export interface HealthcareProfessional {
+interface HealthcareProfessionalData {
   id: string;
-  firstName: string | null;
-  lastName: string | null;
+  // firstName: string | null;
+  // lastName: string | null;
+  name: string;
   email: string;
   phone: string;
   dob: string | null;
@@ -47,21 +52,27 @@ export interface HealthcareProfessional {
   startMonth: string | null;
   startYearExp: string | null;
   isActive: boolean;
-  college: College | null;
-  hospital: Hospital | null;
+  college: CollegeData | null;
+  hospital: HospitalData | null;
   created_at: string;
 }
 
-interface PaginatedResponse {
-  data: HealthcareProfessional[];
+interface HealthcareProfessionalResponse {
+  data: HealthcareProfessionalData[];
   total: number;
 }
 
 const HealthCareList: React.FC = () => {
-  const [selectedProfessionalId, setSelectedProfessionalId] =
-    useState<HealthcareProfessional | null>(null);
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
 
+  /* -------------------- State -------------------- */
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedProfessional, setSelectedProfessional] =
+    useState<HealthcareProfessionalData | null>(null);
+
+  /* -------------------- List Controller -------------------- */
   const {
     currentPage,
     pageSize,
@@ -72,10 +83,13 @@ const HealthCareList: React.FC = () => {
     onFilterChange,
   } = useListController();
 
-  const { data, isFetching, error, refetch } = useQuery<
-    PaginatedResponse,
-    Error
-  >({
+  /* -------------------- Query -------------------- */
+  const {
+    data: healthProfessional,
+    isFetching,
+    error,
+    refetch,
+  } = useQuery<HealthcareProfessionalResponse, Error>({
     queryKey: [
       "healthcareProfessionals",
       currentPage,
@@ -95,119 +109,144 @@ const HealthCareList: React.FC = () => {
     staleTime: 0,
   });
 
-  const professionals = data?.data ?? [];
-  const totalCount = data?.total ?? 0;
+  const allProfessionals = healthProfessional?.data ?? [];
+  const totalCount = healthProfessional?.total ?? 0;
 
-  const getFullName = (p: HealthcareProfessional) =>
-    [p.firstName, p.lastName].filter(Boolean).join(" ") || "N/A";
+  /* -------------------- Mutation -------------------- */
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteHealthcareProfessionalApi(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["healthcareProfessionals"] });
+      message.success("Healthcare Professional deleted successfully");
+    },
+    onError: (error: any) => {
+      message.error(
+        error?.message || "Failed to delete healthcare professional",
+      );
+    },
+  });
 
-  const columns = [
-    {
-      title: "S No",
-      width: 70,
-      render: (_: unknown, __: HealthcareProfessional, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: "Name",
-      dataIndex: "firstName",
-      width: 220,
-      render: (_: string, record: HealthcareProfessional) => (
-        <div className="flex items-center gap-3">
-          {record.profilePicture ? (
-            <img
-              src={record.profilePicture}
-              alt={getFullName(record)}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <Avatar className="bg-button-primary text-white w-8 h-8 rounded-full">
-              {getFullName(record).charAt(0)}
-            </Avatar>
-          )}
-          <span>{getFullName(record)}</span>
-        </div>
-      ),
-    },
-    { title: "Email", dataIndex: "email", width: 220 },
-    { title: "Phone", dataIndex: "phone", width: 160 },
-    {
-      title: "DOB",
-      dataIndex: "dob",
-      width: 150,
-      render: (dob: string) =>
-        dob ? <FormattedDate dateString={dob} format="long" /> : "N/A",
-    },
-    {
-      title: "Gender",
-      dataIndex: "gender",
-      width: 120,
-      render: (g: string) => g || "N/A",
-    },
-    { title: "City", dataIndex: "city", width: 150 },
-    { title: "State", dataIndex: "state", width: 150 },
-    { title: "Country", dataIndex: "country", width: 150 },
-    { title: "Degree", dataIndex: "degree", width: 150 },
-    { title: "Specialization", dataIndex: "specialization", width: 150 },
-    { title: "Role", dataIndex: "role", width: 120 },
-    {
-      title: "Status",
-      dataIndex: "isActive",
-      width: 120,
-      render: (isActive: boolean) => (
-        <span
-          className={`text-sm px-3 py-1 rounded-full ${
-            isActive ? "text-green-600 bg-green-50" : "text-red-600 bg-red-50"
-          }`}
-        >
-          {isActive ? "Active" : "Inactive"}
-        </span>
-      ),
-    },
-    {
-      title: "Actions",
-      width: 100,
-      render: (_: any, record: HealthcareProfessional) => (
-        <CommonDropdown
-          onView={() => {
-            setSelectedProfessionalId(record);
-            setIsDrawerOpen(true);
-          }}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          showEdit={false}
-          showDelete={false}
-        />
-      ),
-    },
-  ];
+  /* -------------------- Handlers -------------------- */
+  // const getFullName = (p: HealthcareProfessionalData) =>
+  //   [p.firstName, p.lastName].filter(Boolean).join(" ") || "N/A";
 
-  const filterOptions = [
-    { label: "Name", key: "name", type: "text" as const },
-    { label: "Email", key: "email", type: "text" as const },
-    { label: "Phone", key: "phone", type: "text" as const },
-    { label: "Role", key: "role", type: "text" as const },
-    { label: "City", key: "city", type: "text" as const },
-    { label: "State", key: "state", type: "text" as const },
-    { label: "Country", key: "country", type: "text" as const },
-    { label: "Degree", key: "degree", type: "text" as const },
-    { label: "Specialization", key: "specialization", type: "text" as const },
-    {
-      label: "Gender",
-      key: "gender",
-      type: "checkbox" as const,
-      options: ["Male", "Female", "Other"],
-    },
-    {
-      label: "Status",
-      key: "status",
-      type: "checkbox" as const,
-      options: ["Active", "Inactive"],
-    },
-  ];
+  const handleView = (record: HealthcareProfessionalData) => {
+    setSelectedProfessional(record);
+    setIsViewDrawerOpen(true);
+  };
 
+  const handleDelete = (record: HealthcareProfessionalData) => {
+    modal.confirm({
+      title: "Confirm Delete",
+      content: `Delete ${record.name}?`,
+      okType: "danger",
+      onOk: () => deleteMutation.mutate(record.id),
+    });
+  };
+
+  /* -------------------- Columns -------------------- */
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        width: 70,
+        render: (_: unknown, __: HealthcareProfessionalData, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
+      },
+      {
+        title: "Name",
+        dataIndex: "firstName",
+        width: 220,
+        render: (_: string, record: HealthcareProfessionalData) => (
+          <div className="flex items-center gap-3">
+            {record.profilePicture ? (
+              <img
+                src={record.profilePicture}
+                alt={record.name}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <Avatar className="bg-button-primary text-white w-8 h-8 rounded-full">
+                {record.name.charAt(0)}
+              </Avatar>
+            )}
+            <span>{record.name}</span>
+          </div>
+        ),
+      },
+      { title: "Email", dataIndex: "email", width: 220 },
+      { title: "Phone", dataIndex: "phone", width: 160 },
+      {
+        title: "DOB",
+        dataIndex: "dob",
+        width: 150,
+        render: (dob: string) =>
+          dob ? <FormattedDate dateString={dob} format="long" /> : "N/A",
+      },
+      {
+        title: "Gender",
+        dataIndex: "gender",
+        width: 120,
+        render: (g: string) => g || "N/A",
+      },
+      { title: "City", dataIndex: "city", width: 150 },
+      { title: "State", dataIndex: "state", width: 150 },
+      { title: "Country", dataIndex: "country", width: 150 },
+      { title: "Degree", dataIndex: "degree", width: 150 },
+      { title: "Specialization", dataIndex: "specialization", width: 150 },
+      { title: "Role", dataIndex: "role", width: 120 },
+      {
+        title: "Status",
+        dataIndex: "isActive",
+        width: 120,
+        key: "status",
+        render: (status?: string) => <StatusBadge status={status || ""} />,
+      },
+      {
+        title: "Actions",
+        width: 100,
+        render: (_: any, record: HealthcareProfessionalData) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
+
+  /* -------------------- Filters -------------------- */
+  const filterOptions = useMemo(
+    () => [
+      { label: "Name", key: "name", type: "text" as const },
+      { label: "Email", key: "email", type: "text" as const },
+      { label: "Phone", key: "phone", type: "text" as const },
+      { label: "Role", key: "role", type: "text" as const },
+      { label: "City", key: "city", type: "text" as const },
+      { label: "State", key: "state", type: "text" as const },
+      { label: "Country", key: "country", type: "text" as const },
+      { label: "Degree", key: "degree", type: "text" as const },
+      { label: "Specialization", key: "specialization", type: "text" as const },
+      {
+        label: "Gender",
+        key: "gender",
+        type: "checkbox" as const,
+        options: ["Male", "Female", "Other"],
+      },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["Active", "Inactive"],
+      },
+    ],
+    [],
+  );
+
+  /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {
-    if (!professionals.length) return;
+    if (!allProfessionals.length) return;
 
     const headers = [
       "S No",
@@ -225,9 +264,9 @@ const HealthCareList: React.FC = () => {
       "Status",
     ];
 
-    const rows = professionals.map((p, i) => [
+    const rows = allProfessionals.map((p, i) => [
       i + 1,
-      getFullName(p),
+      p.name,
       p.email,
       p.phone,
       p.dob || "N/A",
@@ -255,25 +294,14 @@ const HealthCareList: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  if (error) {
-    return (
-      <div className="p-6 text-center text-red-600">
-        Error loading data: {error.message}
-        <button className="ml-2 underline" onClick={() => refetch()}>
-          Retry
-        </button>
-      </div>
-    );
-  }
-
   return (
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-6">Healthcare Professionals</h1>
 
-      <CommonTable<HealthcareProfessional>
+      <CommonTable<HealthcareProfessionalData>
         rowKey="id"
         columns={columns}
-        data={professionals}
+        data={allProfessionals}
         loading={isFetching}
         currentPage={currentPage}
         pageSize={pageSize}
@@ -286,11 +314,13 @@ const HealthCareList: React.FC = () => {
         onDownload={handleDownload}
       />
 
-      <HealthCareView
-        professionalData={selectedProfessionalId}
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
-      />
+      {selectedProfessional && (
+        <HealthCareView
+          open={isViewDrawerOpen}
+          onClose={() => setIsViewDrawerOpen(false)}
+          professionalData={selectedProfessional}
+        />
+      )}
     </div>
   );
 };

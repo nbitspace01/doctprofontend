@@ -34,3 +34,15 @@ export const fetchHealthcareProfessionalsApi = ({
 export const fetchHealthcareProfessionalByIdApi =  (id: string) => {
     return apiClient.get<any>(`/api/professinal/${id}`);
 };
+
+// Update
+export const updateHealthcareProfessionalApi =  (id: string) => {
+    return apiClient.put<any>(`/api/professinal/${id}`);
+};
+
+// Delete
+export const deleteHealthcareProfessionalApi =  (id: string) => {
+    return apiClient.delete<any>(`/api/professinal/${id}`);
+};
+
+

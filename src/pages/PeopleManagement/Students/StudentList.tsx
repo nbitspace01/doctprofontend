@@ -1,16 +1,16 @@
-import { Avatar } from "antd";
-import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { App, Avatar } from "antd";
+import React, { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import FormattedDate from "../../Common/FormattedDate";
 import StudentView from "./StudentView";
 
 import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
-import { fetchStudentsApi } from "../../../api/student.api";
+import { deleteStudentApi, fetchStudentsApi } from "../../../api/student.api";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 
-interface Student {
+interface StudentData {
   studentId: string;
   studentName: string;
   email: string;
@@ -27,15 +27,24 @@ interface Student {
   userStatus: string;
 }
 
-interface PaginatedResponse {
-  data: Student[];
+interface StudentResponse {
+  data: StudentData[];
   total: number;
 }
 
 const StudentList: React.FC = () => {
-  const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>("");
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
 
+  /* -------------------- State -------------------- */
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  // const [editData, setEditData] = useState<StudentData | null>(null);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedStudent, setselectedStudent] = useState<StudentData | null>(
+    null,
+  );
+
+  /* -------------------- List Controller -------------------- */
   const {
     currentPage,
     pageSize,
@@ -46,14 +55,12 @@ const StudentList: React.FC = () => {
     onFilterChange,
   } = useListController();
 
-  const { data, isFetching } = useQuery<PaginatedResponse, Error>({
-    queryKey: [
-      "students",
-      currentPage,
-      pageSize,
-      searchValue,
-      filterValues,
-    ],
+  /* -------------------- Query -------------------- */
+  const { data: studentResponse, isFetching } = useQuery<
+    StudentResponse,
+    Error
+  >({
+    queryKey: ["students", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
       fetchStudentsApi({
         page: currentPage,
@@ -67,125 +74,160 @@ const StudentList: React.FC = () => {
   });
 
   // console.log("dta", data);
-  const students = data?.data ?? [];
-  const totalCount = data?.total ?? 0;
+  const allStudents = studentResponse?.data ?? [];
+  const totalCount = studentResponse?.total ?? 0;
 
-  const columns = [
-    {
-      title: "S No",
-      width: 70,
-      render: (_: unknown, __: Student, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
+  /* -------------------- Mutation -------------------- */
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteStudentApi(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      message.success("Student deleted successfully");
     },
-    {
-      title: "Student Name",
-      dataIndex: "studentName",
-      width: 260,
-      render: (text: string) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="bg-button-primary text-white">
-            {text?.charAt(0)}
-          </Avatar>
-          <span>{text}</span>
-        </div>
-      ),
+    onError: (error: any) => {
+      message.error(error?.message || "Failed to delete student");
     },
-    { title: "Student ID", dataIndex: "studentId", width: 180 },
-    { title: "Email", dataIndex: "email", width: 220 },
-    { title: "Phone", dataIndex: "phone", width: 160 },
-    {
-      title: "Gender",
-      dataIndex: "gender",
-      width: 120,
-      render: (v: string) => v || "N/A",
-    },
-    {
-      title: "DOB",
-      dataIndex: "dob",
-      width: 170,
-      render: (dob: string) =>
-        dob ? <FormattedDate dateString={dob} format="long" /> : "N/A",
-    },
-    { title: "College", dataIndex: "college", width: 220 },
-    { title: "Degree", dataIndex: "degree", width: 180 },
-    { title: "Specialization", dataIndex: "specialization", width: 180 },
-    {
-      title: "KYC Status",
-      dataIndex: "kycStatus",
-      width: 150,
-      render: (status: boolean) => (
-        <span
-          className={`text-sm px-3 py-1 rounded-full ${
-            status
-              ? "text-green-600 bg-green-50"
-              : "text-orange-500 bg-orange-50"
-          }`}
-        >
-          {status ? "Verified" : "Pending"}
-        </span>
-      ),
-    },
-    {
-      title: "Account Status",
-      dataIndex: "userStatus",
-      width: 150,
-      render: (status: string) => (
-        <span
-          className={`text-sm px-3 py-1 rounded-full ${
-            status?.toLowerCase() === "active"
-              ? "text-green-600 bg-green-50"
-              : "text-red-600 bg-red-50"
-          }`}
-        >
-          {status}
-        </span>
-      ),
-    },
-    {
-      title: "Actions",
-      width: 100,
-      render: (_: any, record: Student) => (
-        <CommonDropdown
-          onView={() => {
-            setSelectedStudentId(record.studentId);
-            setIsViewOpen(true);
-          }}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          showEdit={false}
-          showDelete={false}
-        />
-      ),
-    },
-  ];
+  });
 
-  const filterOptions = [
-    { label: "Student Name", key: "studentName", type: "text" as const },
-    { label: "Student ID", key: "studentId", type: "text" as const },
-    { label: "Email", key: "email", type: "text" as const },
-    { label: "Phone", key: "phone", type: "text" as const },
-    {
-      label: "Gender",
-      key: "gender",
-      type: "checkbox" as const,
-      options: ["Male", "Female"],
-    },
-    {
-      label: "KYC Status",
-      key: "kycStatus",
-      type: "checkbox" as const,
-      options: ["Verified", "Pending"],
-    },
-    {
-      label: "Account Status",
-      key: "userStatus",
-      type: "checkbox" as const,
-      options: ["Active", "Inactive"],
-    },
-  ];
+  /* -------------------- Handlers -------------------- */
+  const handleView = (record: StudentData) => {
+    setselectedStudent(record);
+    setIsViewDrawerOpen(true);
+  };
+
+  // const handleEdit = (record: StudentData) => {
+  //   setEditData(record);
+  //   setIsModalOpen(true);
+  // };
+
+  const handleDelete = (record: StudentData) => {
+    modal.confirm({
+      title: "Confirm Delete",
+      content: `Delete ${record.studentName}?`,
+      okType: "danger",
+      onOk: () => deleteMutation.mutate(record.studentId),
+    });
+  };
+
+  /* -------------------- Columns -------------------- */
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        width: 70,
+        render: (_: unknown, __: StudentData, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
+      },
+      {
+        title: "Student Name",
+        dataIndex: "studentName",
+        width: 260,
+        render: (text: string) => (
+          <div className="flex items-center gap-3">
+            <Avatar className="bg-button-primary text-white">
+              {text?.charAt(0)}
+            </Avatar>
+            <span>{text}</span>
+          </div>
+        ),
+      },
+      { title: "Student ID", dataIndex: "studentId", width: 180 },
+      { title: "Email", dataIndex: "email", width: 220 },
+      { title: "Phone", dataIndex: "phone", width: 160 },
+      {
+        title: "Gender",
+        dataIndex: "gender",
+        width: 120,
+        render: (v: string) => v || "N/A",
+      },
+      {
+        title: "DOB",
+        dataIndex: "dob",
+        width: 170,
+        render: (dob: string) =>
+          dob ? <FormattedDate dateString={dob} format="long" /> : "N/A",
+      },
+      { title: "College", dataIndex: "college", width: 220 },
+      { title: "Degree", dataIndex: "degree", width: 180 },
+      { title: "Specialization", dataIndex: "specialization", width: 180 },
+      {
+        title: "KYC Status",
+        dataIndex: "kycStatus",
+        width: 150,
+        render: (status: boolean) => (
+          <span
+            className={`text-sm px-3 py-1 rounded-full ${
+              status
+                ? "text-green-600 bg-green-50"
+                : "text-orange-500 bg-orange-50"
+            }`}
+          >
+            {status ? "Verified" : "Pending"}
+          </span>
+        ),
+      },
+      {
+        title: "Account Status",
+        dataIndex: "userStatus",
+        width: 150,
+        render: (status: string) => (
+          <span
+            className={`text-sm px-3 py-1 rounded-full ${
+              status?.toLowerCase() === "active"
+                ? "text-green-600 bg-green-50"
+                : "text-red-600 bg-red-50"
+            }`}
+          >
+            {status}
+          </span>
+        ),
+      },
+      {
+        title: "Actions",
+        width: 100,
+        render: (_: any, record: StudentData) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            // onEdit={() => handleEdit(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
+
+  /* -------------------- Filters -------------------- */
+  const filterOptions = useMemo(
+    () => [
+      { label: "Student Name", key: "studentName", type: "text" as const },
+      { label: "Student ID", key: "studentId", type: "text" as const },
+      { label: "Email", key: "email", type: "text" as const },
+      { label: "Phone", key: "phone", type: "text" as const },
+      {
+        label: "Gender",
+        key: "gender",
+        type: "checkbox" as const,
+        options: ["Male", "Female"],
+      },
+      {
+        label: "KYC Status",
+        key: "kycStatus",
+        type: "checkbox" as const,
+        options: ["Verified", "Pending"],
+      },
+      {
+        label: "Account Status",
+        key: "userStatus",
+        type: "checkbox" as const,
+        options: ["Active", "Inactive"],
+      },
+    ],
+    [],
+  );
 
   const handleDownload = (format: "excel" | "csv") => {
-    if (!students.length) return;
+    if (!allStudents.length) return;
 
     const headers = [
       "S No",
@@ -202,7 +244,7 @@ const StudentList: React.FC = () => {
       "Account Status",
     ];
 
-    const rows = students.map((s, i) => [
+    const rows = allStudents.map((s, i) => [
       i + 1,
       s.studentName,
       s.studentId,
@@ -222,10 +264,7 @@ const StudentList: React.FC = () => {
       .join("\n");
 
     const blob = new Blob([content], {
-      type:
-        format === "csv"
-          ? "text/csv"
-          : "application/vnd.ms-excel",
+      type: format === "csv" ? "text/csv" : "application/vnd.ms-excel",
     });
 
     const a = document.createElement("a");
@@ -242,10 +281,10 @@ const StudentList: React.FC = () => {
     <div className="p-6">
       <h1 className="text-2xl font-semibold mb-6">Students</h1>
 
-      <CommonTable<Student>
+      <CommonTable<StudentData>
         rowKey="studentId"
         columns={columns}
-        data={students}
+        data={allStudents}
         loading={isFetching}
         currentPage={currentPage}
         pageSize={pageSize}
@@ -258,11 +297,13 @@ const StudentList: React.FC = () => {
         onDownload={handleDownload}
       />
 
-      <StudentView
-        studentId={selectedStudentId}
-        isOpen={isViewOpen}
-        onClose={() => setIsViewOpen(false)}
-      />
+      {selectedStudent && (
+        <StudentView
+          open={isViewDrawerOpen}
+          onClose={() => setIsViewDrawerOpen(false)}
+          studentData={selectedStudent}
+        />
+      )}
     </div>
   );
 };
