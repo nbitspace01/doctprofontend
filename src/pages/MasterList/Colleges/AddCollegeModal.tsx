@@ -211,7 +211,7 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
 
   /* -------------------- Effects -------------------- */
   useEffect(() => {
-    if (!open || !initialData || !hospitals.length) return;
+    if (!open || !initialData || !hospitalOptions.length) return;
 
     if (initialData) {
       setImageUrl(initialData.logo || "");
@@ -219,13 +219,13 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
         ...initialData,
         state: initialData.state || "",
         district: initialData.district || "",
-        hospitalIds: initialData.hospitals?.map((h: any) => h.id) || [],
+        hospitalIds: initialData.hospitals.map((h) => h.id) || []
       });
     } else {
       setImageUrl("");
       form.resetFields();
     }
-  }, [open, initialData, hospitals, form]);
+  }, [open, initialData, hospitalOptions, form]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
@@ -257,6 +257,7 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
 
   const updateMutation = useMutation({
     mutationFn: (values: CollegeFormValues) => {
+      console.log("Update Mutation: ",values);
       const payload: any = {
         ...values,
         city: values.city.toLowerCase(),

@@ -28,7 +28,7 @@ interface HealthcareProfessionalData {
   // lastName: string | null;
   name: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   dob: string | null;
   gender: string | null;
   city: string;
@@ -42,10 +42,11 @@ interface HealthcareProfessionalData {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
+  status: string;
   isActive: boolean;
   college: CollegeData | null;
   hospital: HospitalData | null;
-  created_at: string;
+  createdAt: string;
 }
 
 interface HealthCareViewProps {
@@ -54,7 +55,7 @@ interface HealthCareViewProps {
   professionalData: HealthcareProfessionalData;
 }
 
-type HealthcareStatus = true | false;
+type HealthcareStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const HealthCareView: React.FC<HealthCareViewProps> = ({
   open,
@@ -104,11 +105,11 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
   const { mutate: updateStatus, isPending: isPendingMutation } = useMutation({
     mutationFn: ({
       professionalId,
-      isActive,
+      status,
     }: {
       professionalId: string;
-      isActive: HealthcareStatus;
-    }) => updateHealthcareProfessionalApi(professionalId, { isActive }),
+      status: HealthcareStatus;
+    }) => updateHealthcareProfessionalApi(professionalId, { status }),
 
     onSuccess: () => {
       message.success("Healcare professional status updated");
@@ -122,36 +123,29 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
   });
 
   /* -------------------- Handlers -------------------- */
-  const isActive = professionalData.isActive;
+  const status = professionalData.status;
 
-  const isActiveYes = isActive === true;
-  const isInactive = isActive === false;
-  // const isPending = status === "pending";
-  // const isActive = status === "active";
-  // const isInactive = status === "inactive";
+  const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  const isInactive = status === "INACTIVE";
 
   const getNextStatus = (): HealthcareStatus => {
-    if (isActive === false) return true;
-    if (isActive === true) return false;
-    return true;
+    if (status === "PENDING") return "ACTIVE";
+    if (status === "ACTIVE") return "INACTIVE";
+    return "ACTIVE";
   };
-  // const getNextStatus = (): HealthcareStatus => {
-  //   if (status === "pending") return "active";
-  //   if (status === "active") return "inactive";
-  //   return "active";
-  // };
 
   const handleStatusToggle = () => {
     const nextStatus = getNextStatus();
 
     modal.confirm({
-      title: nextStatus === true ? "Activate Degree?" : "Deactivate Degree?",
+      title: nextStatus === "ACTIVE" ? "Activate Degree?" : "Deactivate Degree?",
       content: `Are you sure you want to ${nextStatus} "${professionalData.name}"?`,
-      okType: nextStatus === true ? "primary" : "danger",
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
         updateStatus({
           professionalId: professionalData.id,
-          isActive: nextStatus,
+          status: nextStatus,
         }),
     });
     // modal.confirm({
@@ -227,7 +221,7 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">Phone Number</p>
-              <p className="font-medium">{professionalData.phone || "N/A"}</p>
+              <p className="font-medium">{professionalData.phoneNumber || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Role</p>
@@ -319,9 +313,9 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             <div>
               <p className="text-sm text-gray-500">Created At</p>
               <p className="font-medium">
-                {professionalData.created_at ? (
+                {professionalData.createdAt ? (
                   <FormattedDate
-                    dateString={professionalData.created_at}
+                    dateString={professionalData.createdAt}
                     format="long"
                   />
                 ) : (

@@ -65,7 +65,7 @@ const Dashboard: React.FC<DashboardProps> = ({ role }) => {
             <div>
               <p className="text-gray-600 text-sm">Hospital Count</p>
               <p className="text-2xl font-bold">
-                {data?.organizations?.hospitals ?? 0}
+                {data?.users?.hospital_admins ?? 0}
               </p>
             </div>
           </div>

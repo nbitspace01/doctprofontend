@@ -12,7 +12,6 @@ interface KycSubmission {
   kyc_status: string;
 }
 
-
 // Create KYC
 export const createKYCApi = (data: any) => {
   return apiClient.post<any>(`/api/student/create`, data);
@@ -33,11 +32,21 @@ export const fetchKYCApi = ({
 };
 
 // Fetch By ID KYC
-export const fetchKYCByIdApi = (id: string,data: any) => {
+export const fetchKYCDetails = (id: string, data: any) => {
   return apiClient.put<any>(`/api/kyc/kyc-submissions/${id}`, data);
 };
 
-// Update KYC
-export const updateKYCApi = (data: any) => {
-  return apiClient.put<any>(`/api/student/update`, data);
+// Update KYC Status
+export const updateKYCStatusApi = (id: String, data: any) => {
+  return apiClient.put<any>(`/api/kyc/kyc/${id}/status`, data);
+};
+
+// KYC Approve Update API
+export const ApproveKYCStatusApi = (id: String) => {
+  return apiClient.post<any>(`/api/kyc/kyc-submissions/${id}/approve`);
+};
+
+// KYC Approve Update API
+export const rejectKYCStatusApi = (id: String, data: any) => {
+  return apiClient.post<any>(`/api/kyc/kyc-submissions/${id}/reject`, data);
 };

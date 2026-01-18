@@ -37,7 +37,7 @@ interface HealthcareProfessionalData {
   // lastName: string | null;
   name: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   dob: string | null;
   gender: string | null;
   city: string;
@@ -51,10 +51,11 @@ interface HealthcareProfessionalData {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
+  status: string;
   isActive: boolean;
   college: CollegeData | null;
   hospital: HospitalData | null;
-  created_at: string;
+  createdAt: string;
 }
 
 interface HealthcareProfessionalResponse {
@@ -175,7 +176,7 @@ const HealthCareList: React.FC = () => {
         ),
       },
       { title: "Email", dataIndex: "email", width: 220 },
-      { title: "Phone", dataIndex: "phone", width: 160 },
+      { title: "Phone", dataIndex: "phoneNumber", width: 160 },
       {
         title: "DOB",
         dataIndex: "dob",
@@ -197,7 +198,7 @@ const HealthCareList: React.FC = () => {
       { title: "Role", dataIndex: "role", width: 120 },
       {
         title: "Status",
-        dataIndex: "isActive",
+        dataIndex: "status",
         width: 120,
         key: "status",
         render: (status?: string) => <StatusBadge status={status || ""} />,
@@ -221,7 +222,7 @@ const HealthCareList: React.FC = () => {
     () => [
       { label: "Name", key: "name", type: "text" as const },
       { label: "Email", key: "email", type: "text" as const },
-      { label: "Phone", key: "phone", type: "text" as const },
+      { label: "Phone", key: "phoneNumber", type: "text" as const },
       { label: "Role", key: "role", type: "text" as const },
       { label: "City", key: "city", type: "text" as const },
       { label: "State", key: "state", type: "text" as const },
@@ -268,7 +269,7 @@ const HealthCareList: React.FC = () => {
       i + 1,
       p.name,
       p.email,
-      p.phone,
+      p.phoneNumber,
       p.dob || "N/A",
       p.gender || "N/A",
       p.city,

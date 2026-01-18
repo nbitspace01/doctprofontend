@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
 import { Drawer, Button, Avatar, App, Image } from "antd";
-import { UserOutlined } from "@ant-design/icons";
 import StatusBadge from "../../Common/StatusBadge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateCollegeApi } from "../../../api/college.api";

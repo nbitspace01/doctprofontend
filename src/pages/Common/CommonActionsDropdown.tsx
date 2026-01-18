@@ -12,7 +12,7 @@ const CommonDropdown = ({
 }: {
   onView: () => void;
   onEdit?: () => void;
-  onDelete: () => void;
+  onDelete?: () => void;
   showView?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;

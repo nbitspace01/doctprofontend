@@ -19,8 +19,8 @@ interface JobPostData {
   workType: string;
   status: string;
   noOfApplications?: number;
-  valid_from?: Date;
-  expires_at?: Date;
+  valid_from?: string;
+  expires_at?: string;
   description?: string;
   hospital_bio?: string;
   salary?: string;
@@ -161,7 +161,7 @@ const JobPostList: React.FC = () => {
       },
       {
         label: "Employment Type",
-        key: "employmentType",
+        key: "workType",
         type: "checkbox" as const,
         options: ["Full Time", "Part Time", "Contract"],
       },

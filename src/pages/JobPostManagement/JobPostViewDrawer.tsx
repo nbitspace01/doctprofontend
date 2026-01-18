@@ -15,8 +15,8 @@ interface JobPostDetail {
   workType: string;
   status: string;
   noOfApplications?: number;
-  valid_from?: Date;
-  expires_at?: Date;
+  valid_from?: string;
+  expires_at?: string;
   description?: string;
   hospital_bio?: string;
   salary?: string;
@@ -27,7 +27,7 @@ interface JobPostDetail {
     name: string;
     imageUrl?: string;
   };
-  hospitalBio?: string[];
+  hospitalBio?: string;
   candidates?: Candidate[];
 }
 
@@ -53,14 +53,14 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
   const [isHospitalBioExpanded, setIsHospitalBioExpanded] = useState(true);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
-  const { data: jobPost, isFetching } = useQuery({
-    queryKey: ["jobPosts", jobPostId],
-    queryFn: () => fetchJobPostByIdApi(jobPostId),
-    enabled: !!jobPostId, // 👈 VERY IMPORTANT
-    refetchOnWindowFocus: false,
-  });
+  // const { data: jobPost, isFetching } = useQuery({
+  //   queryKey: ["jobPosts", jobPostId],
+  //   queryFn: () => fetchJobPostByIdApi(jobPostId),
+  //   enabled: !!jobPostId, // 👈 VERY IMPORTANT
+  //   refetchOnWindowFocus: false,
+  // });
 
-  console.log(jobPost);
+  // console.log(jobPost);
   const formatDate = (dateString: string) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -82,60 +82,60 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
     return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
   };
 
-  // const getMockJobPost = (id: string): JobPostDetail => {
-  //   const statusMap: Record<string, string> = {
-  //     "1": "Active",
-  //     "2": "Expiring Soon",
-  //     "3": "Expired",
-  //     "4": "Pending",
-  //   };
-  //   return {
-  //     id: id || "1",
-  //     jobTitle: "Senior Consultant",
-  //     specialization: "MBBS - General Medicine",
-  //     location: "Chennai",
-  //     valid_from: "2025-06-12",
-  //     noOfApplications: 23,
-  //     experience_required: "5 - 8 Yrs",
-  //     workType: "Full Time",
-  //     expires_at: "2025-08-12",
-  //     paymentStatus: "Paid",
-  //     status: statusMap[id] || "Active",
-  //     postedBy: { name: "Vinoth Kumar", imageUrl: "" },
-  //     hospital_bio: [
-  //       "Oversees day-to-day administrative operations in medical departments or healthcare facilities.",
-  //       "Coordinates schedules, staff assignments, and workflow to ensure efficient patient care services.",
-  //       "Ensures compliance with healthcare regulations, hospital policies, and accreditation standards.",
-  //       "Manages medical records, patient data systems, and documentation processes.",
-  //       "Liaises between medical staff, patients, and hospital management for smooth communication.",
-  //     ],
-  //     candidates: [
-  //       {
-  //         id: "1",
-  //         name: "Vinoth Kumar",
-  //         appliedOn: "2025-06-12",
-  //         resume: "",
-  //         status: "Hired",
-  //       },
-  //       {
-  //         id: "2",
-  //         name: "Vinoth Kumar",
-  //         appliedOn: "2025-06-12",
-  //         resume: "",
-  //         status: "Shortlisted",
-  //       },
-  //       {
-  //         id: "3",
-  //         name: "Vinoth Kumar",
-  //         appliedOn: "2025-06-12",
-  //         resume: "",
-  //         status: "Rejected",
-  //       },
-  //     ],
-  //   };
-  // };
+  const getMockJobPost = (id: string): JobPostDetail => {
+    const statusMap: Record<string, string> = {
+      "1": "Active",
+      "2": "Expiring Soon",
+      "3": "Expired",
+      "4": "Pending",
+    };
+    return {
+      id: id || "1",
+      jobTitle: "Senior Consultant",
+      specialization: "MBBS - General Medicine",
+      location: "Chennai",
+      valid_from: "2025-06-12",
+      noOfApplications: 23,
+      experience_required: "5 - 8 Yrs",
+      workType: "Full Time",
+      expires_at: "2025-08-12",
+      paymentStatus: "Paid",
+      status: statusMap[id] || "Active",
+      postedBy: { name: "Vinoth Kumar", imageUrl: "" },
+      hospital_bio: [
+        "Oversees day-to-day administrative operations in medical departments or healthcare facilities.",
+        "Coordinates schedules, staff assignments, and workflow to ensure efficient patient care services.",
+        "Ensures compliance with healthcare regulations, hospital policies, and accreditation standards.",
+        "Manages medical records, patient data systems, and documentation processes.",
+        "Liaises between medical staff, patients, and hospital management for smooth communication.",
+      ],
+      candidates: [
+        {
+          id: "1",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Hired",
+        },
+        {
+          id: "2",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Shortlisted",
+        },
+        {
+          id: "3",
+          name: "Vinoth Kumar",
+          appliedOn: "2025-06-12",
+          resume: "",
+          status: "Rejected",
+        },
+      ],
+    };
+  };
 
-  // const jobPost = getMockJobPost(jobPostId || "1");
+  const jobPost = getMockJobPost(jobPostId || "1");
 
   const getStatusColor = (status: string) =>
     ({

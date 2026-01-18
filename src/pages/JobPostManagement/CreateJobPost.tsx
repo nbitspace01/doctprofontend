@@ -27,8 +27,8 @@ interface JobPostData {
   workType: string;
   status: string;
   noOfApplications?: number;
-  valid_from?: Date;
-  expires_at?: Date;
+  valid_from?: string;
+  expires_at?: string;
   description?: string;
   hospital_bio?: string;
   salary?: string;
@@ -74,7 +74,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
 
     if (initialData) {
       form.setFieldsValue({
-        jobtitle: initialData.title,
+        title: initialData.title,
         experience_required: initialData.experience_required,
         salary: initialData.salary,
         location: initialData.location || "chennai",
@@ -98,14 +98,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
 
   const createJobPostMutation = useMutation({
     mutationFn: (jobData: any) =>
-      initialData?.id
+      initialData
         ? updateJobPostApi(initialData.id, jobData)
         : createJobPostApi(jobData),
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: initialData
-          ? "Job Post Created Successfully"
-          : "Job Post Updated Successfully",
+          ? "Job Post Updated Successfully"
+          : "Job Post Created Successfully",
         description: data.message,
       });
       form.resetFields();
@@ -148,7 +148,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
     form.validateFields().then((values) => {
       const payload = {
         ...values,
-        status: "draft",
+        status: "pending",
       };
       createJobPostMutation.mutate(payload);
     });
