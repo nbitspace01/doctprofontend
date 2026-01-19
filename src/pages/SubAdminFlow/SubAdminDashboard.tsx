@@ -22,6 +22,7 @@ import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
 import api from "../Common/axiosInstance";
+import { fetchHealthCareStats, fetchSubAdminDashboardCounts, fetchSubAdminKycStats } from "../../api/dashboard.api";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -32,23 +33,22 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 
 const SubAdminDashboard: React.FC = () => {
   const navigate = useNavigate();
+  // const fetchDashboardCounts = async () => {
+  //   const res = await api.get("/api/dashboard/subadmin-counts/location");
+  //   console.log("dashboard counts: ", res.data);
+  //   return res.data;
+  // };
 
-  const fetchDashboardCounts = async () => {
-    const res = await api.get("/api/dashboard/subadmin-counts/location");
-    console.log("dashboard counts: ", res.data);
-    return res.data;
-  };
+  // const fetchKycStats = async () => {
+  //   const res = await api.get(`/api/dashboard/getKycStatusCounts`);
+  //   return res.data;
+  // };
 
-  const fetchKycStats = async () => {
-    const res = await api.get(`/api/dashboard/getKycStatusCounts`);
-    return res.data;
-  };
-
-  const fetchSubAdminHealthCare = async () => {
-    const res = await api.get(`/api/professinal`);
-    console.log(res.data, "res.data");
-    return res.data;
-  };
+  // const fetchSubAdminHealthCare = async () => {
+  //   const res = await api.get(`/api/professinal`);
+  //   console.log(res.data, "res.data");
+  //   return res.data;
+  // };
 
   const {
     data,
@@ -57,10 +57,8 @@ const SubAdminDashboard: React.FC = () => {
     error: dashboardCountsError,
   } = useQuery({
     queryKey: ["dashboardCounts"],
-    queryFn: fetchDashboardCounts,
+    queryFn: fetchSubAdminDashboardCounts,
     retry: false,
-    // Make this query non-blocking - show UI even if it fails
-    // We'll show fallback values
   });
 
   const {
@@ -70,7 +68,7 @@ const SubAdminDashboard: React.FC = () => {
     error: subAdminHealthCareErrorObj,
   } = useQuery({
     queryKey: ["subAdmin"],
-    queryFn: fetchSubAdminHealthCare,
+    queryFn: fetchHealthCareStats,
   });
 
   const {
@@ -80,10 +78,8 @@ const SubAdminDashboard: React.FC = () => {
     error: kycStatsErrorObj,
   } = useQuery({
     queryKey: ["kycStats"],
-    queryFn: fetchKycStats,
+    queryFn: fetchSubAdminKycStats,
     retry: false,
-    // Make this query non-blocking - show UI even if it fails
-    // We'll show fallback values
   });
 
   // Only show loading for subAdminHealthCare (critical for the table)
@@ -144,51 +140,6 @@ const SubAdminDashboard: React.FC = () => {
   const professionals = Array.isArray(subAdminHealthCare)
     ? subAdminHealthCare
     : subAdminHealthCare?.data || [];
-
-  const data1 = [
-    {
-      date: "1 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 6,
-    },
-    {
-      date: "2 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-    {
-      date: "3 Mar",
-      Hospital: 5,
-      healthcare: 3,
-      "Medical Student": 8,
-      CountKYC: 4,
-    },
-    {
-      date: "4 Mar",
-      Hospital: 8,
-      healthcare: 5,
-      "Medical Student": 20,
-      CountKYC: 7,
-    },
-    {
-      date: "5 Mar",
-      Hospital: 15,
-      healthcare: 8,
-      "Medical Student": 5,
-      CountKYC: 5,
-    },
-    {
-      date: "6 Mar",
-      Hospital: 5,
-      healthcare: 10,
-      "Medical Student": 2,
-      CountKYC: 1,
-    },
-  ];
 
   return (
     <div className="">

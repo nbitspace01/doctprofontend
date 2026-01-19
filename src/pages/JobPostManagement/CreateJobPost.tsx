@@ -1,95 +1,144 @@
 import React, { useEffect } from "react";
-import { Form, Input, Select, DatePicker, Button, Modal } from "antd";
+import {
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Button,
+  Modal,
+  message,
+  UploadProps,
+  App,
+} from "antd";
 import { useMutation } from "@tanstack/react-query";
 import axios from "axios";
 import { getToken } from "../Common/authUtils";
 import dayjs from "dayjs";
+import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
+import { TOKEN, USER_ID } from "../Common/constant.function";
+import { showError, showSuccess } from "../Common/Notification";
 
-interface JobPost {
-  id?: string;
-  jobTitle: string;
+interface JobPostData {
+  id: string;
+  title: string;
   specialization: string;
   location: string;
-  expRequired: string;
-  employmentType: string;
-  postDate?: string;
-  endDate?: string;
+  experience_required: string;
+  workType: string;
+  status: string;
+  noOfApplications?: number;
+  valid_from?: string;
+  expires_at?: string;
   description?: string;
-  hospitalBio?: string[];
+  hospital_bio?: string;
   salary?: string;
-  degreeRequired?: string;
-  hospitalWebsite?: string;
+  degree_required?: string;
+  hospital_website?: string;
 }
 
 interface CreateJobPostProps {
   open: boolean;
-  onClose: () => void;
-  editingJob?: JobPost | null;
+  onCancel: () => void;
+  onSubmit: (values: any) => void;
+  initialData?: JobPostData | null;
 }
 
-const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob }) => {
+interface JobPostFormValues {
+  title: string;
+  specialization: string;
+  location: string;
+  experience_required: string;
+  workType: string;
+  valid_from?: Date;
+  expires_at?: Date;
+  description?: string;
+  hospital_bio?: string;
+  salary?: string;
+  degree_required?: string;
+  hospital_website?: string;
+}
+
+const CreateJobPost: React.FC<CreateJobPostProps> = ({
+  open,
+  onCancel,
+  onSubmit,
+  initialData,
+}) => {
   const [form] = Form.useForm();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const { notification } = App.useApp();
+
+  const isEditMode = Boolean(initialData);
 
   useEffect(() => {
-    if (open && editingJob) {
+    if (!open) return;
+
+    if (initialData) {
       form.setFieldsValue({
-        jobTitle: editingJob.jobTitle,
-        expRequired: editingJob.expRequired,
-        salary: editingJob.salary,
-        location: editingJob.location,
-        employmentType: editingJob.employmentType,
-        degreeRequired: editingJob.degreeRequired,
-        specialization: editingJob.specialization,
-        jobDescription: editingJob.description || "",
-        hospitalWebsite: editingJob.hospitalWebsite || "http://www.appolo.com",
-        bio: editingJob.hospitalBio?.join("\n") || "",
-        startDate: editingJob.postDate ? dayjs(editingJob.postDate, "YYYY-MM-DD") : undefined,
-        endDate: editingJob.endDate ? dayjs(editingJob.endDate, "YYYY-MM-DD") : undefined,
+        title: initialData.title,
+        experience_required: initialData.experience_required,
+        salary: initialData.salary,
+        location: initialData.location || "chennai",
+        workType : initialData.workType,
+        degree_required: initialData.degree_required,
+        specialization: initialData.specialization,
+        description: initialData.description,
+        hospital_website: initialData.hospital_website,
+        hospital_bio: initialData.hospital_bio,
+        valid_from: initialData.valid_from
+          ? dayjs(initialData.valid_from, "YYYY-MM-DD")
+          : undefined,
+        expires_at: initialData.expires_at
+          ? dayjs(initialData.expires_at, "YYYY-MM-DD")
+          : undefined,
       });
     } else if (open) {
       form.resetFields();
-      form.setFieldsValue({
-        hospitalWebsite: "http://www.appolo.com",
-      });
     }
-  }, [open, editingJob, form]);
+  }, [open, initialData, form]);
 
   const createJobPostMutation = useMutation({
-    mutationFn: (jobData: any) => {
-      const url = editingJob?.id 
-        ? `${API_URL}/api/job/jobs${editingJob.id}`
-        : `${API_URL}/api/job/jobs`;
-      const method = editingJob?.id ? "put" : "post";
-      return axios[method](url, jobData, {
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
+    mutationFn: (jobData: any) =>
+      initialData
+        ? updateJobPostApi(initialData.id, jobData)
+        : createJobPostApi(jobData),
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: initialData
+          ? "Job Post Updated Successfully"
+          : "Job Post Created Successfully",
+        description: data.message,
       });
-    },
-    onSuccess: () => {
       form.resetFields();
-      onClose();
+      onCancel();
+      onSubmit(data);
     },
-    onError: (error) => {
-      console.error("Error saving job post:", error);
+    onError: (error: any) => {
+      showError(notification, {
+        message: initialData
+          ? "Failed to update job post"
+          : "Failed to craete job post",
+        description:
+          error.response?.data?.error || initialData
+            ? "Failed to update job post"
+            : "Failed to craete job post",
+      });
     },
   });
 
-  const handleSubmit = (values: any) => {
+  const handleSubmit = (values: JobPostFormValues) => {
     const payload = {
-      jobTitle: values.jobTitle,
-      expRequired: values.expRequired,
+      title: values.title,
+      experience_required: values.experience_required,
       salary: values.salary,
       location: values.location,
-      employmentType: values.employmentType,
-      degreeRequired: values.degreeRequired,
+      workType: values.workType,
+      degree_required: values.degree_required,
       specialization: values.specialization,
-      description: values.jobDescription,
-      hospitalWebsite: values.hospitalWebsite,
-      hospitalBio: values.bio?.split("\n").filter((line: string) => line.trim()),
-      postDate: values.startDate?.format("YYYY-MM-DD"),
-      endDate: values.endDate?.format("YYYY-MM-DD"),
+      description: values.description,
+      hospital_website: values.hospital_website,
+      hospital_bio: values.hospital_bio,
+      valid_from: values.valid_from ? new Date(values.valid_from).toLocaleDateString("en-IN") : "-",
+      expires_at: values.expires_at ? new Date(values.expires_at).toLocaleDateString("en-IN") : "-",
     };
 
     createJobPostMutation.mutate(payload);
@@ -99,17 +148,21 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
     form.validateFields().then((values) => {
       const payload = {
         ...values,
-        status: "draft",
+        status: "pending",
       };
       createJobPostMutation.mutate(payload);
     });
   };
 
   return (
-    <Modal open={open} onCancel={onClose} width={800} footer={null}>
+    <Modal
+      title={isEditMode ? "Edit Job Post" : "Create New Job Post"}
+      open={open}
+      onCancel={onCancel}
+      footer={null}
+      width={800}
+    >
       <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-6">Post A New Job</h1>
-
         <Form
           form={form}
           layout="vertical"
@@ -118,7 +171,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
         >
           <Form.Item
             label="Job Title"
-            name="jobTitle"
+            name="title"
             rules={[{ required: true, message: "Please enter job title" }]}
           >
             <Input placeholder="Enter Ad Title" className="w-full" />
@@ -127,7 +180,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Form.Item
               label="Exp Required"
-              name="expRequired"
+              name="experience_required"
               rules={[{ required: true, message: "Please select experience" }]}
             >
               <Select placeholder="Select Exp">
@@ -142,7 +195,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
             <Form.Item
               label="Salary"
               name="salary"
-              rules={[{ required: true, message: "Please select salary range" }]}
+              rules={[
+                { required: true, message: "Please select salary range" },
+              ]}
             >
               <Select placeholder="Select Salary Range">
                 <Select.Option value="0-2 LPA">0-2 LPA</Select.Option>
@@ -164,8 +219,10 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
 
           <Form.Item
             label="Employment Type"
-            name="employmentType"
-            rules={[{ required: true, message: "Please select employment type" }]}
+            name="workType"
+            rules={[
+              { required: true, message: "Please select employment type" },
+            ]}
           >
             <Select placeholder="Select type">
               <Select.Option value="Full Time">Full Time</Select.Option>
@@ -176,7 +233,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
 
           <Form.Item
             label="Degree Required"
-            name="degreeRequired"
+            name="degree_required"
             rules={[{ required: true, message: "Please select degree" }]}
           >
             <Select placeholder="Select degree">
@@ -192,10 +249,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
           <Form.Item
             label="Specialization"
             name="specialization"
-            rules={[{ required: true, message: "Please select specialization" }]}
+            rules={[
+              { required: true, message: "Please select specialization" },
+            ]}
           >
             <Select placeholder="Select Specialization">
-              <Select.Option value="General Medicine">General Medicine</Select.Option>
+              <Select.Option value="General Medicine">
+                General Medicine
+              </Select.Option>
               <Select.Option value="Cardiology">Cardiology</Select.Option>
               <Select.Option value="Dentistry">Dentistry</Select.Option>
               <Select.Option value="Orthopedics">Orthopedics</Select.Option>
@@ -206,8 +267,10 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
 
           <Form.Item
             label="Job Description"
-            name="jobDescription"
-            rules={[{ required: true, message: "Please enter job description" }]}
+            name="description"
+            rules={[
+              { required: true, message: "Please enter job description" },
+            ]}
           >
             <Input.TextArea
               rows={4}
@@ -220,15 +283,17 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
             <div className="space-y-4">
               <Form.Item
                 label="Hospital Website"
-                name="hospitalWebsite"
-                rules={[{ required: true, message: "Please enter hospital website" }]}
+                name="hospital_website"
+                rules={[
+                  { required: true, message: "Please enter hospital website" },
+                ]}
               >
                 <Input placeholder="http://www.appolo.com" />
               </Form.Item>
 
               <Form.Item
                 label="Bio"
-                name="bio"
+                name="hospital_bio"
                 rules={[{ required: true, message: "Please enter bio" }]}
               >
                 <Input.TextArea rows={4} placeholder="Type Something...." />
@@ -241,8 +306,10 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Form.Item
                 label="Start Date"
-                name="startDate"
-                rules={[{ required: true, message: "Please select start date" }]}
+                name="valid_from"
+                rules={[
+                  { required: true, message: "Please select start date" },
+                ]}
               >
                 <DatePicker
                   className="w-full"
@@ -253,7 +320,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
 
               <Form.Item
                 label="End Date"
-                name="endDate"
+                name="expires_at"
                 rules={[{ required: true, message: "Please select end date" }]}
               >
                 <DatePicker
@@ -273,7 +340,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
               Save as Draft
             </Button>
             <div className="flex gap-2">
-              <Button onClick={onClose} className="px-6">
+              <Button onClick={onCancel} className="px-6">
                 Cancel
               </Button>
               <Button
@@ -282,7 +349,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({ open, onClose, editingJob
                 className="px-6 bg-button-primary"
                 loading={createJobPostMutation.isPending}
               >
-                Proceed
+                {isEditMode ? "Update Post" : "Create Post"}
               </Button>
             </div>
           </div>

@@ -22,6 +22,7 @@ import { TOKEN } from "../Common/constant.function";
 import Loader from "../Common/Loader";
 import FormattedDate from "../Common/FormattedDate";
 import api from "../Common/axiosInstance";
+import { fetchHospitalAdminDashboardCounts, fetchHospitalAdminKycStats } from "../../api/dashboard.api";
 
 const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
   <div className="text-center text-sm">
@@ -31,17 +32,17 @@ const ProgressLabel: React.FC<{ total: number }> = ({ total }) => (
 );
 
 const HospitalDashboard: React.FC = () => {
-  const fetchDashboardCounts = async () => {
-    const res = await api.get(
-      `/api/hospitaldashboard/hospitaladmin-count/location`
-    );
-    return res.data;
-  };
+  // const fetchDashboardCounts = async () => {
+  //   const res = await api.get(
+  //     `/api/hospitaldashboard/hospitaladmin-count/location`
+  //   );
+  //   return res.data;
+  // };
 
-  const fetchKycStats = async () => {
-    const res = await api.get(`/api/dashboard/getKycStatusCounts`);
-    return res.data;
-  };
+  // const fetchKycStats = async () => {
+  //   const res = await api.get(`/api/dashboard/getKycStatusCounts`);
+  //   return res.data;
+  // };
 
   const {
     data,
@@ -50,7 +51,7 @@ const HospitalDashboard: React.FC = () => {
     error: dashboardCountsError,
   } = useQuery({
     queryKey: ["dashboardCounts"],
-    queryFn: fetchDashboardCounts,
+    queryFn: fetchHospitalAdminDashboardCounts,
     retry: false,
     // Make this query non-blocking - show UI even if it fails
     // We'll show fallback values
@@ -79,7 +80,7 @@ const HospitalDashboard: React.FC = () => {
     error: kycStatsErrorObj,
   } = useQuery({
     queryKey: ["kycStats"],
-    queryFn: fetchKycStats,
+    queryFn: fetchHospitalAdminKycStats,
     retry: false,
   });
 

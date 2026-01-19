@@ -1,12 +1,13 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Table, Tag } from "antd";
-import axios from "axios";
-import { useState } from "react";
+import { Button, Avatar, Tag } from "antd";
+import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import SearchFilterDownloadButton from "../../Common/SearchFilterDownloadButton";
 import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
 import ClinicViewDrawer from "./ClinicViewDrawer";
+import { useListController } from "../../../hooks/useListController";
+import CommonTable from "../../../components/Common/CommonTable";
+import { fetchHospitalAdmin } from "../../../api/admin.api";
 
 interface Hospital {
   id: string;
@@ -17,76 +18,101 @@ interface Hospital {
   logoUrl?: string;
 }
 
-interface ApiResponse {
-  total: number;
-  page: number;
-  limit: number;
+interface PaginatedResponse {
   data: Hospital[];
+  total: number;
 }
 
-const ClinicsList = () => {
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+const ClinicsList: React.FC = () => {
   const queryClient = useQueryClient();
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchValue, setSearchValue] = useState("");
-  const { data: apiResponse, isFetching } = useQuery({
-    queryKey: ["hospitals", currentPage, pageSize, searchValue],
-    queryFn: async () => {
-      const { data } = await axios.get(`${API_URL}/api/hospital`, {
-        params: {
-          page: currentPage,
-          limit: pageSize,
-          ...(searchValue && { search: searchValue }),
-        },
-      });
-      console.log("API hospital data", data);
-      return data as ApiResponse;
-    },
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
-    staleTime: 0,
-  });
 
-  const hospitals = apiResponse?.data || [];
-  const total = apiResponse?.total || 0;
+  const {
+    currentPage,
+    pageSize,
+    searchValue,
+    filterValues,
+    onPageChange,
+    onSearch,
+    onFilterChange,
+  } = useListController();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
     null
   );
 
-  const handleOpenModal = () => {
-    setIsModalVisible(true);
-  };
+  const { data, isFetching, error, refetch } = useQuery<
+    PaginatedResponse,
+    Error
+  >({
+    queryKey: ["hospitals", currentPage, pageSize, searchValue, filterValues],
+    queryFn: () =>
+      fetchHospitalAdmin({
+        page: currentPage,
+        limit: pageSize,
+        searchValue,
+        filterValues,
+      }),
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
+  });
 
+  const hospitals = data?.data ?? [];
+  const totalCount = data?.total ?? 0;
+
+  const handleOpenModal = () => setIsModalVisible(true);
   const handleCloseModal = () => {
     setIsModalVisible(false);
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
   };
 
-  const handleTableChange = (pagination: any) => {
-    setCurrentPage(pagination.current);
-    setPageSize(pagination.pageSize);
-  };
+  const filterOptions = [
+    { label: "Name", key: "name", type: "text" as const },
+    { label: "Branch Location", key: "branchLocation", type: "text" as const },
+    {
+      label: "Status",
+      key: "status",
+      type: "checkbox" as const,
+      options: ["Active", "Inactive", "Pending"],
+    },
+  ];
 
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
+  const handleDownload = (format: "excel" | "csv") => {
+    if (!hospitals.length) return;
+
+    const headers = ["S No", "Name", "Branch Location", "Address", "Status"];
+    const rows = hospitals.map((h, i) => [
+      i + 1,
+      h.name,
+      h.branchLocation,
+      h.address || "N/A",
+      h.status,
+    ]);
+
+    const content = [headers, ...rows]
+      .map((r) => r.join(format === "csv" ? "," : "\t"))
+      .join("\n");
+    const blob = new Blob([content], {
+      type: format === "csv" ? "text/csv" : "application/vnd.ms-excel",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `hospitals.${format === "csv" ? "csv" : "xls"}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const columns = [
-    // s no will be the index of the row
     {
       title: "S No",
-      dataIndex: "sNo",
-      key: "sNo",
       width: 80,
       render: (_: any, __: any, index: number) =>
         (currentPage - 1) * pageSize + index + 1,
     },
-
     {
-      title: "Id",
+      title: "ID",
       dataIndex: "id",
       key: "id",
     },
@@ -94,19 +120,18 @@ const ClinicsList = () => {
       title: "Hospital/Clinic Name",
       dataIndex: "name",
       key: "name",
-
       render: (text: string, record: Hospital) => (
         <div className="flex items-center gap-2">
           {record.logoUrl ? (
             <img
               src={record.logoUrl}
               alt={text}
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover"
             />
           ) : (
-            <div className="w-8 h-8 bg-button-primary text-white rounded-full flex items-center justify-center">
+            <Avatar className="bg-button-primary text-white w-8 h-8">
               {text.charAt(0)}
-            </div>
+            </Avatar>
           )}
           <span>{text}</span>
         </div>
@@ -121,9 +146,8 @@ const ClinicsList = () => {
       title: "Address",
       dataIndex: "address",
       key: "address",
-      render: (address: string) => {
-        return address === "null, null, null" ? "N/A" : address || "N/A";
-      },
+      render: (address: string) =>
+        address === "null, null, null" ? "N/A" : address || "N/A",
     },
     {
       title: "Status",
@@ -144,21 +168,30 @@ const ClinicsList = () => {
       ),
     },
     {
-      title: "Action",
-      key: "action",
-      render: (record: Hospital) => (
+      title: "Actions",
+      key: "actions",
+      render: (_: any, record: Hospital) => (
         <CommonDropdown
-          onView={() => {
-            setSelectedHospitalId(record.id);
-          }}
+          onView={() => setSelectedHospitalId(record.id)}
           onEdit={() => {}}
           onDelete={() => {}}
-          showDelete={false}
           showEdit={false}
+          showDelete={false}
         />
       ),
     },
   ];
+
+  // if (error) {
+  //   return (
+  //     <div className="p-6 text-center text-red-600">
+  //       Error loading data: {error.message}
+  //       <button className="ml-2 underline" onClick={() => refetch()}>
+  //         Retry
+  //       </button>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="p-6">
@@ -183,36 +216,27 @@ const ClinicsList = () => {
         />
       )}
 
-      <div className="bg-white rounded-lg shadow w-full">
-        <SearchFilterDownloadButton
-          onSearch={handleSearch}
-          searchValue={searchValue}
-        />
-
-        <Table
-          columns={columns}
-          dataSource={hospitals}
-          loading={isFetching}
-          scroll={{ x: "max-content" }}
-          pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: total,
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total, range) =>
-              `${range[0]}-${range[1]} of ${total} items`,
-          }}
-          onChange={handleTableChange}
-          className="w-full"
-        />
-      </div>
+      <CommonTable<Hospital>
+        rowKey="id"
+        columns={columns}
+        data={hospitals}
+        loading={isFetching}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={totalCount}
+        filters={filterOptions} // you can add filterOptions like HealthCareList if needed
+        searchValue={searchValue}
+        onPageChange={onPageChange}
+        onSearch={onSearch}
+        onFilterChange={onFilterChange}
+        onDownload={handleDownload}
+      />
 
       {selectedHospitalId && (
         <ClinicViewDrawer
+          hospitalId={selectedHospitalId}
           isOpen={true}
           onClose={() => setSelectedHospitalId(null)}
-          hospitalId={selectedHospitalId}
         />
       )}
     </div>

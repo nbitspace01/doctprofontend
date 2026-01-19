@@ -6,7 +6,7 @@ import AddHospitalAdminModal from "./AddHospitalAdminModal";
 import { ApiRequest } from "../Common/constant.function";
 
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import ViewSubAdmin from "../SubAdmin/ViewSubAdmin";
+import ViewSubAdmin from "../SubAdmin/SubAdminViewDrawer";
 import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
 import Loader from "../Common/Loader";

@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button, Drawer, Image, Skeleton } from "antd";
-import axios from "axios";
+import { App, Avatar, Button, Drawer, Image, Skeleton } from "antd";
 import FormattedDate from "../../Common/FormattedDate";
+import { useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { updateHealthcareProfessionalApi } from "../../../api/healthcare.api";
 
-interface College {
+interface CollegeData {
   id: string;
   name: string;
   city: string;
@@ -12,7 +13,7 @@ interface College {
   country: string | null;
 }
 
-interface Hospital {
+interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
@@ -21,12 +22,13 @@ interface Hospital {
   country: string | null;
 }
 
-interface HealthCareProfessional {
+interface HealthcareProfessionalData {
   id: string;
-  firstName: string | null;
-  lastName: string | null;
+  // firstName: string | null;
+  // lastName: string | null;
+  name: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   dob: string | null;
   gender: string | null;
   city: string;
@@ -40,146 +42,178 @@ interface HealthCareProfessional {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
-  endMonth: string | null;
-  endYearExp: string | null;
-  currentlyWorking: boolean;
-  college: College | null;
-  hospital: Hospital | null;
+  status: string;
   isActive: boolean;
-  created_at: string;
+  college: CollegeData | null;
+  hospital: HospitalData | null;
+  createdAt: string;
 }
 
 interface HealthCareViewProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  professionalId: string | null;
+  professionalData: HealthcareProfessionalData;
 }
 
+type HealthcareStatus = "PENDING" | "ACTIVE" | "INACTIVE";
+
 const HealthCareView: React.FC<HealthCareViewProps> = ({
-  isOpen,
+  open,
   onClose,
-  professionalId,
+  professionalData,
 }) => {
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["healthcareProfessional", professionalId],
-    queryFn: async () => {
-      if (!professionalId) {
-        throw new Error("Professional ID is required");
-      }
-      console.log("Fetching professional with ID:", professionalId);
-      
-      // Try POST with byId endpoint first (common pattern in this codebase)
-      try {
-        const response = await axios.post<HealthCareProfessional>(
-          `${API_URL}/api/professinal/byId`,
-          { id: professionalId }
-        );
-        console.log("POST API Response:", response.data);
-        return response.data;
-      } catch (postError: any) {
-        // If POST fails, try GET
-        console.log("POST failed, trying GET:", postError);
-        try {
-          const response = await axios.get<HealthCareProfessional>(
-            `${API_URL}/api/professinal/${professionalId}`
-          );
-          console.log("GET API Response:", response.data);
-          return response.data;
-        } catch (getError: any) {
-          console.error("Both POST and GET failed:", getError);
-          throw new Error(
-            postError.response?.data?.message || 
-            getError?.response?.data?.message ||
-            (getError instanceof Error ? getError.message : String(getError)) || 
-            "Failed to fetch professional data"
-          );
-        }
-      }
-    },
-    enabled: !!professionalId && isOpen,
-    retry: 1,
-  });
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  /* -------------------- Derived Values -------------------- */
+  const displayName = useMemo(() => {
+    if (professionalData.name) return professionalData.name;
+
+    const fullName = `${professionalData.name || ""}`.trim();
+
+    return fullName || "N/A";
+  }, [professionalData]);
+
+  const avatarInitial = useMemo(() => {
+    if (professionalData.name) return professionalData.name[0].toUpperCase();
+    if (professionalData.name) return professionalData.name[0].toUpperCase();
+  }, [professionalData]);
 
   // Helper function to get full name
   const getFullName = () => {
-    if (!data) return "N/A";
-    if (data.firstName && data.lastName) {
-      return `${data.firstName} ${data.lastName}`;
-    }
-    if (data.firstName) {
-      return data.firstName;
-    }
-    if (data.lastName) {
-      return data.lastName;
+    if (!professionalData) return "N/A";
+    if (professionalData.name) {
+      return `${professionalData.name}`;
     }
     return "N/A";
   };
 
   // Helper function to get avatar initial
   const getAvatarInitial = () => {
-    if (!data) return "N";
+    if (!professionalData) return "N";
     const fullName = getFullName();
     if (fullName !== "N/A") {
       return fullName.charAt(0).toUpperCase();
     }
-    if (data.email) {
-      return data.email.charAt(0).toUpperCase();
+    if (professionalData.email) {
+      return professionalData.email.charAt(0).toUpperCase();
     }
     return "N";
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  /* -------------------- Update Status -------------------- */
+  const { mutate: updateStatus, isPending: isPendingMutation } = useMutation({
+    mutationFn: ({
+      professionalId,
+      status,
+    }: {
+      professionalId: string;
+      status: HealthcareStatus;
+    }) => updateHealthcareProfessionalApi(professionalId, { status }),
+
+    onSuccess: () => {
+      message.success("Healcare professional status updated");
+      queryClient.invalidateQueries({ queryKey: ["healthcareProfessionals"] });
+      onClose();
+    },
+
+    onError: () => {
+      message.error("Failed to update healthcare professional status");
+    },
+  });
+
+  /* -------------------- Handlers -------------------- */
+  const status = professionalData.status;
+
+  const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  const isInactive = status === "INACTIVE";
+
+  const getNextStatus = (): HealthcareStatus => {
+    if (status === "PENDING") return "ACTIVE";
+    if (status === "ACTIVE") return "INACTIVE";
+    return "ACTIVE";
+  };
+
+  const handleStatusToggle = () => {
+    const nextStatus = getNextStatus();
+
+    modal.confirm({
+      title: nextStatus === "ACTIVE" ? "Activate Degree?" : "Deactivate Degree?",
+      content: `Are you sure you want to ${nextStatus} "${professionalData.name}"?`,
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
+      onOk: () =>
+        updateStatus({
+          professionalId: professionalData.id,
+          status: nextStatus,
+        }),
+    });
+    // modal.confirm({
+    //   title:
+    //     nextStatus === "active" ? "Activate Degree?" : "Deactivate Degree?",
+    //   content: `Are you sure you want to ${nextStatus} "${degreeData.name}"?`,
+    //   okType: nextStatus === "active" ? "primary" : "danger",
+    //   onOk: () =>
+    //     updateStatus({
+    //       degreeId: degreeData.id,
+    //       status: nextStatus,
+    //     }),
+    // });
+  };
 
   return (
     <Drawer
-      open={isOpen}
+      open={open}
       onClose={onClose}
       width={500}
+      className="custom-drawer"
       title="Healthcare Professional"
-    >
-      {isLoading ? (
-        <div className="py-8">
-          <Skeleton active />
-        </div>
-      ) : error ? (
-        <div className="text-center text-red-500 py-8">
-          <p className="font-medium">Error loading professional data</p>
-          <p className="text-sm text-gray-500 mt-2">
-            {error instanceof Error ? error.message : "Unknown error"}
-          </p>
-          <p className="text-xs text-gray-400 mt-2">
-            Professional ID: {professionalId || "Not provided"}
-          </p>
-          <Button onClick={onClose} className="mt-4">
-            Close
+      footer={
+        <div className="flex justify-between items-center">
+          <Button
+            size="large"
+            className="bg-gray-200 text-gray-700 px-8"
+            onClick={onClose}
+          >
+            Back
+          </Button>
+
+          <Button
+            size="large"
+            loading={isPendingMutation}
+            disabled={isPendingMutation}
+            className={`px-8 ${
+              isActive
+                ? "border-red-500 text-red-500"
+                : "border-green-500 text-green-500"
+            }`}
+            onClick={handleStatusToggle}
+          >
+            {isActive ? "Deactivate" : "Activate"} Hospital
           </Button>
         </div>
-      ) : data ? (
+      }
+    >
+      {professionalData ? (
         <div className="space-y-6">
           {/* Header Section */}
           <div className="flex items-center space-x-4">
-            {data.profilePicture ? (
+            {professionalData.profilePicture ? (
               <Image
-                src={data.profilePicture}
+                src={professionalData.profilePicture}
                 width={48}
                 height={48}
                 alt={getFullName()}
                 className="rounded-full object-cover"
               />
             ) : (
-              <Avatar
-                size={48}
-                className="bg-button-primary text-white"
-              >
+              <Avatar size={48} className="bg-button-primary text-white">
                 {getAvatarInitial()}
               </Avatar>
             )}
             <div>
               <h2 className="text-lg font-semibold">{getFullName()}</h2>
-              <p className="text-gray-600">{data.email || "N/A"}</p>
+              <p className="text-gray-600">{professionalData.email || "N/A"}</p>
             </div>
           </div>
 
@@ -187,17 +221,20 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           <div className="space-y-4">
             <div>
               <p className="text-sm text-gray-500">Phone Number</p>
-              <p className="font-medium">{data.phone || "N/A"}</p>
+              <p className="font-medium">{professionalData.phoneNumber || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Role</p>
-              <p className="font-medium">{data.role || "N/A"}</p>
+              <p className="font-medium">{professionalData.role || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">DOB</p>
               <p className="font-medium">
-                {data.dob ? (
-                  <FormattedDate dateString={data.dob} format="long" />
+                {professionalData.dob ? (
+                  <FormattedDate
+                    dateString={professionalData.dob}
+                    format="long"
+                  />
                 ) : (
                   "N/A"
                 )}
@@ -205,67 +242,82 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             </div>
             <div>
               <p className="text-sm text-gray-500">Gender</p>
-              <p className="font-medium">{data.gender || "N/A"}</p>
+              <p className="font-medium">{professionalData.gender || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">City</p>
-              <p className="font-medium">{data.city || "N/A"}</p>
+              <p className="font-medium">{professionalData.city || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">State</p>
-              <p className="font-medium">{data.state || "N/A"}</p>
+              <p className="font-medium">{professionalData.state || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Country</p>
-              <p className="font-medium">{data.country || "N/A"}</p>
+              <p className="font-medium">{professionalData.country || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Degree</p>
-              <p className="font-medium">{data.degree || "N/A"}</p>
+              <p className="font-medium">{professionalData.degree || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Specialization</p>
-              <p className="font-medium">{data.specialization || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.specialization || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Year</p>
-              <p className="font-medium">{data.startYear || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startYear || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">End Year</p>
-              <p className="font-medium">{data.endYear || "N/A"}</p>
+              <p className="font-medium">{professionalData.endYear || "N/A"}</p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Month</p>
-              <p className="font-medium">{data.startMonth || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startMonth || "N/A"}
+              </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Start Year Exp</p>
-              <p className="font-medium">{data.startYearExp || "N/A"}</p>
+              <p className="font-medium">
+                {professionalData.startYearExp || "N/A"}
+              </p>
             </div>
-            {data.college && (
+            {professionalData.college && (
               <div>
                 <p className="text-sm text-gray-500">College</p>
-                <p className="font-medium">{data.college.name || "N/A"}</p>
+                <p className="font-medium">
+                  {professionalData.college.name || "N/A"}
+                </p>
               </div>
             )}
-            {data.hospital && (
+            {professionalData.hospital && (
               <div>
                 <p className="text-sm text-gray-500">Hospital</p>
-                <p className="font-medium">{data.hospital.name || "N/A"}</p>
+                <p className="font-medium">
+                  {professionalData.hospital.name || "N/A"}
+                </p>
               </div>
             )}
             <div>
               <p className="text-sm text-gray-500">Status</p>
               <p className="font-medium">
-                {data.isActive ? "Active" : "Inactive"}
+                {professionalData.isActive ? "Active" : "Inactive"}
               </p>
             </div>
             <div>
               <p className="text-sm text-gray-500">Created At</p>
               <p className="font-medium">
-                {data.created_at ? (
-                  <FormattedDate dateString={data.created_at} format="long" />
+                {professionalData.createdAt ? (
+                  <FormattedDate
+                    dateString={professionalData.createdAt}
+                    format="long"
+                  />
                 ) : (
                   "N/A"
                 )}
@@ -274,7 +326,9 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-center text-gray-500">No data available</div>
+        <div className="text-center text-gray-500">
+          No professionalData available
+        </div>
       )}
     </Drawer>
   );

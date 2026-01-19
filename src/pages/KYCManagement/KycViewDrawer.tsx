@@ -5,6 +5,7 @@ import Loader from "../Common/Loader";
 import { useState } from "react";
 import { ApiRequest } from "../Common/constant.function";
 import { showSuccess } from "../Common/Notification";
+import { ApproveKYCStatusApi, rejectKYCStatusApi } from "../../api/kyc.api";
 
 interface KycDocument {
   document_number: string | null;
@@ -24,7 +25,7 @@ interface KycDetails {
 }
 
 interface KycViewDrawerProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
   kycId: string;
 }
@@ -37,13 +38,13 @@ const fetchKycDetails = async (kycId: string) => {
       headers: {
         Authorization: `Bearer ${localStorage.getItem("userToken")}`,
       },
-    }
+    },
   );
   return data;
 };
 
 const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
-  isOpen,
+  open,
   onClose,
   kycId,
 }) => {
@@ -58,19 +59,22 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   const { data: kycDetails, isLoading } = useQuery({
     queryKey: ["kycDetails", kycId],
     queryFn: () => fetchKycDetails(kycId),
-    enabled: isOpen && !!kycId,
+    enabled: open && !!kycId,
   });
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await ApiRequest.post(
-        `${API_URL}/api/kyc/kyc-submissions/${id}/reject`,
-        {
-          reason: rejectReason,
-          remarks: rejectRemarks,
-        }
-      );
-      return response.data;
+      // const response = await ApiRequest.post(
+      //   `${API_URL}/api/kyc/kyc-submissions/${id}/reject`,
+      //   {
+      //     reason: rejectReason,
+      //     remarks: rejectRemarks,
+      //   },
+      // );
+      // return response.data;
+      return rejectKYCStatusApi(id, {reason: rejectReason,
+          remarks: rejectRemarks})
+      
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
@@ -85,10 +89,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
 
   const approveMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await ApiRequest.post(
-        `${API_URL}/api/kyc/kyc-submissions/${id}/approve`
-      );
-      return response.data;
+      return ApproveKYCStatusApi(id);
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
@@ -131,7 +132,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
         title="KYC Management"
         placement="right"
         onClose={onClose}
-        open={isOpen}
+        open={open}
         width={400}
       >
         {isLoading ? (

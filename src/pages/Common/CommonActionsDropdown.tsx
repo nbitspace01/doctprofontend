@@ -11,8 +11,8 @@ const CommonDropdown = ({
   showDelete = true,
 }: {
   onView: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   showView?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;
@@ -24,7 +24,7 @@ const CommonDropdown = ({
       key: "view",
       onClick: onView,
     },
-    showEdit && {
+    onEdit && showEdit && {
       icon: <EditIcon />,
       label: <span className="ml-2">Edit</span>,
       key: "edit",

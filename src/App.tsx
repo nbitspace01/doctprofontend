@@ -14,19 +14,19 @@ import SignUp from "./pages/Auth/Signup/Signup";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
-import Dashboard from "./pages/Dashboard/Dashboard";
+import Dashboard, { UserRole } from "./pages/Dashboard/Dashboard";
 import SubAdmin from "./pages/SubAdmin/SubAdmin";
 import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
-import HospitalList from "./pages/Organizations/Hospitals/HospitalList";
-import CollegeList from "./pages/Organizations/Colleges/CollegeList";
-import DegreeSpecializationList from "./pages/Organizations/Degree/DegreeSpecializationList";
+import HospitalList from "./pages/MasterList/Hospitals/HospitalList";
+import CollegeList from "./pages/MasterList/Colleges/CollegeList";
+import DegreeSpecializationList from "./pages/MasterList/Degree/DegreeSpecializationList";
 import ClinicsList from "./pages/Organizations/Clinics/ClinicsList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
 import AdsPostList from "./pages/AdsManagement/AdsPostList";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
-import ListCollege from "./pages/Organizations/College/ListCollege";
+// import ListCollege from "./pages/Organizations/College/ListCollege";
 import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
 import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
 import PostManagementList from "./pages/PostManagement/PostManagementList";
@@ -35,6 +35,17 @@ import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 import { AuthProvider } from "./pages/Common/Context/AuthContext";
 import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
 import JobPostList from "./pages/JobPostManagement/JobPostList";
+
+const userType = localStorage.getItem("roleName") || "guest";
+
+// Map/validate to UserRole
+const userRole: UserRole =
+  userType === "sub_admin"
+    ? "sub_admin"
+    : userType === "hospital_admin"
+    ? "hospital_admin"
+    : "admin"; // default fallback
+
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
 });
@@ -44,7 +55,7 @@ const rootIndexRoute = createRoute({
   path: "/",
   beforeLoad: () => {
     throw redirect({
-      to: "/app",
+      to: "/app/dashboard",
     });
   },
 });
@@ -100,7 +111,7 @@ const appRoute = createRoute({
 const dashboardRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "dashboard",
-  component: () => <Dashboard />,
+  component: () => <Dashboard role={userRole} />,
 });
 
 const subadminDashboardRoute = createRoute({
@@ -133,11 +144,11 @@ const collegesRoute = createRoute({
   component: () => <CollegeList />,
 });
 
-const collegeListRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "colleges/list",
-  component: () => <ListCollege />,
-});
+// const collegeListRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "colleges/list",
+//   component: () => <ListCollege />,
+// });
 
 const degreeSpecializationRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -216,7 +227,7 @@ const routeTree = rootRoute.addChildren([
     hospitalAdminRoute,
     hospitalsRoute,
     collegesRoute,
-    collegeListRoute,
+    // collegeListRoute,
     degreeSpecializationRoute,
     clinicsRoute,
     studentsRoute,

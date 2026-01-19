@@ -9,10 +9,10 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = "" }) => 
   const statusLower = String(status || "").toLowerCase();
   
   const getStatusClasses = () => {
-    if (statusLower === "active") {
+    if (statusLower === "active" || statusLower === "Active" || statusLower === "ACTIVE") {
       return "text-green-600 bg-green-50";
     }
-    if (statusLower === "pending") {
+    if (statusLower === "pending" || statusLower === "Pending" || statusLower === "PENDING") {
       return "text-orange-600 bg-orange-50";
     }
     // Default to red for inactive, unactive, or any other status

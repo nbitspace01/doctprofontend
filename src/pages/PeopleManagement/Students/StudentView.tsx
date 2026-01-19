@@ -1,8 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
-import { Avatar, Button, Drawer, Tag } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { App, Avatar, Button, Drawer, Tag } from "antd";
 import axios from "axios";
+import { useMemo } from "react";
+import {
+  updateStudentApi,
+  updateStudentStatusApi,
+} from "../../../api/student.api";
 
-interface StudentDetails {
+interface StudentData {
   studentId: string;
   studentName: string;
   email: string;
@@ -10,117 +15,186 @@ interface StudentDetails {
   gender: string;
   dob: string;
   address: string;
-  college: string;
+  collegeName: string;
   degree: string;
   specialization: string;
   startYear: number;
   endYear: number;
   kycStatus: boolean;
-  userStatus: string;
-  is_active: boolean;
+  status: string;
 }
 
 interface StudentViewProps {
-  studentId: string;
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
+  studentData: StudentData;
 }
 
-const fetchStudentDetails = async (studentId: string) => {
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const response = await axios.get<StudentDetails>(
-    `${API_URL}/api/student/${studentId}`
-  );
-  return response.data;
-};
+type StudentStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const StudentView: React.FC<StudentViewProps> = ({
-  studentId,
-  isOpen,
+  open,
   onClose,
+  studentData,
 }) => {
-  const { data: student, isLoading } = useQuery({
-    queryKey: ["student", studentId],
-    queryFn: () => fetchStudentDetails(studentId),
-    enabled: !!studentId,
+  const { modal, message } = App.useApp();
+  const queryClient = useQueryClient();
+
+  /* -------------------- Derived Values -------------------- */
+  const displayName = useMemo(() => {
+    if (studentData.studentName) return studentData.studentName;
+
+    const fullName = `${studentData.studentName}`.trim();
+
+    return fullName || "N/A";
+  }, [studentData]);
+
+  const avatarInitial = useMemo(() => {
+    if (studentData.studentName)
+      return studentData.studentName[0].toUpperCase();
+    if (studentData.studentName)
+      return studentData.studentName[0].toUpperCase();
+    return studentData.email?.[0]?.toUpperCase() || "A";
+  }, [studentData]);
+
+  // const profileImage = studentData.profile_image || studentData.image_url || "";
+
+  /* -------------------- Update Status -------------------- */
+  const { mutate: updateStatus, isPending: isPendingMutation } = useMutation({
+    mutationFn: ({
+      studentId,
+      status,
+    }: {
+      studentId: string;
+      status: StudentStatus;
+    }) => updateStudentStatusApi(studentId, { status }),
+
+    onSuccess: () => {
+      message.success("Student status updated");
+      queryClient.invalidateQueries({ queryKey: ["students"] });
+      onClose();
+    },
+
+    onError: () => {
+      message.error("Failed to update student status");
+    },
   });
 
-  if (isLoading) {
-    return null;
-  }
+  /* -------------------- Handlers -------------------- */
+  // const status = studentData.status;
+
+  const status = studentData.status;
+
+  const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  const isInactive = status === "INACTIVE";
+
+  const getNextStatus = (): StudentStatus =>
+    status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+
+  const handleStatusToggle = () => {
+    const nextStatus = getNextStatus();
+
+    modal.confirm({
+      title:
+        nextStatus === "ACTIVE" ? "Activate Student?" : "Deactivate Student?",
+      content: `Are you sure you want to ${nextStatus} "${studentData.studentName}"?`,
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
+      onOk: () =>
+        updateStatus({
+          studentId: studentData.studentId,
+          status: nextStatus,
+        }),
+    });
+  };
 
   return (
     <Drawer
       title="Students"
       placement="right"
       onClose={onClose}
-      open={isOpen}
+      open={open}
       width={400}
       footer={
         <div className="flex justify-between">
-          <Button type="default" color="blue" variant="outlined">
-            Un Activate Account
+          <Button
+            size="large"
+            loading={isPendingMutation}
+            disabled={isPendingMutation}
+            className={`px-8 ${
+              isActive
+                ? "border-red-500 text-red-500"
+                : "border-green-500 text-green-500"
+            }`}
+            onClick={handleStatusToggle}
+          >
+            {isActive ? "Deactivate" : "Activate"} Student
           </Button>
           <div className="space-x-2">
             <Button onClick={onClose}>Cancel</Button>
             <Button
               type="primary"
               className="bg-button-primary"
-              disabled={student?.kycStatus === true}
+              disabled={studentData?.kycStatus === true}
             >
-              {student?.kycStatus ? "Save" : "Approve"}
+              {studentData?.kycStatus ? "Save" : "Approve"}
             </Button>
           </div>
         </div>
       }
     >
-      {student && (
+      {studentData && (
         <div className="space-y-6">
           <div className="flex items-center gap-4">
             <div className="h-100" />
             <Avatar className="text-white bg-button-primary ">
-              {student.studentName?.[0] || "?"}
+              {studentData.studentName?.[0] || "?"}
             </Avatar>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-lg font-medium">{student.studentName}</h3>
+                <h3 className="text-lg font-medium">
+                  {studentData.studentName}
+                </h3>
                 <Tag
-                  color={student.userStatus === "ACTIVE" ? "success" : "error"}
+                  color={studentData.status === "ACTIVE" ? "success" : "error"}
                 >
-                  {student.userStatus}
+                  {studentData.status}
                 </Tag>
               </div>
               <p className="text-gray-500">
-                Student ID: #{studentId.slice(0, 8)}
+                Student ID: #{studentData.studentId.slice(0, 8)}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <InfoField label="Gender" value={student.gender} />
+            <InfoField label="Gender" value={studentData.gender} />
             <InfoField
               label="DOB"
-              value={new Date(student.dob).toLocaleDateString()}
+              value={new Date(studentData.dob).toLocaleDateString()}
             />
-            <InfoField label="Email Address" value={student.email} />
-            <InfoField label="Phone Number" value={student.phone} />
+            <InfoField label="Email Address" value={studentData.email} />
+            <InfoField label="Phone Number" value={studentData.phone} />
             <InfoField
               label="College/University"
-              value={student.college || "NA"}
+              value={studentData.collegeName || "NA"}
             />
-            <InfoField label="Degree" value={student.degree || "NA"} />
+            <InfoField label="Degree" value={studentData.degree || "NA"} />
             <InfoField
               label="Specializations"
-              value={student.specialization || "NA"}
+              value={studentData.specialization || "NA"}
             />
-            <InfoField label="Location" value={student.address || "NA"} />
-            <InfoField label="Start Year" value={student.startYear || "NA"} />
-            <InfoField label="End Year" value={student.endYear || "NA"} />
+            <InfoField label="Location" value={studentData.address || "NA"} />
+            <InfoField
+              label="Start Year"
+              value={studentData.startYear || "NA"}
+            />
+            <InfoField label="End Year" value={studentData.endYear || "NA"} />
             <InfoField
               label="KYC Status"
               value={
-                <Tag color={student.kycStatus ? "success" : "error"}>
-                  {student.kycStatus ? "Verified" : "Not Verified"}
+                <Tag color={studentData.kycStatus ? "success" : "error"}>
+                  {studentData.kycStatus ? "Verified" : "Not Verified"}
                 </Tag>
               }
             />
