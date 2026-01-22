@@ -26,7 +26,7 @@ export const fetchSubAdmin = async () => {
 // ----- Sub Admin Dashboard APIs -----
 export const fetchSubAdminDashboardCounts = async () => {
   return apiClient.get<any>(
-    "/api/dashboard/subadmin-counts/location"
+    "/api/stats/subadmin/hospital-admins/summary"
   );
 };
 
@@ -45,7 +45,7 @@ export const fetchHealthCareStats = async () => {
 // ----- Hospital Admin Dashboard APIs -----
 export const fetchHospitalAdminDashboardCounts = async () => {
   return apiClient.get<any>(
-    "/api/hospitaldashboard/hospitaladmin-count/location"
+    "/api/stats/hospital/jobs/summary"
   );
 };
 

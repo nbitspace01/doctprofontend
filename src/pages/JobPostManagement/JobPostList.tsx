@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { PlusOutlined } from "@ant-design/icons";
 import CreateJobPost from "./CreateJobPost";
 import JobPostViewDrawer from "./JobPostViewDrawer";
@@ -7,31 +7,14 @@ import CommonDropdown from "../Common/CommonActionsDropdown";
 import { useListController } from "../../hooks/useListController";
 import CommonTable from "../../components/Common/CommonTable";
 import { App, Button } from "antd";
-import { deleteJobPostApi, fetchJobPostsApi } from "../../api/jobpost.api";
+import {
+  deleteJobPostApi,
+  fetchJobPostsApi,
+  fetchOwnJobPostsApi,
+} from "../../api/jobpost.api";
 import StatusBadge from "../Common/StatusBadge";
-
-interface JobPostData {
-  id: string;
-  title: string;
-  specialization: string;
-  location: string;
-  experience_required: string;
-  workType: string;
-  status: string;
-  noOfApplications?: number;
-  valid_from?: string;
-  expires_at?: string;
-  description?: string;
-  hospital_bio?: string;
-  salary?: string;
-  degree_required?: string;
-  hospital_website?: string;
-}
-
-interface JobPostResponse {
-  data: JobPostData[];
-  total: number;
-}
+import { roleProps } from "../../App";
+import { JobPostBase, JobPostResponse } from "./jobPostTypes";
 
 const JobPostList: React.FC = () => {
   const { modal, message } = App.useApp();
@@ -39,11 +22,15 @@ const JobPostList: React.FC = () => {
 
   /* -------------------- State -------------------- */
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editData, setEditData] = useState<JobPostData | null>(null);
+  const [editData, setEditData] = useState<JobPostBase | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedJobPost, setSelectedJobPost] = useState<JobPostData | null>(
+  const [selectedJobPost, setSelectedJobPost] = useState<JobPostBase | null>(
     null,
   );
+  const [currentRole, setCurrentRole] = useState<roleProps["role"] | null>(
+    null,
+  );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -56,16 +43,38 @@ const JobPostList: React.FC = () => {
     onFilterChange,
   } = useListController();
 
+  /* -------------------- Use Effect -------------------- */
+  useEffect(() => {
+    const storedRole = localStorage.getItem("roleName") as roleProps["role"];
+    const storedUserId = localStorage.getItem("userId") || null;
+    setCurrentRole(storedRole);
+    setCurrentUserId(storedUserId);
+
+    // remove old cached queries
+    queryClient.removeQueries({ queryKey: ["jobPosts"] });
+  }, []);
+
   /* -------------------- Query -------------------- */
   const { data: jobPostData, isFetching } = useQuery<JobPostResponse, Error>({
-    queryKey: ["jobPosts", currentPage, pageSize, searchValue, filterValues],
-    queryFn: () =>
-      fetchJobPostsApi({
-        page: currentPage,
-        limit: pageSize,
-        searchValue,
-        filterValues,
-      }),
+    queryKey: ["jobPosts", currentRole, currentUserId, currentPage, pageSize, searchValue, filterValues],
+    queryFn: () => {
+      if (currentRole !== "admin") {
+        return fetchOwnJobPostsApi({
+          page: currentPage,
+          limit: pageSize,
+          searchValue,
+          filterValues,
+        });
+      } else {
+        return fetchJobPostsApi({
+          page: currentPage,
+          limit: pageSize,
+          searchValue,
+          filterValues,
+        });
+      }
+    },
+    enabled: !!currentRole && !!currentUserId,
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 0,
@@ -87,17 +96,17 @@ const JobPostList: React.FC = () => {
   });
 
   /* -------------------- Handlers -------------------- */
-  const handleView = (record: JobPostData) => {
+  const handleView = (record: JobPostBase) => {
     setSelectedJobPost(record);
     setIsViewDrawerOpen(true);
   };
 
-  const handleEdit = (record: JobPostData) => {
+  const handleEdit = (record: JobPostBase) => {
     setEditData(record);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (record: JobPostData) => {
+  const handleDelete = (record: JobPostBase) => {
     modal.confirm({
       title: "Confirm Delete",
       content: `Delete ${record.title}?`,
@@ -112,10 +121,11 @@ const JobPostList: React.FC = () => {
       {
         title: "S No",
         width: 80,
-        render: (_: any, __: JobPostData, index: number) =>
+        render: (_: any, __: JobPostBase, index: number) =>
           (currentPage - 1) * pageSize + index + 1,
       },
       { title: "Job Title", dataIndex: "title", width: 220 },
+      { title: "Hospital Name", dataIndex: "hospitalName", width: 220 },
       { title: "Exp Required", dataIndex: "experience_required", width: 140 },
       { title: "Location", dataIndex: "location", width: 160 },
       { title: "Specialization", dataIndex: "specialization", width: 180 },
@@ -136,7 +146,7 @@ const JobPostList: React.FC = () => {
       {
         title: "Actions",
         width: 100,
-        render: (_: any, record: JobPostData) => (
+        render: (_: any, record: JobPostBase) => (
           <CommonDropdown
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
@@ -224,7 +234,7 @@ const JobPostList: React.FC = () => {
         </Button>
       </div>
 
-      <CommonTable<JobPostData>
+      <CommonTable<JobPostBase>
         rowKey="id"
         columns={columns}
         data={allJobPost}
@@ -259,7 +269,8 @@ const JobPostList: React.FC = () => {
         <JobPostViewDrawer
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
-          jobPostId={selectedJobPost.id}
+          jobPostData={selectedJobPost}
+          role={currentRole}
         />
       )}
     </div>

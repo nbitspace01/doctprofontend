@@ -113,7 +113,7 @@ export const fetchHospitalAdmin = ({
 }: FetchParams) => {
   const queryParams = buildQueryParams(searchValue, filterValues);
   // const url = `/api/dashboard/hospital-admin/list?page=${page}&limit=${limit}${
-    const url = `/api/user/hospital-admins?page=${page}&limit=${limit}${
+    const url = `/api/hospital-admin/list?page=${page}&limit=${limit}${
     queryParams ? `&${queryParams}` : ""
   }`;
   return apiClient.get<any>(url);

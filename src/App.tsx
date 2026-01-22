@@ -14,7 +14,7 @@ import SignUp from "./pages/Auth/Signup/Signup";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
-import Dashboard, { UserRole } from "./pages/Dashboard/Dashboard";
+import Dashboard from "./pages/Dashboard/Dashboard";
 import SubAdmin from "./pages/SubAdmin/SubAdmin";
 import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
 import HospitalList from "./pages/MasterList/Hospitals/HospitalList";
@@ -27,24 +27,32 @@ import KycList from "./pages/KYCManagement/KycList";
 import AdsPostList from "./pages/AdsManagement/AdsPostList";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 // import ListCollege from "./pages/Organizations/College/ListCollege";
-import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
+// import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
 import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
 import PostManagementList from "./pages/PostManagement/PostManagementList";
 import ChangePassword from "./pages/Auth/ChangePassword";
 import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 import { AuthProvider } from "./pages/Common/Context/AuthContext";
-import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
+// import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
 import JobPostList from "./pages/JobPostManagement/JobPostList";
 
-const userType = localStorage.getItem("roleName") || "guest";
+
+export interface roleProps {
+  role: UserRole;
+}
+
+export type UserRole = "admin" | "subadmin" | "hospitaladmin";
+
+const storedRole = localStorage.getItem("roleName"); // string | null
 
 // Map/validate to UserRole
 const userRole: UserRole =
-  userType === "sub_admin"
-    ? "sub_admin"
-    : userType === "hospital_admin"
-    ? "hospital_admin"
+  storedRole === "subadmin"
+    ? "subadmin"
+    : storedRole === "hospitaladmin"
+    ? "hospitaladmin"
     : "admin"; // default fallback
+
 
 const rootRoute = createRootRoute({
   component: () => <Outlet />,
@@ -114,11 +122,11 @@ const dashboardRoute = createRoute({
   component: () => <Dashboard role={userRole} />,
 });
 
-const subadminDashboardRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "subadmin/dashboard",
-  component: () => <SubAdminDashboard />,
-});
+// const subadminDashboardRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "subadmin/dashboard",
+//   component: () => <SubAdminDashboard />,
+// });
 
 const subAdminRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -189,7 +197,7 @@ const kycRoute = createRoute({
 const adsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "ads",
-  component: () => <AdsPostList />,
+  component: () => <AdsPostList role={userRole} />,
 });
 
 const postManagementRoute = createRoute({
@@ -198,11 +206,11 @@ const postManagementRoute = createRoute({
   component: () => <PostManagementList />,
 });
 
-const hospitalDashboardRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "hospital/dashboard",
-  component: () => <HospitalDashboard />,
-});
+// const hospitalDashboardRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "hospital/dashboard",
+//   component: () => <HospitalDashboard />,
+// });
 
 const jobPostRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -222,7 +230,7 @@ const routeTree = rootRoute.addChildren([
   ]),
   appRoute.addChildren([
     dashboardRoute,
-    subadminDashboardRoute,
+    // subadminDashboardRoute,
     subAdminRoute,
     hospitalAdminRoute,
     hospitalsRoute,
@@ -236,7 +244,7 @@ const routeTree = rootRoute.addChildren([
     adsRoute,
     campaignRoute,
     postManagementRoute,
-    hospitalDashboardRoute,
+    // hospitalDashboardRoute,
     jobPostRoute,
   ]),
 ]);

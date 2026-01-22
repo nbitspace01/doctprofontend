@@ -125,7 +125,7 @@ const DegreeView: React.FC<DegreeViewProps> = ({
             }`}
             onClick={handleStatusToggle}
           >
-            {isActive ? "Deactivate" : "Activate"} Hospital
+            {isActive ? "Deactivate" : "Activate"} Degree
           </Button>
         </div>
       }

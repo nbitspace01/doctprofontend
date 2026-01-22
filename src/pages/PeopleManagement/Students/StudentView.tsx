@@ -116,7 +116,15 @@ const StudentView: React.FC<StudentViewProps> = ({
       open={open}
       width={400}
       footer={
-        <div className="flex justify-between">
+        <div className="flex justify-between items-center">
+          <Button
+            size="large"
+            className="bg-gray-200 text-gray-700 px-8"
+            onClick={onClose}
+          >
+            Back
+          </Button>
+
           <Button
             size="large"
             loading={isPendingMutation}
@@ -130,16 +138,6 @@ const StudentView: React.FC<StudentViewProps> = ({
           >
             {isActive ? "Deactivate" : "Activate"} Student
           </Button>
-          <div className="space-x-2">
-            <Button onClick={onClose}>Cancel</Button>
-            <Button
-              type="primary"
-              className="bg-button-primary"
-              disabled={studentData?.kycStatus === true}
-            >
-              {studentData?.kycStatus ? "Save" : "Approve"}
-            </Button>
-          </div>
         </div>
       }
     >

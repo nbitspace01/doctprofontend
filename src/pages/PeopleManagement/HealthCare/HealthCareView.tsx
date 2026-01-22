@@ -189,7 +189,7 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             }`}
             onClick={handleStatusToggle}
           >
-            {isActive ? "Deactivate" : "Activate"} Hospital
+            {isActive ? "Deactivate" : "Activate"} Healthcare Professional
           </Button>
         </div>
       }

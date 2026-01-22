@@ -8,6 +8,7 @@ import ClinicViewDrawer from "./ClinicViewDrawer";
 import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
 import { fetchHospitalAdmin } from "../../../api/admin.api";
+import { apiClient } from "../../../api/api";
 
 interface Hospital {
   id: string;
@@ -41,7 +42,7 @@ const ClinicsList: React.FC = () => {
     null
   );
 
-  const { data, isFetching, error, refetch } = useQuery<
+  const { data, isFetching } = useQuery<
     PaginatedResponse,
     Error
   >({
@@ -174,30 +175,18 @@ const ClinicsList: React.FC = () => {
         <CommonDropdown
           onView={() => setSelectedHospitalId(record.id)}
           onEdit={() => {}}
-          onDelete={() => {}}
+          onDelete={() => {apiClient.delete(`/api/hospital-admin/${record.id}`)}}
           showEdit={false}
-          showDelete={false}
         />
       ),
     },
   ];
 
-  // if (error) {
-  //   return (
-  //     <div className="p-6 text-center text-red-600">
-  //       Error loading data: {error.message}
-  //       <button className="ml-2 underline" onClick={() => refetch()}>
-  //         Retry
-  //       </button>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">
-          Hospital & Clinics Management
+          Hospital Management
         </h1>
         <Button
           type="primary"

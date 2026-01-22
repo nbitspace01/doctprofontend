@@ -1,9 +1,6 @@
 import { App, Avatar, Button, Drawer, Image, Modal } from "antd";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import axios from "axios";
-import Loader from "../Common/Loader";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { ApiRequest } from "../Common/constant.function";
 import { showSuccess } from "../Common/Notification";
 import { ApproveKYCStatusApi, rejectKYCStatusApi } from "../../api/kyc.api";
 
@@ -14,67 +11,67 @@ interface KycDocument {
   type: string;
 }
 
-interface KycDetails {
+interface Userdata {
+  id: string,
+  email: string,
+  phone: string;
+}
+
+interface kycData {
+  kycId: string,
   name: string;
   role: string;
   email: string;
   phone: string;
   created_on: string;
-  documents: KycDocument[];
+  documents?: KycDocument[];
   kyc_status: string;
+  user?: Userdata[];
 }
 
 interface KycViewDrawerProps {
   open: boolean;
   onClose: () => void;
-  kycId: string;
+  kycData: kycData;
 }
 
-const fetchKycDetails = async (kycId: string) => {
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const { data } = await axios.get<KycDetails>(
-    `${API_URL}/api/kyc/kyc-submissions/${kycId}`,
-    {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-      },
-    },
-  );
-  return data;
-};
+// const fetchKycDetails = async (kycData: string) => {
+//   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+//   const { data } = await axios.get<KycDetails>(
+//     `${API_URL}/api/kyc/kyc-submissions/${kycId}`,
+//     {
+//       headers: {
+//         Authorization: `Bearer ${localStorage.getItem("userToken")}`,
+//       },
+//     },
+//   );
+//   return data;
+// };
 
 const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   open,
   onClose,
-  kycId,
+  kycData,
 }) => {
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectRemarks, setRejectRemarks] = useState("");
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const { notification } = App.useApp();
 
-  const { data: kycDetails, isLoading } = useQuery({
-    queryKey: ["kycDetails", kycId],
-    queryFn: () => fetchKycDetails(kycId),
-    enabled: open && !!kycId,
-  });
+  // const { data: kycDetails, isLoading } = useQuery({
+  //   queryKey: ["kycDetails", kycId],
+  //   queryFn: () => fetchKycDetails(kycId),
+  //   enabled: open && !!kycId,
+  // });
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
-      // const response = await ApiRequest.post(
-      //   `${API_URL}/api/kyc/kyc-submissions/${id}/reject`,
-      //   {
-      //     reason: rejectReason,
-      //     remarks: rejectRemarks,
-      //   },
-      // );
-      // return response.data;
-      return rejectKYCStatusApi(id, {reason: rejectReason,
-          remarks: rejectRemarks})
-      
+      return rejectKYCStatusApi(id, {
+        reason: rejectReason,
+        remarks: rejectRemarks,
+      });
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
@@ -107,7 +104,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   };
 
   const handleConfirmApprove = () => {
-    approveMutation.mutate(kycId);
+    approveMutation.mutate(kycData?.user?.id);
   };
 
   const handleReject = () => {
@@ -115,7 +112,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   };
 
   const handleConfirmReject = () => {
-    rejectMutation.mutate(kycId);
+    rejectMutation.mutate(kycData?.user?.id);
   };
 
   const formatDate = (dateString: string) => {
@@ -135,9 +132,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
         open={open}
         width={400}
       >
-        {isLoading ? (
-          <Loader size="large" />
-        ) : kycDetails ? (
+        { kycData ? (
           <div className="space-y-6">
             <div className="flex items-center ">
               <div className="" />
@@ -145,41 +140,41 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
                 size={48}
                 className="bg-button-primary  rounded-full mr-2 text-white"
               >
-                {kycDetails.name?.charAt(0)}
+                {kycData.name?.charAt(0)}
               </Avatar>
               <div className="flex flex-col items-center">
-                <h3 className="font-medium text-lg !mt-2">{kycDetails.name}</h3>
-                <p className="text-gray-500">{kycDetails.role}</p>
+                <h3 className="font-medium text-lg !mt-2">{kycData.name}</h3>
+                <p className="text-gray-500">{kycData.role}</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <p className="text-gray-500">Email Address</p>
-                <p>{kycDetails.email}</p>
+                <p>{kycData.email}</p>
               </div>
               <div>
                 <p className="text-gray-500">Phone Number</p>
-                <p>{kycDetails.phone}</p>
+                <p>{kycData.phone}</p>
               </div>
               <div>
                 <p className="text-gray-500">Created on</p>
-                <p>{formatDate(kycDetails.created_on)}</p>
+                <p>{formatDate(kycData.created_on)}</p>
               </div>
             </div>
 
             <div>
               <h4 className="font-medium mb-4">KYC Documents</h4>
               <div className="space-y-4">
-                {kycDetails.documents?.map((doc, index) => (
+                {kycData.documents?.map((doc, index) => (
                   <div key={index} className="border rounded p-4">
                     <div className="flex justify-between items-center mb-2">
                       <span className="font-medium">{doc.type}</span>
                       <span
                         className={`px-2 py-1 rounded text-sm ${
-                          doc.status === "approved"
+                          doc.status === "APPROVED"
                             ? "bg-green-100 text-green-800"
-                            : "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                         }`}
                       >
                         {doc.status}

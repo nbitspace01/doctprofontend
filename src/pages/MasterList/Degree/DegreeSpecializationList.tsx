@@ -141,16 +141,19 @@ const DegreeSpecializationList: React.FC = () => {
   );
 
   /* -------------------- Filters -------------------- */
-  const filterOptions = [
-    { label: "Degree Name", key: "name", type: "text" as const },
-    { label: "Specialization", key: "specialization", type: "text" as const },
-    {
-      label: "Status",
-      key: "status",
-      type: "checkbox" as const,
-      options: ["ACTIVE", "INACTIVE", "PENDING"],
-    },
-  ];
+  const filterOptions = useMemo(
+    () => [
+      { label: "Degree Name", key: "name", type: "text" as const },
+      { label: "Specialization", key: "specialization", type: "text" as const },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["ACTIVE", "INACTIVE", "PENDING"],
+      },
+    ],
+    [],
+  );
 
   /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {

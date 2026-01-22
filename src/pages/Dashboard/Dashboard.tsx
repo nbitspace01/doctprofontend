@@ -1,27 +1,60 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, Spin, Alert } from "antd";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   totalCollege,
+  totalHealthCare,
   totalHospital,
 } from "../../pages/Common/SVG/svg.functions";
-import { fetchDashboardCounts } from "../../api/dashboard.api";
+import {
+  fetchDashboardCounts,
+  fetchHospitalAdminDashboardCounts,
+  fetchSubAdminDashboardCounts,
+} from "../../api/dashboard.api";
+import { roleProps } from "../../App";
 
-export type UserRole = "admin" | "sub_admin" | "hospital_admin" | "guest";
+const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
+  /* -------------------- Local State -------------------- */
+  const [currentRole, setCurrentRole] = useState<roleProps["role"] | null>(
+    null,
+  );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-interface DashboardProps {
-  role: UserRole;
-}
+  /* -------------------- Fetch localStorage on mount -------------------- */
+  useEffect(() => {
+    const storedRole =
+      (localStorage.getItem("roleName") as roleProps["role"]) || propRole;
+    const storedUserId = localStorage.getItem("userId") || null;
 
-const Dashboard: React.FC<DashboardProps> = ({ role }) => {
-  const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["dashboardCounts", role],
-    queryFn: fetchDashboardCounts,
-    retry: false,
+    setCurrentRole(storedRole);
+    setCurrentUserId(storedUserId);
+  }, [propRole]);
+
+  /* -------------------- Query -------------------- */
+  const {
+    data: dashboardCounts,
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["dashboardCounts", currentRole, currentUserId],
+    queryFn: () => {
+      if (currentRole === "admin") {
+        return fetchDashboardCounts();
+      } else if (currentRole === "subadmin") {
+        return fetchSubAdminDashboardCounts();
+      } else {
+        return fetchHospitalAdminDashboardCounts();
+      }
+    },
+    enabled: !!currentUserId && !!currentRole,
+    refetchOnMount: true,
+    refetchOnWindowFocus: false,
+    staleTime: 0,
   });
 
-  // ---------------- LOADING STATE ----------------
-  if (isLoading) {
+  /* -------------------- Loading & Error States -------------------- */
+  if (!currentRole || !currentUserId || isLoading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <Spin size="large" />
@@ -29,7 +62,6 @@ const Dashboard: React.FC<DashboardProps> = ({ role }) => {
     );
   }
 
-  // ---------------- ERROR STATE ----------------
   if (isError) {
     return (
       <div className="p-6">
@@ -43,58 +75,106 @@ const Dashboard: React.FC<DashboardProps> = ({ role }) => {
     );
   }
 
+  /* -------------------- Dashboard Header -------------------- */
+  const dashboardTitle =
+    currentRole === "admin"
+      ? "Super Admin Dashboard"
+      : currentRole === "subadmin"
+        ? "Sub Admin Dashboard"
+        : currentRole === "hospitaladmin"
+          ? "Hospital Admin Dashboard"
+          : "Loading...";
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {role === "admin"
-            ? "Super Admin Dashboard"
-            : role === "sub_admin"
-            ? "Sub Admin Dashboard"
-            : role === "hospital_admin"
-            ? "Hospital Admin Dashboard"
-            : "Loading..."}
-        </h1>
+        <h1 className="text-2xl font-bold">{dashboardTitle}</h1>
       </div>
 
-      {/* ---------------- STATS CARDS ---------------- */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <Card className="shadow-sm bg-white p-2">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">{totalHospital()}</div>
-            <div>
-              <p className="text-gray-600 text-sm">Hospital Count</p>
-              <p className="text-2xl font-bold">
-                {data?.users?.hospital_admins ?? 0}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="shadow-sm bg-white p-2">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">{totalCollege()}</div>
-            <div>
-              <p className="text-gray-600 text-sm">Sub Admin Count</p>
-              <p className="text-2xl font-bold">{data?.sub_admins ?? 0}</p>
-            </div>
-          </div>
-        </Card>
-
-        {/* <Card className="shadow-sm bg-white p-2">
+      {/* ---------------- ADMIN STATS CARDS ---------------- */}
+      {currentRole === "admin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card className="shadow-sm bg-white p-2">
             <div className="flex items-center gap-4">
               <div className="p-3 rounded-full text-white">
                 {totalHospital()}
               </div>
               <div>
-                <p className="text-gray-600 text-sm">Doctors Count</p>
+                <p className="text-gray-600 text-sm">Hospital Admin Count</p>
                 <p className="text-2xl font-bold">
-                  {data?.doctors ?? 0}
+                  {dashboardCounts?.users?.hospital_admins ?? 0}
                 </p>
               </div>
             </div>
-          </Card> */}
-      </div>
+          </Card>
+
+          <Card className="shadow-sm bg-white p-2">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full text-white">
+                {totalCollege()}
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Sub Admin Count</p>
+                <p className="text-2xl font-bold">
+                  {dashboardCounts?.sub_admins ?? 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ---------------- SUB ADMIN STATS CARDS ---------------- */}
+      {currentRole === "subadmin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card className="shadow-sm bg-white p-2">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full text-white">
+                {totalHospital()}
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Hospital Admin Count</p>
+                <p className="text-2xl font-bold">
+                  {dashboardCounts?.data?.totalHospitalAdmins ?? 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="shadow-sm bg-white p-2">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full text-white">
+                {totalHealthCare()}
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">KYC Pending</p>
+                <p className="text-2xl font-bold">
+                  {dashboardCounts?.data?.pendingKyc ?? 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
+
+      {/* ---------------- HOSPITAL ADMIN STATS CARDS ---------------- */}
+      {currentRole === "hospitaladmin" && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <Card className="shadow-sm bg-white p-2">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-full text-white">
+                {totalHospital()}
+              </div>
+              <div>
+                <p className="text-gray-600 text-sm">Job Post Count</p>
+                <p className="text-2xl font-bold">
+                  {dashboardCounts?.data?.totalJobPosts ?? 0}
+                </p>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

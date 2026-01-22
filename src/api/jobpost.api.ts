@@ -1,6 +1,7 @@
 // src/api/job.api.ts
 import { apiClient } from "./api";
 import { buildQueryParams } from "../utils/buildQueryParams";
+import { FetchParams } from "./admin.api";
 
 export interface FetchJobPostsParams {
   page: number;
@@ -53,6 +54,20 @@ export const fetchJobPostsApi = ({
   return apiClient.get<JobPostsResponse>(url);
 };
 
+// Fetch Own Job List
+export const fetchOwnJobPostsApi = ({
+  page,
+  limit,
+  searchValue = "",
+  filterValues = {},
+}: FetchJobPostsParams): Promise<JobPostsResponse> => {
+  const queryParams = buildQueryParams(searchValue, filterValues);
+  const url = `/api/job/own?page=${page}&limit=${limit}${
+    queryParams ? `&${queryParams}` : ""
+  }`;
+  return apiClient.get<JobPostsResponse>(url);
+};
+
 // Fetch Job Post By ID
 export const fetchJobPostByIdApi = (id: string) => {
   return apiClient.get<JobPost>(`/api/job/jobs/${id}`);
@@ -61,6 +76,16 @@ export const fetchJobPostByIdApi = (id: string) => {
 // Update Job Post By ID
 export const updateJobPostApi = (id: string, data: any) => {
   return apiClient.put<any>(`/api/job/update/${id}`, data);
+};
+
+// Status Change Job Post By ID
+export const statusJobPostApi = (id: string, status: any) => {
+  return apiClient.put<any>(`/api/job/status/${id}`, status);
+};
+
+// Status Change Job Post By ID
+export const applicationStatusJobPostApi = (id: string, status: any) => {
+  return apiClient.put<any>(`api/job/jobs/applications/${id}/status`, status);
 };
 
 // Delete Job Post By ID

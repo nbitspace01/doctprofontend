@@ -50,6 +50,32 @@ export const totalCollege = () => {
     </svg>
   );
 };
+
+export const AdsPostIcon = () => {
+  return (
+    <svg
+      width="54"
+      height="54"
+      viewBox="0 0 54 54"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer soft bg */}
+      <rect width="54" height="54" rx="27" fill="#FFEDED" />
+
+      {/* Inner solid red */}
+      <rect x="5" y="5" width="44" height="44" rx="22" fill="#FF3B3B" />
+
+      {/* Ads / Megaphone Icon */}
+      <path
+        d="M20.5 30.5V27.5H18.5C17.67 27.5 17 26.83 17 26C17 25.17 17.67 24.5 18.5 24.5H20.5L28.5 20.5V33.5L20.5 30.5ZM30 22.8V31.2C31.9 30.5 33.2 28.9 33.2 27C33.2 25.1 31.9 23.5 30 22.8ZM22.5 32.5C22.5 33.88 23.62 35 25 35H26V31L22.5 32.5Z"
+        fill="white"
+      />
+    </svg>
+  );
+};
+
+
 export const totalHospital = () => {
   return (
     <svg
