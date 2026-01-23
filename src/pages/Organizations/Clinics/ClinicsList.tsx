@@ -9,6 +9,7 @@ import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
 import { fetchHospitalAdmin } from "../../../api/admin.api";
 import { apiClient } from "../../../api/api";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface Hospital {
   id: string;
@@ -26,7 +27,7 @@ interface PaginatedResponse {
 
 const ClinicsList: React.FC = () => {
   const queryClient = useQueryClient();
-  const {modal} = App.useApp();
+  const { modal } = App.useApp();
 
   const {
     currentPage,
@@ -172,19 +173,7 @@ const ClinicsList: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag
-          color={
-            status === "Active"
-              ? "success"
-              : status === "Inactive"
-                ? "error"
-                : "warning"
-          }
-        >
-          {status}
-        </Tag>
-      ),
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
       title: "Actions",

@@ -30,7 +30,7 @@ const ClinicViewDrawer = ({
   onClose,
   hospitalData,
 }: ClinicViewDrawerProps) => {
-  const {modal} = App.useApp();
+  const { modal } = App.useApp();
 
   const queryClient = useQueryClient();
 
@@ -76,34 +76,36 @@ const ClinicViewDrawer = ({
     <Drawer
       open={isOpen}
       onClose={onClose}
-      width={720}
+      width={600}
       title="Hospital Admin Details"
       footer={
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        gap: 12,
-      }}
-    >
-      {/* Back / Cancel Button */}
-      <Button onClick={onClose}>
-        Back
-      </Button>
+        <div className="flex justify-between items-center">
+          <Button
+            size="large"
+            className="bg-gray-200 text-gray-700 px-8"
+            onClick={onClose}
+          >
+            Back
+          </Button>
 
-      {/* Activate / Deactivate Button */}
-      <Button
-        type="primary"
-        danger={hospitalData.status === "ACTIVE"}
-        loading={toggleHospitalStatusMutation.isPending}
-        onClick={handleToggleStatus}
-      >
-        {hospitalData.status === "ACTIVE" ? "Deactivate" : "Activate"}
-      </Button>
-    </div>
-  }
+          {/* Activate / Deactivate Button */}
+          <Button
+            size="large"
+            loading={toggleHospitalStatusMutation.isPending}
+            className={`px-8 ${
+              hospitalData.status === "ACTIVE"
+                ? "border-red-500 text-red-500"
+                : "border-green-500 text-green-500"
+            }`}
+            onClick={handleToggleStatus}
+          >
+            {hospitalData.status === "ACTIVE" ? "Deactivate" : "Activate"}{" "}
+            Hospital Admin
+          </Button>
+        </div>
+      }
     >
-      <div className="p-6">
+      <div className="px-2">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
           <Avatar size={64} className="bg-button-primary text-white">
@@ -119,21 +121,31 @@ const ClinicViewDrawer = ({
         <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600">Address</p>
-            <p>
+            <p className="font-medium">
               {hospitalData.city}, {hospitalData.state}, {hospitalData.country}
             </p>
           </div>
 
           <div>
             <p className="text-gray-600">Created On</p>
-            <FormattedDate dateString={hospitalData.created_at} format="long" />
+            <p className="font-medium">
+              <FormattedDate
+                dateString={hospitalData.created_at}
+                format="long"
+              />
+            </p>
           </div>
 
           <div>
             <p className="text-gray-600">Status</p>
-            <Tag>
-              <StatusBadge status={hospitalData.status} />
-            </Tag>
+            <StatusBadge status={hospitalData.status} />
+          </div>
+          {/* Admin Info */}
+          <div>
+            <p className="text-gray-600">Admin Assigned</p>
+            <p className="font-medium">
+              {hospitalData.adminUserId ? "Yes" : "No admin assigned"}
+            </p>
           </div>
         </div>
 
@@ -143,21 +155,15 @@ const ClinicViewDrawer = ({
             <p className="text-gray-600 flex items-center gap-2">
               <MailOutlined /> Email
             </p>
-            <p>{hospitalData.email}</p>
+            <p className="font-medium">{hospitalData.email}</p>
           </div>
 
           <div>
             <p className="text-gray-600 flex items-center gap-2">
               <PhoneOutlined /> Phone
             </p>
-            <p>{hospitalData.phone}</p>
+            <p className="font-medium">{hospitalData.phone}</p>
           </div>
-        </div>
-
-        {/* Admin Info */}
-        <div className="mt-6">
-          <p className="text-gray-600">Admin Assigned</p>
-          <p>{hospitalData.adminUserId ? "Yes" : "No admin assigned"}</p>
         </div>
       </div>
     </Drawer>
