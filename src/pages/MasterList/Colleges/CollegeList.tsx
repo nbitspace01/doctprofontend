@@ -242,7 +242,7 @@ const CollegeList: React.FC = () => {
           onClick={() => setIsModalOpen(true)}
           className="bg-button-primary hover:!bg-button-primary"
         >
-          Add College
+          Add New College
         </Button>
       </div>
 

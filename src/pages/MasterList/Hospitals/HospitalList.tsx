@@ -210,7 +210,7 @@ const HospitalList: React.FC = () => {
     <div className="p-6">
       <div className="flex justify-between mb-6">
         <h1 className="text-2xl font-semibold">
-          Hospital & Clinics Management
+          Hospitals Management
         </h1>
         <Button
           type="primary"
