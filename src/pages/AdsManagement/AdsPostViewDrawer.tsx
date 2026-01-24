@@ -1,198 +1,204 @@
 import { CloseOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { Button, Drawer, Typography } from "antd";
-import axios from "axios";
-import React from "react";
-
-interface AdsDetailResponse {
-  id: string;
-  title: string;
-  companyName: string;
-  hospitalName: string;
-  adType: string;
-  displayLocation: string;
-  targetAudience: {
-    role: string;
-    country: string;
-    state: string;
-  };
-  description: string;
-  startDate: string;
-  endDate: string;
-  imageUrl: string;
-  redirectUrl: string;
-  status: string;
-  rejectionReason: string | null;
-}
-
-const fetchAdsDetail = async (id: string): Promise<AdsDetailResponse> => {
-  const { data } = await axios.get(`http://localhost:3000/api/ads/${id}`);
-  return data;
-};
-
-interface AdsPostViewDrawerProps {
-  visible: boolean;
-  onClose: () => void;
-  adsId: string;
-}
+import {
+  Button,
+  Drawer,
+  Typography,
+  Spin,
+  Image,
+  Avatar,
+  message,
+  App,
+} from "antd";
+import React, { useEffect, useState } from "react";
+import { AdsPostViewDrawerProps } from "./adsPostTypes";
+import StatusBadge from "../Common/StatusBadge";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  approveAdsPostAPI,
+  rejectAdsPostAPI,
+  statusAdsPostAPI,
+} from "../../api/adsPost.api";
+import { roleProps } from "../../App";
 
 const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
-  visible,
+  open,
   onClose,
-  adsId,
+  adsData,
+  role,
 }) => {
-  const { data: adsData, isLoading } = useQuery({
-    queryKey: ["adsDetail", adsId],
-    queryFn: () => fetchAdsDetail(adsId),
-    enabled: visible && !!adsId,
+  // ------------- Mutations ----------
+  const queryClient = useQueryClient();
+
+  const { modal, message } = App.useApp();
+  const [currentRole, setCurrentRole] = useState<roleProps["role"] | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const storedRole = localStorage.getItem("roleName") as roleProps["role"];
+    setCurrentRole(storedRole);
+
+    // remove old cached queries
+    queryClient.removeQueries({ queryKey: ["adspost"] });
+  }, []);
+
+  const approveMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      statusAdsPostAPI(id, { status: status }),
+    onSuccess: (data: any) => {
+      console.log("satatus", data)
+      message.success(`Ad Status Updated Successfully`);
+      queryClient.invalidateQueries({ queryKey: ["adspost"] });
+      onClose();
+    },
+    onError: () => {
+      message.error("Failed to change post status");
+    },
   });
 
-  // Update the destructured properties
-  const {
-    title = "",
-    companyName = "",
-    hospitalName = "",
-    adType = "",
-    displayLocation = "",
-    startDate = "",
-    endDate = "",
-    targetAudience = {
-      role: "",
-      country: "",
-      state: "",
-    },
-    description = "",
-  } = adsData || {};
+  // ----- Handle Function ------
+  const handleStatusChange = (status: any) => {
+    if (!adsData?.id) return;
+    modal.confirm({
+      title: "Confirm Changes",
+      content: `Do You Want To ${status} This Job Post?`,
+      okType: "danger",
+      onOk: () => approveMutation.mutate(payload),
+    });
 
-  if (isLoading) {
+    const payload = {
+      id: adsData.id,
+      status,
+    };
+    // if (status === "APPROVED") {
+    // approveMutation.mutate(payload);
+    // } else {
+    //   rejectMutation.mutate(payload);
+    // }
+  };
+
+  if (!adsData) {
     return (
       <Drawer
-        visible={visible}
-        onClose={onClose}
-        width={400}
-        closeIcon={<CloseOutlined />}
         title="Ads Post"
-        className="p-0"
+        placement="right"
+        open={open}
+        onClose={onClose}
+        width={600}
+        closeIcon={<CloseOutlined />}
       >
-        <div className="flex justify-center items-center h-full">
-          Loading...
-        </div>
+        <div className="text-center text-gray-500">No data found</div>
       </Drawer>
     );
   }
 
+  const avatarInitial = adsData.title?.[0] || "A";
+
   return (
     <Drawer
-      visible={visible}
-      onClose={onClose}
-      width={400}
-      closeIcon={<CloseOutlined />}
       title="Ads Post"
-      className="p-0"
+      placement="right"
+      open={open}
+      onClose={onClose}
+      width={600}
+      closeIcon={<CloseOutlined />}
+      footer={
+        currentRole === "admin" ? (
+          <div className="flex justify-between items-center">
+            <Button
+              size="large"
+              className="bg-gray-200 text-gray-700 px-8"
+              onClick={onClose}
+            >
+              Back
+            </Button>
+
+            <div className="flex gap-2">
+              <Button
+                disabled={adsData.status == "INACTIVE"}
+                loading={approveMutation.isPending}
+                size="large"
+                danger
+                onClick={() => handleStatusChange("REJECTED")}
+              >
+                Reject
+              </Button>
+              <Button
+                disabled={adsData.status == "ACTIVE"}
+                loading={approveMutation.isPending}
+                size="large"
+                type="primary"
+                onClick={() => handleStatusChange("APPROVED")}
+              >
+                Approve
+              </Button>
+            </div>
+          </div>
+        ) : null
+      }
     >
-      <div className="flex flex-col h-full">
-        {/* Basic Info Section */}
-        <div className="p-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Typography.Text className="text-gray-500">Title</Typography.Text>
-              <Typography.Text className="block font-medium">
-                {title}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Company Name
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {companyName}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Hospital Name
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {hospitalName}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Ad Type
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {adType}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Display Location
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {displayLocation}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Start Date
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {startDate}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                End Date
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {endDate}
-              </Typography.Text>
+      <div className="flex flex-col">
+        {/* Header */}
+        <div className="flex items-center gap-4 mb-8">
+          <Avatar size={40} className="bg-blue-500 text-white rounded-full">
+            {avatarInitial}
+          </Avatar>
+
+          <h3 className="text-lg mt-2 font-semibold">{adsData.title}</h3>
+        </div>
+
+        {/* Info Grid */}
+        <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
+          <div>
+            <div className="text-xs text-gray-500">Company Name</div>
+            <div className="text-sm">{adsData.companyName || "N/A"}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Ad Type</div>
+            <div className="text-sm">{adsData.adType}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Display Location</div>
+            <div className="text-sm">{adsData.displayLocation}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Start Date</div>
+            <div className="text-sm">{adsData.startDate}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">End Date</div>
+            <div className="text-sm">{adsData.endDate}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500 mb-2">Status</div>
+            <div className="text-sm">
+              <StatusBadge status={adsData.status} />
             </div>
           </div>
         </div>
 
-        {/* Target Audience Section */}
-        <div className="p-4">
-          <Typography.Title level={5}>Target Audience</Typography.Title>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Typography.Text className="text-gray-500">Role</Typography.Text>
-              <Typography.Text className="block font-medium">
-                {targetAudience.role}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">State</Typography.Text>
-              <Typography.Text className="block font-medium">
-                {targetAudience.state}
-              </Typography.Text>
-            </div>
-            <div>
-              <Typography.Text className="text-gray-500">
-                Country
-              </Typography.Text>
-              <Typography.Text className="block font-medium">
-                {targetAudience.country}
-              </Typography.Text>
-            </div>
-          </div>
-        </div>
-
-        {/* Description Section */}
-        <div className="p-4">
-          <Typography.Title level={5}>Description</Typography.Title>
-          <Typography.Text className="block font-medium">
-            {description}
+        {/* Description */}
+        <div className="mb-8">
+          <div className="text-xs text-gray-500 mb-1">Description</div>
+          <Typography.Text className="text-sm">
+            {adsData.description}
           </Typography.Text>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-auto p-4 flex gap-4">
-          <Button className="flex-1">Reject</Button>
-          <Button className="flex-1" type="primary">
-            Approve
-          </Button>
-        </div>
+        {/* Ad Image Section */}
+        {adsData.imageUrl && (
+          <div className="mb-8">
+            <div className="text-xs font-medium text-gray-500 mb-1">
+              Ad Image
+            </div>
+            <Image
+              src={adsData.imageUrl}
+              alt="Ad Image"
+              width="100%"
+              style={{ borderRadius: "8px" }}
+            />
+          </div>
+        )}
       </div>
     </Drawer>
   );

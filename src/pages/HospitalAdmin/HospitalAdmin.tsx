@@ -180,7 +180,7 @@ const HospitalAdmin: React.FC = () => {
 
     const filterParam = filterParams.length > 0 ? `&${filterParams.join("&")}` : "";
     
-    const fullUrl = `${API_URL}/api/user/hospital-admins?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
+    const fullUrl = `${API_URL}/api/hospital-admin/list?page=${validPage}&limit=${validLimit}${searchParam}${filterParam}`;
     console.log("Hospital Admin API URL:", fullUrl);
     
     const res = await ApiRequest.get(fullUrl);
@@ -481,7 +481,7 @@ const HospitalAdmin: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-      await ApiRequest.delete(`${API_URL}/api/user/hospital-admin/${id}`);
+      await ApiRequest.delete(`${API_URL}/api/hospital/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hospitalAdmin"] });

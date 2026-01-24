@@ -1,172 +1,233 @@
-import React, { useState } from "react";
-import { Table, Button, Tag } from "antd";
-import type { ColumnsType } from "antd/es/table";
+import React, { useEffect, useMemo, useState } from "react";
+import { Button, Tag, App, Spin, Card } from "antd";
 import CreateAdPost from "./CreateAdPost";
-import AdsPostViewDrawer from "./AdsPostViewDrawer";
-import DownloadFilterButton from "../Common/DownloadFilterButton";
 import CommonDropdown from "../Common/CommonActionsDropdown";
-import CommonPagination from "../Common/CommonPagination";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useListController } from "../../hooks/useListController";
+import {
+  deleteAdsPostAPI,
+  fetchAdsPostAPI,
+  getOwnAdsPostAPI,
+} from "../../api/adsPost.api";
+import CommonTable from "../../components/Common/CommonTable";
+import StatusBadge from "../Common/StatusBadge";
+import { AdsPostData, AdsPostResponse } from "./adsPostTypes";
+import AdsPostViewDrawer from "./AdsPostViewDrawer";
+import { roleProps } from "../../App";
+import { AdsPostIcon, totalHospital } from "../Common/SVG/svg.functions";
 
-interface AdsPost {
-  key: string;
-  sNo: number;
-  adId: string;
-  adTitle: string;
-  companyName: string;
-  type: string;
-  displayStart: string;
-  endDate: string;
-  description: string;
-  status: string;
-}
-
-const AdsPostList: React.FC = () => {
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(8);
+const AdsPostList: React.FC<roleProps> = ({ role }) => {
+  const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-  const [searchValue, setSearchValue] = useState("");
-  const searchParam = searchValue ? `&search=${searchValue}` : "";
-  const { data: adsData, isLoading } = useQuery({
-    queryKey: ["ads", currentPage, pageSize, searchValue],
-    queryFn: async () => {
-      const response = await fetch(
-        `${API_URL}/api/ads?page=${currentPage}&limit=${pageSize}${searchParam}`
-      );
-      console.log(response);
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
+
+  /* -------------------- State -------------------- */
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editData, setEditData] = useState<AdsPostData | null>(null);
+  const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
+  const [selectedAdsPost, setSelectedAdsPost] = useState<AdsPostData | null>(
+    null,
+  );
+  const [currentRole, setCurrentRole] = useState<roleProps["role"] | null>(
+    null,
+  );
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  /* -------------------- List Controller -------------------- */
+  const {
+    currentPage,
+    pageSize,
+    searchValue,
+    filterValues,
+    onPageChange,
+    onSearch,
+    onFilterChange,
+  } = useListController();
+
+  /* -------------------- Use Effect -------------------- */
+  useEffect(() => {
+    const storedRole = localStorage.getItem("roleName") as roleProps["role"];
+    const storedUserId = localStorage.getItem("userId") || null;
+    setCurrentRole(storedRole);
+    setCurrentUserId(storedUserId);
+
+    // remove old cached queries
+    queryClient.removeQueries({ queryKey: ["adspost"] });
+  }, []);
+
+  /* -------------------- Query -------------------- */
+  const { data: adsPostResponse, isFetching } = useQuery<
+    AdsPostResponse,
+    Error
+  >({
+    queryKey: [
+      "adspost",
+      currentRole,
+      currentUserId,
+      currentPage,
+      pageSize,
+      searchValue,
+      filterValues,
+    ],
+    queryFn: () => {
+      if (currentRole !== "admin") {
+        return getOwnAdsPostAPI(currentUserId)({
+          page: currentPage,
+          limit: pageSize,
+          searchValue,
+          filterValues,
+        });
+      } else {
+        return fetchAdsPostAPI({
+          page: currentPage,
+          limit: pageSize,
+          searchValue,
+          filterValues,
+        });
       }
-      return response.json();
     },
+    enabled: !!currentUserId && !!currentRole,
     refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnWindowFocus: false,
     staleTime: 0,
   });
 
-  const columns: ColumnsType<AdsPost> = [
-    {
-      title: "S No",
-      dataIndex: "sNo",
-      key: "sNo",
-      render: (_: any, __: any, index: number) => index + 1,
-      width: 100,
+  const allAdsPost = adsPostResponse?.data ?? [];
+  const totalCount = adsPostResponse?.total ?? 0;
+
+  /* -------------------- Mutation -------------------- */
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteAdsPostAPI(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["adspost"] });
+      message.success("Ads Post deleted successfully");
     },
-    {
-      title: "Ad ID",
-      dataIndex: "id",
-      key: "id",
+    onError: (error: any) => {
+      message.error(error?.message || "Failed to delete ads post");
     },
-    {
-      title: "Ad Title",
-      dataIndex: "title",
-      key: "title",
-    },
-    {
-      title: "Company Name",
-      dataIndex: "companyName",
-      key: "companyName",
-    },
-    {
-      title: "Type",
-      dataIndex: "adType",
-      key: "adType",
-    },
-    {
-      title: "Display Start",
-      dataIndex: "startDate",
-      key: "startDate",
-      render: (date: string) => {
-        return new Date(date).toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        });
+  });
+
+  /* -------------------- Handlers -------------------- */
+  const handleView = (record: AdsPostData) => {
+    setSelectedAdsPost(record);
+    setIsViewDrawerOpen(true);
+  };
+
+  const handleEdit = (record: AdsPostData) => {
+    setEditData(record);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (record: AdsPostData) => {
+    modal.confirm({
+      title: "Confirm Delete",
+      content: `Delete ${record.title}?`,
+      okType: "danger",
+      onOk: () => deleteMutation.mutate(record.id),
+    });
+  };
+
+  /* -------------------- Columns -------------------- */
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        dataIndex: "sNo",
+        key: "sNo",
+        render: (_: any, __: any, index: number) => index + 1,
+        width: 100,
       },
-    },
-    {
-      title: "End Date",
-      dataIndex: "endDate",
-      key: "endDate",
-      render: (date: string) => {
-        return new Date(date).toLocaleDateString("en-US", {
-          day: "numeric",
-          month: "short",
-          year: "numeric",
-        });
+      {
+        title: "Ad ID",
+        dataIndex: "id",
+        key: "id",
       },
-    },
-    {
-      title: "Description",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => {
-        const colorMap: { [key: string]: string } = {
-          Active: "green",
-          Scheduled: "orange",
-          Pending: "gold",
-          Expired: "red",
-        };
-        return <Tag color={colorMap[status]}>{status}</Tag>;
+      {
+        title: "Ad Title",
+        dataIndex: "title",
+        key: "title",
       },
-    },
-    {
-      title: "Action",
-      key: "action",
+      {
+        title: "Display Location",
+        dataIndex: "displayLocation",
+        key: "displayLocation",
+      },
+      {
+        title: "Company Name",
+        dataIndex: "companyName",
+        key: "companyName",
+      },
+      {
+        title: "Type",
+        dataIndex: "adType",
+        key: "adType",
+      },
+      {
+        title: "Display Start",
+        dataIndex: "startDate",
+        key: "startDate",
+        render: (date: string) => {
+          return new Date(date).toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        },
+      },
+      {
+        title: "End Date",
+        dataIndex: "endDate",
+        key: "endDate",
+        render: (date: string) => {
+          return new Date(date).toLocaleDateString("en-US", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        },
+      },
+      {
+        title: "Description",
+        dataIndex: "description",
+        key: "description",
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status?: string) => <StatusBadge status={status || ""} />,
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        render: (_: any, record: AdsPostData) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            onEdit={() => handleEdit(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
 
-      render: () => (
-        <CommonDropdown
-          onView={() => setIsViewDrawerOpen(true)}
-          onEdit={() => {}}
-          onDelete={() => {}}
-          showDelete={false}
-          showEdit={false}
-        />
-      ),
-    },
-  ];
-  const handleModalClose = () => {
-    setIsCreateModalOpen(false);
-    queryClient.invalidateQueries({ queryKey: ["ads"] });
-  };
+  /* -------------------- Filters -------------------- */
+  const filterOptions = useMemo(
+    () => [
+      { label: "Ads Title", key: "title", type: "text" as const },
+      { label: "Company Name", key: "companyName", type: "text" as const },
+      {
+        label: "Status",
+        key: "status",
+        options: ["Active", "Scheduled", "Pending", "Expired"],
+      },
+    ],
+    [],
+  );
 
-  const handlePageChange = (page: number, pageSize?: number) => {
-    setCurrentPage(page);
-    if (pageSize) {
-      setPageSize(pageSize);
-    }
-  };
-
-  const handleSearch = (value: string) => {
-    setSearchValue(value);
-  };
-
-  const filterOptions = [
-    {
-      label: "Status",
-      key: "status",
-      options: ["Active", "Scheduled", "Pending", "Expired"],
-    },
-  ];
-
-  const handleFilterChange = (filters: Record<string, any>) => {
-    console.log("Filter values:", filters);
-  };
-
+  /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {
-    const data = adsData?.data || adsData || [];
-    if (!data || data.length === 0) {
-      console.log("No data to download");
-      return;
-    }
+    if (!allAdsPost.length) return;
 
     const headers = [
       "S No",
@@ -182,7 +243,7 @@ const AdsPostList: React.FC = () => {
     const rows = [];
     rows.push(headers.join(format === "csv" ? "," : "\t"));
 
-    data.forEach((row: any, index: number) => {
+    allAdsPost.forEach((row: any, index: number) => {
       const values = [
         (currentPage - 1) * pageSize + index + 1,
         `"${row.id || "N/A"}"`,
@@ -197,7 +258,8 @@ const AdsPostList: React.FC = () => {
     });
 
     const content = rows.join("\n");
-    const mimeType = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
+    const mimeType =
+      format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel";
     const fileExtension = format === "csv" ? "csv" : "xls";
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
@@ -210,51 +272,78 @@ const AdsPostList: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  if (!currentRole || !currentUserId) {
+    return <Spin tip="Loading..." />;
+  }
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Ads Post</h1>
-        <Button
-          type="primary"
-          className="bg-button-primary hover:!bg-button-primary"
-          onClick={() => setIsCreateModalOpen(true)}
-        >
-          + Create Ad Post
-        </Button>
-      </div>
-      <div className="bg-white rounded-lg shadow">
-        <DownloadFilterButton
-          onSearch={handleSearch}
-          searchValue={searchValue}
-          filterOptions={filterOptions}
-          onFilterChange={handleFilterChange}
-          onDownload={handleDownload}
-        />
-
-        <Table
-          columns={columns}
-          dataSource={adsData?.data || adsData || []}
-          loading={isLoading}
-          scroll={{ x: "max-content" }}
-          pagination={false}
-          className="shadow-sm rounded-lg"
-        />
-        <CommonPagination
-          current={currentPage}
-          pageSize={pageSize}
-          total={adsData?.total || adsData?.length || 0}
-          onChange={handlePageChange}
-          onShowSizeChange={handlePageChange}
-          pageSizeOptions={["8", "16", "24", "32"]}
-        />
+        {currentRole !== "admin" && (
+          <Button
+            type="primary"
+            className="bg-button-primary hover:!bg-button-primary"
+            onClick={() => setIsModalOpen(true)}
+          >
+            + Create Ad Post
+          </Button>
+        )}
       </div>
 
-      <CreateAdPost open={isCreateModalOpen} onClose={handleModalClose} />
-      <AdsPostViewDrawer
-        visible={isViewDrawerOpen}
-        onClose={() => setIsViewDrawerOpen(false)}
-        adsId={(adsData?.data?.[0]?.id || adsData?.[0]?.id) ?? ""}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <Card className="shadow-sm bg-white p-2">
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-full text-white">{AdsPostIcon()}</div>
+            <div>
+              <p className="text-gray-600 text-sm">Ads Post Count</p>
+              <p className="text-2xl font-bold">
+                {totalCount ?? 0}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <CommonTable<AdsPostData>
+        rowKey="id"
+        columns={columns}
+        data={allAdsPost}
+        loading={isFetching}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={totalCount}
+        onPageChange={onPageChange}
+        filters={filterOptions}
+        onFilterChange={onFilterChange}
+        onSearch={onSearch}
+        searchValue={searchValue}
+        onDownload={handleDownload}
       />
+
+      <CreateAdPost
+        open={isModalOpen}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
+        onSubmit={(values) => {
+          console.log(editData ? "Update" : "Add", values);
+          queryClient.invalidateQueries({ queryKey: ["adspost"] });
+          setIsModalOpen(false);
+          setEditData(null);
+        }}
+        initialData={editData}
+      />
+
+      {selectedAdsPost && (
+        <AdsPostViewDrawer
+          open={isViewDrawerOpen}
+          onClose={() => setIsViewDrawerOpen(false)}
+          adsData={selectedAdsPost}
+          role={role}
+        />
+      )}
     </div>
   );
 };

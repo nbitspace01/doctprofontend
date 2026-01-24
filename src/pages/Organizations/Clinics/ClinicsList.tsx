@@ -1,13 +1,15 @@
 import { PlusOutlined } from "@ant-design/icons";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Avatar, Tag } from "antd";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button, Avatar, Tag, App } from "antd";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
-import ClinicViewDrawer from "./ClinicViewDrawer";
+import ClinicViewDrawer, { HospitalData } from "./ClinicViewDrawer";
 import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
 import { fetchHospitalAdmin } from "../../../api/admin.api";
+import { apiClient } from "../../../api/api";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface Hospital {
   id: string;
@@ -25,6 +27,7 @@ interface PaginatedResponse {
 
 const ClinicsList: React.FC = () => {
   const queryClient = useQueryClient();
+  const { modal } = App.useApp();
 
   const {
     currentPage,
@@ -37,14 +40,11 @@ const ClinicsList: React.FC = () => {
   } = useListController();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const [selectedHospitalId, setSelectedHospitalId] = useState<string | null>(
-    null
+  const [selectedHospital, setSelectedHospital] = useState<HospitalData | null>(
+    null,
   );
 
-  const { data, isFetching, error, refetch } = useQuery<
-    PaginatedResponse,
-    Error
-  >({
+  const { data, isFetching } = useQuery<PaginatedResponse, Error>({
     queryKey: ["hospitals", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
       fetchHospitalAdmin({
@@ -65,6 +65,26 @@ const ClinicsList: React.FC = () => {
   const handleCloseModal = () => {
     setIsModalVisible(false);
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+  };
+
+  const deleteHospitalMutation = useMutation({
+    mutationFn: (id: string) => apiClient.delete(`/api/hospital-admin/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    },
+  });
+
+  const confirmDeleteHospital = (id: string) => {
+    modal.confirm({
+      title: "Delete Hospital",
+      content: "Are you sure you want to delete this hospital?",
+      okText: "Yes, Delete",
+      cancelText: "No",
+      okType: "danger",
+      onOk: () => {
+        deleteHospitalMutation.mutate(id);
+      },
+    });
   };
 
   const filterOptions = [
@@ -153,52 +173,26 @@ const ClinicsList: React.FC = () => {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => (
-        <Tag
-          color={
-            status === "Active"
-              ? "success"
-              : status === "Inactive"
-              ? "error"
-              : "warning"
-          }
-        >
-          {status}
-        </Tag>
-      ),
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
       title: "Actions",
       key: "actions",
-      render: (_: any, record: Hospital) => (
+      render: (_: any, record: HospitalData) => (
         <CommonDropdown
-          onView={() => setSelectedHospitalId(record.id)}
+          onView={() => setSelectedHospital(record)}
           onEdit={() => {}}
-          onDelete={() => {}}
+          onDelete={() => confirmDeleteHospital(record.id)}
           showEdit={false}
-          showDelete={false}
         />
       ),
     },
   ];
 
-  // if (error) {
-  //   return (
-  //     <div className="p-6 text-center text-red-600">
-  //       Error loading data: {error.message}
-  //       <button className="ml-2 underline" onClick={() => refetch()}>
-  //         Retry
-  //       </button>
-  //     </div>
-  //   );
-  // }
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">
-          Hospital & Clinics Management
-        </h1>
+        <h1 className="text-2xl font-semibold">Hospital Management</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}
@@ -232,11 +226,11 @@ const ClinicsList: React.FC = () => {
         onDownload={handleDownload}
       />
 
-      {selectedHospitalId && (
+      {selectedHospital && (
         <ClinicViewDrawer
-          hospitalId={selectedHospitalId}
+          hospitalData={selectedHospital}
           isOpen={true}
-          onClose={() => setSelectedHospitalId(null)}
+          onClose={() => setSelectedHospital(null)}
         />
       )}
     </div>

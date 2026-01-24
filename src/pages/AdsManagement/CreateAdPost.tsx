@@ -1,69 +1,215 @@
-import React, { useState } from "react";
-import { Form, Input, Select, DatePicker, Upload, Button, Modal } from "antd";
+import React, { useEffect, useState } from "react";
+import {
+  Form,
+  Input,
+  Select,
+  DatePicker,
+  Upload,
+  Button,
+  Modal,
+  message,
+  App,
+} from "antd";
 import { UploadOutlined } from "@ant-design/icons";
-import type { UploadFile } from "antd/es/upload/interface";
+import type { UploadFile, UploadProps } from "antd/es/upload/interface";
 import { useMutation } from "@tanstack/react-query";
-import axios from "axios";
+import {
+  AdsPostFormValues,
+  AdsPostPayload,
+  CreateAdPostProps,
+} from "./adsPostTypes";
+import { createAdsPostAPI, updateAdsPostAPI } from "../../api/adsPost.api";
+import { showError, showSuccess } from "../Common/Notification";
+import { uploadImageAPI } from "../../api/upload.api";
+import dayjs from "dayjs";
 
-interface CreateAdPostProps {
-  open: boolean;
-  onClose: () => void;
-}
-
-const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
+const CreateAdPost: React.FC<CreateAdPostProps> = ({
+  open,
+  onCancel,
+  onSubmit,
+  initialData,
+}) => {
   const [form] = Form.useForm();
+  const { notification } = App.useApp();
+
   const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const [uploading, setUploading] = useState(false);
+
+  const isEditMode = Boolean(initialData);
+
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState("");
 
-  const createAdMutation = useMutation({
-    mutationFn: (adData: any) =>
-      axios.post("http://localhost:3000/api/ads", adData),
-    onSuccess: () => {
-      form.resetFields();
-      setFileList([]);
-      onClose();
-      // You might want to add a success notification here
-    },
-    onError: (error) => {
-      console.error("Error creating ad:", error);
-      // You might want to add an error notification here
-    },
-  });
-
-  const handleSubmit = (values: any) => {
-    const payload = {
-      title: values.adTitle,
-      companyName: values.companyName,
-      hospitalId: "003aae81-8ccc-449d-8f76-bcd02b55dfec", // You might want to make this dynamic
-      adType: values.adType,
-      displayLocation: "Mobile App", // You might want to add this as a form field
-      targetAudience: {
-        role: "doctor", // You might want to add this as a form field
-        country: values.country,
-        state: values.state,
-      },
-      description: values.description,
-      startDate: values.startDate.format("YYYY-MM-DD"),
-      endDate: values.endDate.format("YYYY-MM-DD"),
-      redirectUrl: values.link,
-      imageUrl: fileList[0]?.response?.url || "", // Assuming your upload endpoint returns the URL
-      createdBy: "f1d79e3b-2437-41b1-b6b6-dd383e6de048", // You might want to make this dynamic
-    };
-
-    createAdMutation.mutate(payload);
-  };
-
-  const handlePreview = async (file: UploadFile) => {
-    setPreviewImage(file.url || (file.preview as string));
+  const handlePreview = (file: UploadFile) => {
+    setPreviewImage(file.url || "");
     setPreviewOpen(true);
   };
 
-  return (
-    <Modal open={open} onCancel={onClose} width={800} footer={null}>
-      <div className="max-w-3xl mx-auto p-6">
-        <h1 className="text-2xl font-semibold mb-6">Create Ad Post</h1>
+  /* -------------------- Upload Config -------------------- */
+  const handleUpload: UploadProps["customRequest"] = async ({
+    file,
+    onSuccess,
+    onError,
+  }) => {
+    try {
+      setUploading(true);
 
+      const res = await uploadImageAPI(file as File);
+      const imageUrl = res.url;
+      // console.log("Image", res.url);
+      form.setFieldsValue({ imageUrl });
+      setFileList([
+        {
+          uid: (file as any).uid,
+          name: (file as any).name,
+          status: "done",
+          url: imageUrl,
+        },
+      ]);
+
+      onSuccess?.(res);
+    } catch (err) {
+      onError?.(err as any);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const uploadProps: UploadProps = {
+    maxCount: 1,
+    accept: "image/*",
+    customRequest: handleUpload,
+    beforeUpload: (file) => {
+      const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
+
+      if (!allowedTypes.includes(file.type)) {
+        message.error("Only JPG / PNG images allowed");
+        return Upload.LIST_IGNORE;
+      }
+
+      if (file.size / 1024 / 1024 > 2) {
+        message.error("Image must be under 2MB");
+        return Upload.LIST_IGNORE;
+      }
+
+      return true;
+    },
+  };
+
+  /* -------------------- Effects -------------------- */
+  useEffect(() => {
+    if (!open) return;
+
+    if (initialData) {
+      form.setFieldsValue({
+        ...initialData,
+        startDate: dayjs(initialData.startDate),
+        endDate: dayjs(initialData.endDate),
+        imageUrl: initialData.imageUrl,
+      });
+
+      if (initialData.imageUrl) {
+        setFileList([
+          {
+            uid: "-1",
+            name: "image",
+            status: "done",
+            url: initialData.imageUrl,
+          },
+        ]);
+      }
+    } else {
+      form.resetFields();
+      setFileList([]);
+    }
+  }, [open, initialData]);
+
+  /* -------------------- Mutations -------------------- */
+  const createMutation = useMutation({
+    mutationFn: (values: AdsPostFormValues) =>
+      createAdsPostAPI({
+        ...values,
+      }),
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: "Ads Post Created Successfully",
+        description: data.message,
+      });
+      form.resetFields();
+      setFileList([]);
+      onCancel();
+      onSubmit(data);
+    },
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Failed to create ads post",
+        description: error.response?.data?.error || "Failed to create ads post",
+      });
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (values: AdsPostFormValues) => {
+      const payload: any = {
+        ...values,
+      };
+
+      return updateAdsPostAPI(initialData!.id, payload);
+    },
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: "Ads Post Updated Successfully",
+        description: data.message,
+      });
+      form.resetFields();
+      setFileList([]);
+      onCancel();
+      onSubmit(data);
+    },
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Failed to update ads post",
+        description: error.response?.error || "Failed to update ads post",
+      });
+    },
+  });
+
+  /* -------------------- Submit -------------------- */
+  const handleSubmit = (values: AdsPostFormValues) => {
+    const payload: AdsPostPayload = {
+      title: values.title,
+      companyName: values.companyName,
+      adType: values.adType,
+      country: values.country,
+      state: values.state,
+      contentType: values.contentType,
+      imageUrl: values.imageUrl,
+      redirectUrl: values.redirectUrl,
+      description: values.description,
+      displayLocation: values.displayLocation,
+      startDate: values.startDate.toString(),
+      endDate: values.endDate.toString()
+    };
+    console.log(" media Url:", values.imageUrl);
+
+    isEditMode
+      ? updateMutation.mutate(payload)
+      : createMutation.mutate(payload);
+  };
+
+  return (
+    <Modal
+      open={open}
+      onCancel={() => {
+        form.resetFields();
+        setFileList([]);
+        onCancel();
+      }}
+      width={800}
+      footer={null}
+    >
+      <div className="max-w-3xl mx-auto p-6">
+        <h1>{isEditMode ? "Edit Ad Post" : "Create Ad Post"}</h1>
         <Form
           form={form}
           layout="vertical"
@@ -72,7 +218,7 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
         >
           <Form.Item
             label="Ad Title"
-            name="adTitle"
+            name="title"
             rules={[{ required: true, message: "Please enter ad title" }]}
           >
             <Input placeholder="Enter Ad Title" className="w-full" />
@@ -93,12 +239,17 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
           >
             <Select placeholder="Select Ad Type">
               <Select.Option value="banner">Banner</Select.Option>
-              <Select.Option value="video">Video</Select.Option>
-              <Select.Option value="popup">Popup</Select.Option>
-              <Select.Option value="sponsoredpost">
-                Sponsored post
-              </Select.Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="Display Location"
+            name="displayLocation"
+            rules={[
+              { required: true, message: "Please enter display location" },
+            ]}
+          >
+            <Input placeholder="Enter display location" />
           </Form.Item>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,20 +301,29 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
           >
             <Select placeholder="Select Content Type">
               <Select.Option value="image">Image</Select.Option>
-              <Select.Option value="video">Video</Select.Option>
             </Select>
           </Form.Item>
 
           <Form.Item
             label="Upload Media"
-            name="media"
+            // name="imageUrl"
             rules={[{ required: true, message: "Please upload media" }]}
           >
             <Upload
+              {...uploadProps}
               listType="picture-card"
               fileList={fileList}
-              onChange={({ fileList }) => setFileList(fileList)}
-              onPreview={handlePreview}
+              onChange={({ fileList }) => {
+                setFileList(fileList);
+
+                if (fileList.length === 0) {
+                  form.setFieldsValue({ imageUrl: undefined });
+                }
+              }}
+              showUploadList={{
+                showPreviewIcon: false,
+                showRemoveIcon: true,
+              }}
             >
               {fileList.length < 1 && (
                 <div>
@@ -173,10 +333,17 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
               )}
             </Upload>
           </Form.Item>
+          <Form.Item
+            name="imageUrl"
+            hidden
+            rules={[{ required: true, message: "Please upload media" }]}
+          >
+            <Input />
+          </Form.Item>
 
           <Form.Item
-            label="Link"
-            name="link"
+            label="redirectUrl"
+            name="redirectUrl"
             rules={[{ required: true, message: "Please enter link" }]}
           >
             <Input placeholder="http://example.com" />
@@ -191,14 +358,25 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
           </Form.Item>
 
           <div className="flex justify-end space-x-4">
-            <Button onClick={onClose} className="px-6">
+            <Button
+              onClick={() => {
+                form.resetFields();
+                setFileList([]);
+                onCancel();
+              }}
+              className="px-6"
+            >
               Cancel
             </Button>
             <Button
               type="primary"
               htmlType="submit"
               className="px-6"
-              loading={createAdMutation.isPending}
+              loading={
+                uploading ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
             >
               Publish
             </Button>
@@ -206,14 +384,14 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({ open, onClose }) => {
           </div>
         </Form>
 
-        <Modal
+        {/* <Modal
           open={previewOpen}
           title="Preview"
           footer={null}
           onCancel={() => setPreviewOpen(false)}
         >
           <img alt="preview" className="w-full" src={previewImage} />
-        </Modal>
+        </Modal> */}
       </div>
     </Modal>
   );

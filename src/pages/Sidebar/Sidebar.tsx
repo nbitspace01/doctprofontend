@@ -7,7 +7,6 @@ import {
   Briefcase,
   FileText,
   House,
-  LayoutDashboard,
   LogOut,
   MessageCircleQuestion,
   Settings,
@@ -50,15 +49,15 @@ const Sidebar: React.FC = () => {
 
   /* -------------------- State -------------------- */
   const [selectedItem, setSelectedItem] = React.useState<string>(
-    () => localStorage.getItem(STORAGE_KEYS.selectedItem) ?? ""
+    () => localStorage.getItem(STORAGE_KEYS.selectedItem) ?? "",
   );
 
   const [expandedMenus, setExpandedMenus] = React.useState<string[]>(() =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.expandedMenus) ?? "[]")
+    JSON.parse(localStorage.getItem(STORAGE_KEYS.expandedMenus) ?? "[]"),
   );
 
   const [selectedSubMenu, setSelectedSubMenu] = React.useState<string>(
-    () => localStorage.getItem(STORAGE_KEYS.selectedSubMenu) ?? ""
+    () => localStorage.getItem(STORAGE_KEYS.selectedSubMenu) ?? "",
   );
 
   /* -------------------- Persist State -------------------- */
@@ -66,7 +65,7 @@ const Sidebar: React.FC = () => {
     localStorage.setItem(STORAGE_KEYS.selectedItem, selectedItem);
     localStorage.setItem(
       STORAGE_KEYS.expandedMenus,
-      JSON.stringify(expandedMenus)
+      JSON.stringify(expandedMenus),
     );
     localStorage.setItem(STORAGE_KEYS.selectedSubMenu, selectedSubMenu);
   }, [selectedItem, expandedMenus, selectedSubMenu]);
@@ -86,7 +85,15 @@ const Sidebar: React.FC = () => {
   const allMenuItems: MenuItem[] = [
     {
       id: "dashboard",
-      label: "Super admin Dashboard",
+      label:
+        roleName === "admin"
+          ? "Super Admin Dashboard"
+          : roleName === "subadmin"
+            ? "Sub Admin Dashboard"
+            : roleName === "hospitaladmin"
+              ? "Hospital Admin Dashboard"
+              : "Dashboard", // fallback
+
       icon: <House />,
       onClick: () => {
         setSelectedItem("dashboard");
@@ -94,16 +101,16 @@ const Sidebar: React.FC = () => {
         navigate({ to: "/app/dashboard" });
       },
     },
-    {
-      id: "hospital-dashboard",
-      label: "Hospital Dashboard",
-      icon: <Building2 />,
-      onClick: () => {
-        setSelectedItem("hospital-dashboard");
-        setExpandedMenus([]);
-        navigate({ to: "/app/hospital/dashboard" });
-      },
-    },
+    // {
+    //   id: "hospital-dashboard",
+    //   label: "Hospital Dashboard",
+    //   icon: <Building2 />,
+    //   onClick: () => {
+    //     setSelectedItem("hospital-dashboard");
+    //     setExpandedMenus([]);
+    //     navigate({ to: "/app/hospital/dashboard" });
+    //   },
+    // },
     {
       id: "sub-admin",
       label: "Sub-Admin List",
@@ -124,16 +131,16 @@ const Sidebar: React.FC = () => {
         navigate({ to: "/app/hospital-admin" });
       },
     },
-    {
-      id: "sub-admin-dashboard",
-      label: "Sub-Admin Dashboard",
-      icon: <LayoutDashboard />,
-      onClick: () => {
-        setSelectedItem("sub-admin-dashboard");
-        setExpandedMenus([]);
-        navigate({ to: "/app/subadmin/dashboard" });
-      },
-    },
+    // {
+    //   id: "sub-admin-dashboard",
+    //   label: "Sub-Admin Dashboard",
+    //   icon: <LayoutDashboard />,
+    //   onClick: () => {
+    //     setSelectedItem("sub-admin-dashboard");
+    //     setExpandedMenus([]);
+    //     navigate({ to: "/app/subadmin/dashboard" });
+    //   },
+    // },
     {
       id: "masters",
       label: "Master List",
@@ -266,34 +273,34 @@ const Sidebar: React.FC = () => {
         navigate({ to: "/app/kyc" });
       },
     },
-    { id: "settings", label: "Settings", icon: <Settings /> },
-    { id: "help", label: "Help & Support", icon: <MessageCircleQuestion /> },
-    { id: "roles", label: "Roles & Permission", icon: <ShieldCheck /> },
   ];
 
   /* -------------------- Role Filter (UNCHANGED LOGIC) -------------------- */
   const menuItems =
     roleName === "hospitaladmin"
       ? allMenuItems.filter((i) =>
-          ["hospital-dashboard", "job-post"].includes(i.id)
+          ["dashboard", "job-post"].includes(i.id),
         )
       : roleName === "subadmin"
-      ? allMenuItems.filter((i) =>
-          ["sub-admin-dashboard", "organizations", "kyc"].includes(i.id)
-        )
-      : roleName === "admin"
-      ? allMenuItems.filter((i) =>
-          [
-            "dashboard",
-            "sub-admin",
-            "masters",
-            "organizations",
-            "people",
-            "job-post",
-            "kyc",
-          ].includes(i.id)
-        )
-      : [];
+        ? allMenuItems.filter((i) =>
+            ["dashboard", "organizations", "ad-management", "kyc"].includes(
+              i.id,
+            ),
+          )
+        : roleName === "admin"
+          ? allMenuItems.filter((i) =>
+              [
+                "dashboard",
+                "sub-admin",
+                "masters",
+                "organizations",
+                "people",
+                "ad-management",
+                "job-post",
+                "kyc",
+              ].includes(i.id),
+            )
+          : [];
 
   /* -------------------- Render -------------------- */
   return (

@@ -2,19 +2,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { App, Button, Modal, Table, Tag } from "antd";
 import { useMemo, useState } from "react";
 import CommonDropdown from "../Common/CommonActionsDropdown";
-import { ApiRequest } from "../Common/constant.function";
 import FormattedDate from "../Common/FormattedDate";
-import DownloadFilterButton from "../Common/DownloadFilterButton";
-import CommonPagination from "../Common/CommonPagination";
 import KycViewDrawer from "./KycViewDrawer";
 import { fetchKYCApi } from "../../api/kyc.api";
 import { useListController } from "../../hooks/useListController";
-import { Loader, Plus } from "lucide-react";
 import CommonTable from "../../components/Common/CommonTable";
 
 /* ---------- TYPES ---------- */
 interface KYCData {
-  id: string;
   kycId: string;
   name: string;
   email: string;
@@ -22,6 +17,21 @@ interface KYCData {
   role: string;
   created_on: string;
   kyc_status: string;
+  documents?: KycDocument[];
+  user: Userdata[];
+}
+
+interface Userdata {
+  id: string;
+  email: string;
+  phone: string;
+}
+
+interface KycDocument {
+  document_number: string | null;
+  url: string;
+  status: string;
+  type: string;
 }
 
 interface KYCResponse {
@@ -31,7 +41,8 @@ interface KYCResponse {
 
 const KycList: React.FC = () => {
   // const { modal, message } = App.useApp();
-  // const queryClient = useQueryClient();
+  const queryClient = useQueryClient();
+  const role = localStorage.getItem("roleName");
 
   /* -------------------- State -------------------- */
   // const [isModalOpen, setIsModalOpen] = useState(false);
@@ -50,15 +61,27 @@ const KycList: React.FC = () => {
   } = useListController();
 
   /* ---------- QUERY ---------- */
+  /* ---------- QUERY ---------- */
   const { data: KYCResponse, isFetching } = useQuery<KYCResponse, Error>({
-    queryKey: ["KYC", currentPage, pageSize, searchValue, filterValues],
-    queryFn: () =>
-      fetchKYCApi({
+    queryKey: ["KYC", currentPage, pageSize, searchValue, filterValues, role],
+    queryFn: () => {
+      if (role === "admin") {
+        return fetchKYCApi({
+          page: currentPage,
+          limit: pageSize,
+          searchValue,
+          filterValues,
+        });
+      }
+
+      // non-admin API (example)
+      return fetchKYCApi({
         page: currentPage,
         limit: pageSize,
         searchValue,
         filterValues,
-      }),
+      });
+    },
     refetchOnMount: true,
     refetchOnWindowFocus: false,
     staleTime: 0,
@@ -100,6 +123,10 @@ const KycList: React.FC = () => {
   // };
 
   const filterOptions = [
+    { label: "Name", key: "name", type: "text" as const },
+    { label: "Email", key: "email", type: "text" as const },
+    { label: "Phone", key: "phone", type: "text" as const },
+    { label: "Role", key: "role", type: "text" as const },
     {
       label: "KYC Status",
       key: "kyc_status",
@@ -151,18 +178,20 @@ const KycList: React.FC = () => {
       },
       {
         title: "KYC Status",
-        dataIndex: "kyc_status",
-        key: "kyc_status",
-        render: (status: string) => {
-          let color: string;
+        key: "status",
+        render: (_: any, record: KYCData) => {
+          const status = record.documents?.[0]?.status;
 
-          if (status === "APPROVED") {
-            color = "success";
-          } else if (status === "PENDING") {
-            color = "warning";
-          } else {
-            color = "error";
+          if (!status) {
+            return <Tag color="default">N/A</Tag>;
           }
+
+          let color =
+            status === "APPROVED"
+              ? "success"
+              : status === "PENDING"
+                ? "warning"
+                : "error";
 
           return (
             <Tag color={color} className="capitalize">
@@ -245,21 +274,21 @@ const KycList: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-lg shadow-sm">
-          <CommonTable
-            rowKey="id"
-            columns={columns}
-            data={allKYC}
-            loading={isFetching}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            total={totalCount}
-            onPageChange={onPageChange}
-            filters={filterOptions}
-            onFilterChange={onFilterChange}
-            onSearch={onSearch}
-            searchValue={searchValue}
-            onDownload={handleDownload}
-          />
+        <CommonTable
+          rowKey="id"
+          columns={columns}
+          data={allKYC}
+          loading={isFetching}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          total={totalCount}
+          onPageChange={onPageChange}
+          filters={filterOptions}
+          onFilterChange={onFilterChange}
+          onSearch={onSearch}
+          searchValue={searchValue}
+          onDownload={handleDownload}
+        />
       </div>
 
       {/* VIEW DRAWER */}
@@ -267,7 +296,7 @@ const KycList: React.FC = () => {
         <KycViewDrawer
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
-          kycId={selectedKYC.id}
+          kycData={selectedKYC}
         />
       )}
     </div>

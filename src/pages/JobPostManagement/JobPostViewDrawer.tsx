@@ -1,413 +1,299 @@
 import { CloseOutlined, MinusOutlined } from "@ant-design/icons";
-import { Avatar, Button, Drawer, Modal, Table, Tag } from "antd";
+import {
+  App,
+  Avatar,
+  Button,
+  Drawer,
+  message,
+  Modal,
+  notification,
+  Table,
+  Tag,
+} from "antd";
 import type { ColumnsType } from "antd/es/table";
-import React, { useState } from "react";
-import PaymentModal from "./PaymentModal";
-import { fetchJobPostByIdApi } from "../../api/jobpost.api";
-import { useQuery } from "@tanstack/react-query";
-
-interface JobPostDetail {
-  id: string;
-  title: string;
-  specialization: string;
-  location: string;
-  experience_required: string;
-  workType: string;
-  status: string;
-  noOfApplications?: number;
-  valid_from?: string;
-  expires_at?: string;
-  description?: string;
-  hospital_bio?: string;
-  salary?: string;
-  degree_required?: string;
-  hospital_website?: string;
-  paymentStatus?: string;
-  postedBy?: {
-    name: string;
-    imageUrl?: string;
-  };
-  hospitalBio?: string;
-  candidates?: Candidate[];
-}
-
-interface Candidate {
-  id: string;
-  name: string;
-  appliedOn: string;
-  resume: string;
-  status: string;
-}
-
-interface JobPostViewDrawerProps {
-  open: boolean;
-  onClose: () => void;
-  jobPostId: string;
-}
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { JobApplication, JobPostViewDrawerProps } from "./jobPostTypes";
+import StatusBadge from "../Common/StatusBadge";
+import JobPostApplicantViewDrawer from "./JobPostApplicantViewDrawer";
+import { statusJobPostApi } from "../../api/jobpost.api";
+import { showError, showSuccess } from "../Common/Notification";
 
 const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
   open,
   onClose,
-  jobPostId,
+  jobPostData,
+  role,
 }) => {
+  const queryClient = useQueryClient();
   const [isHospitalBioExpanded, setIsHospitalBioExpanded] = useState(true);
-  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedApplicant, setSelectedApplicant] =
+    useState<JobApplication | null>(null);
+  const [isApplicantDrawerOpen, setIsApplicantDrawerOpen] = useState(false);
+  const { modal, message } = App.useApp();
 
-  // const { data: jobPost, isFetching } = useQuery({
-  //   queryKey: ["jobPosts", jobPostId],
-  //   queryFn: () => fetchJobPostByIdApi(jobPostId),
-  //   enabled: !!jobPostId, // 👈 VERY IMPORTANT
-  //   refetchOnWindowFocus: false,
-  // });
+  // ---------Mutation---------
+  const { mutate: updateStatus } = useMutation({
+    // mutationFn now accepts a payload object
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      statusJobPostApi(id, {status}),
 
-  // console.log(jobPost);
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    return `${date.getDate()} ${months[date.getMonth()]} ${date.getFullYear()}`;
-  };
+    onSuccess: (data: any) => {
+      showSuccess(notification, {
+        message: "Job Post Status Updated",
+        description: data.message,
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["jobPosts"],
+      });
+      onClose();
+    },
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Failed To Update",
+        description: error.response?.data?.error || "Failed To Update Job Post",
+      });
+    },
+  });
 
-  const getMockJobPost = (id: string): JobPostDetail => {
-    const statusMap: Record<string, string> = {
-      "1": "Active",
-      "2": "Expiring Soon",
-      "3": "Expired",
-      "4": "Pending",
-    };
-    return {
-      id: id || "1",
-      jobTitle: "Senior Consultant",
-      specialization: "MBBS - General Medicine",
-      location: "Chennai",
-      valid_from: "2025-06-12",
-      noOfApplications: 23,
-      experience_required: "5 - 8 Yrs",
-      workType: "Full Time",
-      expires_at: "2025-08-12",
-      paymentStatus: "Paid",
-      status: statusMap[id] || "Active",
-      postedBy: { name: "Vinoth Kumar", imageUrl: "" },
-      hospital_bio: [
-        "Oversees day-to-day administrative operations in medical departments or healthcare facilities.",
-        "Coordinates schedules, staff assignments, and workflow to ensure efficient patient care services.",
-        "Ensures compliance with healthcare regulations, hospital policies, and accreditation standards.",
-        "Manages medical records, patient data systems, and documentation processes.",
-        "Liaises between medical staff, patients, and hospital management for smooth communication.",
-      ],
-      candidates: [
-        {
-          id: "1",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Hired",
-        },
-        {
-          id: "2",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Shortlisted",
-        },
-        {
-          id: "3",
-          name: "Vinoth Kumar",
-          appliedOn: "2025-06-12",
-          resume: "",
-          status: "Rejected",
-        },
-      ],
-    };
-  };
-
-  const jobPost = getMockJobPost(jobPostId || "1");
-
-  const getStatusColor = (status: string) =>
-    ({
-      Active: "green",
-      Expired: "red",
-      "Expiring Soon": "orange",
-      Pending: "orange",
-    })[status] || "default";
-
-  const getCandidateStatusTag = (status: string) => {
-    const colors: Record<string, string> = {
-      Hired: "green",
-      Shortlisted: "blue",
-      Rejected: "red",
-    };
-    return <Tag color={colors[status]}>{status}</Tag>;
-  };
-
-  const handleClosePost = () => {
-    Modal.confirm({
-      title: "Close Post",
-      content: "Are you sure you want to close this job post?",
-      onOk: () => {
-        onClose();
-      },
-    });
-  };
-
-  const handleRenewPost = () => {
-    Modal.confirm({
-      title: "Renew Post",
-      content: "Are you sure you want to renew this job post?",
-      onOk: () => {
-        onClose();
-      },
-    });
-  };
-
-  const handleProceedToPay = () => {
-    setIsPaymentModalOpen(true);
-  };
-
-  const handleRepost = () => {
-    Modal.confirm({
-      title: "Repost",
-      content: "Are you sure you want to repost this job?",
-      onOk: () => {
-        onClose();
-      },
-    });
-  };
-
-  const candidateColumns: ColumnsType<Candidate> = [
+  const candidateColumns: ColumnsType<JobApplication> = [
     {
       title: "S No",
-      dataIndex: "id",
-      key: "id",
+      key: "index",
       width: 60,
+      render: (_, __, index) => index + 1,
     },
     {
       title: "Candidate Name",
-      dataIndex: "name",
       key: "name",
+      render: (_, record) =>
+        `${record.user.first_name} ${record.user.last_name}`,
     },
     {
       title: "Applied On",
-      dataIndex: "appliedOn",
-      key: "appliedOn",
+      dataIndex: "applied_at",
+      key: "applied_at",
       render: (date: string) => (
-        <span className="text-blue-600">{formatDate(date)}</span>
+        <span className="text-blue-600">
+          {new Date(date).toLocaleDateString()}
+        </span>
       ),
     },
     {
       title: "Status",
       dataIndex: "status",
       key: "status",
-      render: (status: string) => getCandidateStatusTag(status),
+      render: (status: string) => <StatusBadge status={status} />,
     },
     {
       title: "Action",
       key: "action",
-      render: () => (
-        <Button type="link" className="text-blue-600 p-0">
+      render: (_, record) => (
+        <Button
+          type="link"
+          className="text-blue-600 p-0"
+          onClick={() => {
+            setSelectedApplicant(record);
+            setIsApplicantDrawerOpen(true);
+          }}
+        >
           View
         </Button>
       ),
     },
   ];
 
+  /* -------------------- Handlers -------------------- */
+  const status = jobPostData.status.toLowerCase();
+
+  const isPending = status === "pending";
+  const isActive = status === "open";
+  const isInactive = status === "close";
+
+  const getNextStatus = () => {
+    if (status === "pending") return "OPEN";
+    if (status === "open") return "CLOSED";
+    return "OPEN";
+  };
+
+  const handleStatus = () => {
+    const nextStatus = getNextStatus();
+    modal.confirm({
+      title: nextStatus === "OPEN" ? "Open Job Post?" : "Close Job Post?",
+      content: `Are you sure you want to ${nextStatus} "${jobPostData.title}"?`,
+      okType: nextStatus === "CLOSED" ? "primary" : "danger",
+      onOk: () =>
+        updateStatus({
+          id: jobPostData.id,
+          status: nextStatus,
+        }),
+    });
+  };
+
+  const handleRepost = () => {
+    modal.confirm({
+      title: "Repost Job?",
+      content: `This will move "${jobPostData.title}" back to pending approval.`,
+      okText: "Repost",
+      okType: "primary",
+      onOk: () =>
+        updateStatus({
+          id: jobPostData.id,
+          status: "pending",
+          repostedAt: new Date().toISOString(),
+        }),
+    });
+  };
+
+  if (!jobPostData) {
+    return (
+      <Drawer
+        title="Ads Post"
+        placement="right"
+        open={open}
+        onClose={onClose}
+        width={600}
+        closeIcon={<CloseOutlined />}
+      >
+        <div className="text-center text-gray-500">No data found</div>
+      </Drawer>
+    );
+  }
+
   return (
-    <Drawer
-      open={open}
-      onClose={onClose}
-      width={800}
-      closeIcon={null}
-      title={
-        <div className="flex justify-between items-center">
-          <span>Job post Management</span>
-          <Button type="text" icon={<CloseOutlined />} onClick={onClose} />
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        {/* Job Details - Two Column Layout */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <p className="text-gray-500">Job Tittle</p>
-              <p className="font-medium">{jobPost.title}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Specialisation</p>
-              <p>{jobPost.specialization}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Location</p>
-              <p>{jobPost.location}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Start Date</p>
-              <p className="text-blue-600">{formatDate(jobPost?.valid_from)}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">No of Applications Received</p>
-              <p>{jobPost.noOfApplications}</p>
-            </div>
-            {jobPost.postedBy && (
-              <div>
-                <p className="text-gray-500">Posted by</p>
-                <div className="flex items-center gap-2 mt-2">
-                  {jobPost.postedBy.imageUrl ? (
-                    <Avatar src={jobPost.postedBy.imageUrl} />
-                  ) : (
-                    <Avatar className="bg-button-primary text-white">
-                      {jobPost.postedBy.name.charAt(0)}
-                    </Avatar>
-                  )}
-                  <p>{jobPost.postedBy.name}</p>
-                </div>
+    <div>
+      <Drawer
+        open={open}
+        onClose={onClose}
+        width={800}
+        closeIcon={<CloseOutlined />}
+        title="Job post Management"
+        footer={
+          role === "admin" ? (
+            <div className="flex justify-between items-center">
+              <Button
+                size="large"
+                className="bg-gray-200 text-gray-700 px-8"
+                onClick={onClose}
+              >
+                Back
+              </Button>
+
+              <div className="flex gap-2">
+                <Button size="large" type="primary" onClick={handleRepost}>
+                  Repost
+                </Button>
               </div>
-            )}
+
+              <div className="flex gap-2">
+                <Button
+                  size="large"
+                  className={`px-8 ${
+                    isActive
+                      ? "border-red-500 text-red-500"
+                      : "border-green-500 text-green-500"
+                  }`}
+                  onClick={handleStatus}
+                >
+                  {isActive ? "Close" : "Open"} Job Post
+                </Button>
+              </div>
+            </div>
+          ) : null
+        }
+      >
+        <div className="space-y-6">
+          {/* Job Details - Two Column Layout */}
+          <div className="grid grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-gray-500">Job Tittle</p>
+                <p className="font-medium">{jobPostData.title}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Specialisation</p>
+                <p>{jobPostData.specialization}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Location</p>
+                <p>{jobPostData.location}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Start Date</p>
+                <p className="text-blue-600">{jobPostData?.valid_from}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">No of Applications Received</p>
+                <p>{jobPostData.noOfApplications}</p>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              <div>
+                <p className="text-gray-500">Exp Required</p>
+                <p>{jobPostData.experience_required}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Employment Type</p>
+                <p>{jobPostData.workType}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Status</p>
+                <StatusBadge status={jobPostData.status} />
+              </div>
+              <div>
+                <p className="text-gray-500">End Date</p>
+                <p className="text-orange-600">{jobPostData?.expires_at}</p>
+              </div>
+            </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div>
-              <p className="text-gray-500">Exp Required</p>
-              <p>{jobPost.experience_required}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Employment Type</p>
-              <p>{jobPost.workType}</p>
-            </div>
-            <div>
-              <p className="text-gray-500">Status</p>
-              <Tag color={getStatusColor(jobPost.status)}>{jobPost.status}</Tag>
-            </div>
-            <div>
-              <p className="text-gray-500">End Date</p>
-              <p className="text-orange-600">
-                {formatDate(jobPost?.expires_at)}
-              </p>
-            </div>
-            <div>
-              <p className="text-gray-500">Payment Status</p>
-              <span className="text-blue-600">
-                {jobPost?.paymentStatus || "Paid"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Hospital Bio */}
-        {jobPost.hospital_bio && jobPost.hospital_bio.length > 0 && (
-          <div className="border-2 border-dashed border-blue-300 p-4 rounded">
-            <div
-              className="flex justify-between items-center cursor-pointer mb-2"
-              onClick={() => setIsHospitalBioExpanded(!isHospitalBioExpanded)}
-            >
-              <span className="font-semibold">Hospital Bio</span>
-              {isHospitalBioExpanded ? (
-                <MinusOutlined />
-              ) : (
-                <span className="text-gray-400">+</span>
+          {/* Hospital Bio */}
+          {jobPostData.hospital_bio && jobPostData.hospital_bio.length > 0 && (
+            <div className="border-2 border-dashed border-blue-300 p-4 rounded">
+              <div
+                className="flex justify-between items-center cursor-pointer mb-2"
+                onClick={() => setIsHospitalBioExpanded(!isHospitalBioExpanded)}
+              >
+                <span className="font-semibold">Hospital Bio</span>
+                {isHospitalBioExpanded ? (
+                  <MinusOutlined />
+                ) : (
+                  <span className="text-gray-400">+</span>
+                )}
+              </div>
+              {isHospitalBioExpanded && (
+                <p className="mt-6"> {jobPostData.hospital_bio}</p>
               )}
             </div>
-            {isHospitalBioExpanded && (
-              <p className="mt-6"> {jobPost.hospital_bio}</p>
-              // <ol className="list-decimal list-inside space-y-1 ml-4">
+          )}
 
-              // </ol>
-            )}
-          </div>
-        )}
-
-        {/* Candidate Applications */}
-        {jobPost.candidates && jobPost.candidates.length > 0 && (
-          <div>
-            <h3 className="font-semibold mb-4">Candidate Applications</h3>
-            <Table
-              columns={candidateColumns}
-              dataSource={jobPost.candidates.map((c, idx) => ({
-                ...c,
-                id: (idx + 1).toString(),
-                key: c.id,
-              }))}
-              pagination={false}
-              size="small"
-            />
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-2 justify-between pt-4 border-t">
-          <div>
-            {jobPost.status === "Active" && (
-              <Button
-                onClick={handleRepost}
-                className="border-blue-600 text-blue-600 hover:bg-blue-50"
-              >
-                Repost
-              </Button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            {jobPost.status === "Active" ? (
-              <>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                  type="primary"
-                  onClick={handleClosePost}
-                  className="bg-button-primary"
-                >
-                  Close Post
-                </Button>
-              </>
-            ) : jobPost.status === "Expired" ||
-              jobPost.status === "Expiring Soon" ? (
-              <>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                  type="primary"
-                  onClick={handleRenewPost}
-                  className="bg-button-primary"
-                >
-                  Renew Post
-                </Button>
-              </>
-            ) : jobPost.status === "Pending" ? (
-              <>
-                <Button onClick={onClose}>Cancel</Button>
-                <Button
-                  type="primary"
-                  onClick={handleProceedToPay}
-                  className="bg-button-primary"
-                >
-                  Proceed to Pay
-                </Button>
-              </>
-            ) : (
-              <Button onClick={onClose}>Cancel</Button>
-            )}
-          </div>
+          {/* Candidate Applications */}
+          {jobPostData.applications && (
+            <div>
+              <h3 className="font-semibold mb-4">Candidate Applications</h3>
+              <Table
+                columns={candidateColumns}
+                dataSource={jobPostData.applications.map((c) => ({
+                  ...c,
+                  key: c.id,
+                }))}
+                pagination={false}
+                size="small"
+              />
+            </div>
+          )}
         </div>
-      </div>
-      <PaymentModal
-        open={isPaymentModalOpen}
-        onClose={() => setIsPaymentModalOpen(false)}
-        amount={5600}
+      </Drawer>
+      <JobPostApplicantViewDrawer
+        open={isApplicantDrawerOpen}
+        onClose={() => setIsApplicantDrawerOpen(false)}
+        applicant={selectedApplicant}
       />
-    </Drawer>
+      ;
+    </div>
   );
 };
 

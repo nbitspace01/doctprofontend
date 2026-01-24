@@ -10,7 +10,7 @@ export interface FetchParams {
 
 // -----Create Hospital API -----
 export const createHospitalApi = (data: any) => {
-  return apiClient.post<any>(`/api/hospital`, data);
+  return apiClient.post<any>(`/api/hospitals`, data);
 }
 
 // -----Fetch Hospitals API -----
@@ -21,7 +21,7 @@ export const fetchHospitalsApi = ({
     filterValues = {},
 }: FetchParams) => {
     const queryParams = buildQueryParams(searchValue, filterValues);
-    const url = `/api/hospital?page=${page}&limit=${limit}${
+    const url = `/api/hospitals?page=${page}&limit=${limit}${
         queryParams ? `&${queryParams}` : ""
     }`; 
     return apiClient.get<any>(url);
@@ -29,20 +29,20 @@ export const fetchHospitalsApi = ({
 
 // ----- Update Hospital By ID API -----
 export const updateHospitalApi = (id: string, data: any) => {
-  return apiClient.put<any>(`/api/hospital/${id}`, data);
+  return apiClient.put<any>(`/api/hospitals/${id}`, data);
 }
 
 // ----- Fetch Hospital By ID API -----
 export const fetchHospitalByIdApi = (id: string) => {
-  return apiClient.get<any>(`/api/hospital/${id}`);
+  return apiClient.get<any>(`/api/hospitals/${id}`);
 };
 
 // ----- Delete Hospital API -----
 export const deleteHospitalApi = (id: string) => {
-  return apiClient.delete<any>(`/api/hospital/${id}`);
+  return apiClient.delete<any>(`/api/hospitals/${id}`);
 };
 
 //----- Fetch Hospital List API(ID and Name Only) -----
 export const fetchHospitalListApi = () =>{
-  return apiClient.get<any>(`/api/hospital/hospitalNameList`);
+  return apiClient.get<any>(`/api/hospitals/list`);
 }

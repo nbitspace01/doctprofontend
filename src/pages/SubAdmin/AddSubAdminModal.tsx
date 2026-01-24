@@ -132,7 +132,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       }
       return true;
     },
-    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
+    customRequest: async ({ file, onSuccess, onError }) => {
       try {
         setUploading(true);
 
@@ -141,19 +141,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         formData.append("entity", "post");
         formData.append("userId", USER_ID || "");
 
-        const response = await api.post(`/api/post/upload`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${TOKEN}`,
-          },
-          onUploadProgress: (e) => {
-            if (e.total) {
-              onProgress?.({
-                percent: Math.round((e.loaded * 100) / e.total),
-              });
-            }
-          },
-        });
+        const response = await api.post(`/api/post/upload`, formData);
 
         const { url } = response.data;
         setImageUrl(url || "");

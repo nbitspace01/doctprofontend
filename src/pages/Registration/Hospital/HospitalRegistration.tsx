@@ -16,6 +16,7 @@ import React, { useEffect, useState } from "react";
 import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
 import PhoneNumberInput from "../../Common/PhoneNumberInput";
+import { apiClient } from "../../../api/api";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -30,11 +31,6 @@ interface HospitalRegistrationData {
   phone: string;
   website: string;
   logoUrl: string;
-  operating_hours: Array<{
-    day: string;
-    from: string;
-    to: string;
-  }>;
   links: Array<{
     type: string;
     url: string;
@@ -43,13 +39,6 @@ interface HospitalRegistrationData {
   admin_email: string;
   admin_phone: string;
 }
-
-// interface UpdateHospitalData {
-//   hospital_id: string;
-//   logoUrl: string;
-// }
-
-// Add interface for KYC data
 
 interface HospitalRegistrationProps {
   isOpen: boolean;
@@ -76,17 +65,16 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   // Update the mutation with proper typing and error handling
   const hospitalRegistrationMutation = useMutation({
     mutationFn: (data: HospitalRegistrationData) =>
-      axios.post(`${API_URL}/api/hospital/register`, data),
-    onSuccess: (response) => {
-      // Store the pre-registration ID from the response
-      const { hospital_id, user_id } = response.data;
+      apiClient.post(`${API_URL}/api/hospital-admin/register`, data),
+    onSuccess: (data: any) => {
+      console.log("Hospital Data", data)
+      const { hospital_id, user_id } = data;
       setPreRegistrationId(hospital_id);
       setUserId(user_id);
       setCurrentStep(currentStep + 1);
     },
     onError: (error) => {
       console.error("Registration failed:", error);
-      // Add error handling here
     },
   });
 
@@ -125,7 +113,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         formData.append("license", data.license_file);
       }
 
-      return axios.post(`${API_URL}/api/hospital/upload`, formData, {
+      return axios.post(`${API_URL}/api/hospital-admin/upload`, formData, {
         headers: {
           Authorization: `Bearer ${TOKEN}`,
           "Content-Type": "multipart/form-data",
@@ -385,80 +373,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         >
           <Input placeholder="surya@xyz.com" />
         </Form.Item>
-
-        {/* <Form.Item
-          name="phone"
-          label="Phone Number"
-          rules={[{ required: true, message: "Please enter phone number" }]}
-        >
-          <Input placeholder="+91 99999 99999" prefix={<MobileIcon />} />
-        </Form.Item> */}
         <PhoneNumberInput name="phone" label="Phone Number" />
       </div>
 
-      <Form.List name="operating_hours">
-        {(fields, { add }) => (
-          <>
-            <div className="flex justify-between items-center">
-              <span>Operation Hrs</span>
-              <Button
-                type="link"
-                onClick={() => add()}
-                className="text-blue-500"
-              >
-                + Add
-              </Button>
-            </div>
-            {fields.map(({ key, name, ...restField }) => (
-              <div key={key} className="grid grid-cols-3 gap-4">
-                <Form.Item
-                  {...restField}
-                  name={[name, "day"]}
-                  rules={[{ required: true, message: "Please select days" }]}
-                >
-                  <Select placeholder="Select Days">
-                    <Select.Option value="Monday to Friday">
-                      Monday to Friday
-                    </Select.Option>
-                    <Select.Option value="Saturday">Saturday</Select.Option>
-                    <Select.Option value="Sunday">Sunday</Select.Option>
-                  </Select>
-                </Form.Item>
-                <Form.Item
-                  {...restField}
-                  name={[name, "from"]}
-                  rules={[{ required: true, message: "Please select time" }]}
-                >
-                  <TimePicker
-                    placeholder="9:00 AM"
-                    className="w-full"
-                    format="HH:mm"
-                  />
-                </Form.Item>
-                <Form.Item
-                  {...restField}
-                  name={[name, "to"]}
-                  rules={[{ required: true, message: "Please select time" }]}
-                >
-                  <TimePicker
-                    placeholder="6:00 PM"
-                    className="w-full"
-                    format="HH:mm"
-                  />
-                </Form.Item>
-              </div>
-            ))}
-          </>
-        )}
-      </Form.List>
-
       <div className="mb-4">
-        <div className="flex justify-between items-center">
-          <span>Links</span>
-          <Button type="link" className="text-blue-500">
-            + Add
-          </Button>
-        </div>
         <div className="grid grid-cols-2 gap-4">
           <Form.Item
             name="website"
@@ -466,13 +384,6 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
             rules={[{ required: true, message: "Please enter website URL" }]}
           >
             <Input placeholder="http://www.sample.com" />
-          </Form.Item>
-          <Form.Item>
-            <Select placeholder="Website">
-              <option value="1">Website 1</option>
-              <option value="2">Website 2</option>
-              <option value="3">Website 3</option>
-            </Select>
           </Form.Item>
         </div>
       </div>
@@ -497,13 +408,6 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           >
             <Input placeholder="surya@xyz.com" />
           </Form.Item>
-          {/* <Form.Item
-            name="hr_phone"
-            label="Phone Number"
-            rules={[{ required: true, message: "Please enter phone number" }]}
-          >
-            <Input placeholder="+91 99999 99999" />
-          </Form.Item> */}
           <PhoneNumberInput name="hr_phone" label="Phone Number" />
         </div>
       </div>
@@ -660,12 +564,6 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           phone: values.phone,
           website: values.website,
           logoUrl: imageUrl, // Use the URL from the state
-          operating_hours:
-            values.operating_hours?.map((hour: any) => ({
-              day: hour.day,
-              from: hour.from?.format("HH:mm"),
-              to: hour.to?.format("HH:mm"),
-            })) ?? [],
           links: [
             {
               type: "Website",
