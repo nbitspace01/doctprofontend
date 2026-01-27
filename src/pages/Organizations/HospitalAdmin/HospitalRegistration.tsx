@@ -7,7 +7,6 @@ import {
   Input,
   Modal,
   Select,
-  TimePicker,
   Upload,
   UploadProps,
 } from "antd";
@@ -17,6 +16,8 @@ import { TOKEN, USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
 import PhoneNumberInput from "../../Common/PhoneNumberInput";
 import { apiClient } from "../../../api/api";
+import { createHospitalAdminApi } from "../../../api/hospitalAdmin.api";
+import { setUserPasswordApi } from "../../../api/auth.api";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -38,6 +39,7 @@ interface HospitalRegistrationData {
   contact_person: string;
   admin_email: string;
   admin_phone: string;
+  status: string;
 }
 
 interface HospitalRegistrationProps {
@@ -65,7 +67,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   // Update the mutation with proper typing and error handling
   const hospitalRegistrationMutation = useMutation({
     mutationFn: (data: HospitalRegistrationData) =>
-      apiClient.post(`${API_URL}/api/hospital-admin/register`, data),
+      createHospitalAdminApi(data),
     onSuccess: (data: any) => {
       console.log("Hospital Data", data)
       const { hospital_id, user_id } = data;
@@ -77,23 +79,6 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       console.error("Registration failed:", error);
     },
   });
-
-  // const updateHospitalMutation = useMutation({
-  //   mutationFn: (data: UpdateHospitalData) =>
-  //     axios.put(`${API_URL}/api/hospital/register/${data.hospital_id}`, {
-  //       logoUrl: data.logoUrl,
-  //     }),
-  //   onSuccess: () => {
-  //     // Optionally handle success, e.g., show a notification
-  //   },
-  //   onError: (error) => {
-  //     console.error("Updating hospital with logo failed:", error);
-  //     showError(notification, {
-  //       message: "Failed to save logo.",
-  //       description: "Failed to save logo.",
-  //     });
-  //   },
-  // });
 
   const kycVerificationMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -141,10 +126,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
   const setPasswordMutation = useMutation({
     mutationFn: (data: any) =>
-      axios.post(`${API_URL}/api/user/register/set-password/${userId}`, data),
+      setUserPasswordApi(userId, data),
     onSuccess: () => {
       onClose();
-      // Add success notification or redirect here
     },
   });
 

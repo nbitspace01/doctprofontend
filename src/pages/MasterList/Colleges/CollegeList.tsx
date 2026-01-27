@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Avatar, Button, App } from "antd";
-import type { ColumnsType } from "antd/es/table";
 import { Plus } from "lucide-react";
 
 import Loader from "../../Common/Loader";
@@ -158,7 +157,7 @@ const CollegeList: React.FC = () => {
       {
         title: "Status",
         dataIndex: "status",
-        render: (status?: string) => <StatusBadge status={status || ""} />,
+        render: (status?: string) => <StatusBadge status={status?.toUpperCase() || ""} />,
       },
 
       {

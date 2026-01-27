@@ -1,14 +1,9 @@
 import React, { useMemo } from "react";
-import { Drawer, Button, Avatar, Modal, message, Spin, App, Image } from "antd";
-import { CloseOutlined, HomeOutlined } from "@ant-design/icons";
+import { Drawer, Button, Avatar, Spin, App, Image } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import StatusBadge from "../../Common/StatusBadge";
-import {
-  fetchHospitalByIdApi,
-  updateHospitalApi,
-} from "../../../api/hospital.api";
-import { HospitalAdminUpdate } from "../../../api/admin.api";
+import { updateHospitalApi } from "../../../api/hospital.api";
 
 interface HospitalData {
   id: string;
@@ -29,7 +24,7 @@ interface HospitalViewDrawerProps {
   hospitalData: HospitalData;
 }
 
-type HospitalStatus = "pending" | "active" | "inactive";
+type HospitalStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
   open,
@@ -77,16 +72,16 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
   });
 
   /* -------------------- Handlers -------------------- */
-  const status = hospitalData.status;
+  const status = hospitalData.status.toUpperCase();
 
-  const isPending = status === "pending";
-  const isActive = status === "active";
-  const isInactive = status === "inactive";
+  // const isPending = status === "pending";
+  const isActive = status === "ACTIVE";
+  // const isInactive = status === "inactive";
 
   const getNextStatus = (): HospitalStatus => {
-    if (status === "pending") return "active";
-    if (status === "active") return "inactive";
-    return "active";
+    if (status === "PENDING") return "ACTIVE";
+    if (status === "ACTIVE") return "INACTIVE";
+    return "ACTIVE";
   };
 
   const handleStatusToggle = () => {
@@ -94,9 +89,9 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
 
     modal.confirm({
       title:
-        nextStatus === "active" ? "Activate Hospital?" : "Deactivate Hospital?",
+        nextStatus === "ACTIVE" ? "Activate Hospital?" : "Deactivate Hospital?",
       content: `Are you sure you want to ${nextStatus} "${hospitalData.name}"?`,
-      okType: nextStatus === "active" ? "primary" : "danger",
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
         updateStatus({
           hospitalId: hospitalData.id,
@@ -145,22 +140,12 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
           <>
             {/* Header */}
             <div className="flex items-center gap-4 mb-8">
-              {profileImage ? (
-                <Image
-                  src={profileImage}
-                  width={40}
-                  height={40}
-                  alt="Sub Admin"
-                  className="rounded-full"
-                />
-              ) : (
-                <Avatar
-                  size={40}
-                  className="bg-button-primary text-white rounded-full"
-                >
-                  {avatarInitial}
-                </Avatar>
-              )}
+              <Avatar
+                size={40}
+                className="bg-button-primary text-white rounded-full"
+              >
+                {avatarInitial}
+              </Avatar>
               <div>
                 <h3 className="text-lg font-semibold">{displayName}</h3>
               </div>
@@ -194,7 +179,7 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
               <div>
                 <div className="text-xs text-gray-500">Status</div>
                 <div className="mt-1">
-                  <StatusBadge status={hospitalData.status} />
+                  <StatusBadge status={hospitalData.status.toUpperCase()} />
                 </div>
               </div>
             </div>

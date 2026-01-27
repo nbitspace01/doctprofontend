@@ -116,7 +116,7 @@ const DegreeSpecializationList: React.FC = () => {
       {
         title: "Status",
         dataIndex: "status",
-        render: (status: string) => <StatusBadge status={status} />,
+        render: (status: string) => <StatusBadge status={status.toUpperCase()} />,
       },
       {
         title: "Created On",

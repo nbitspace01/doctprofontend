@@ -179,13 +179,13 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
                 Back
               </Button>
 
-              <div className="flex gap-2">
-                <Button size="large" type="primary" onClick={handleRepost}>
-                  Repost
-                </Button>
-              </div>
 
               <div className="flex gap-2">
+                {role !== "admin" && (
+                  <Button size="large" type="primary" onClick={handleRepost}>
+                    Repost
+                  </Button>
+                )}
                 <Button
                   size="large"
                   className={`px-8 ${
@@ -271,7 +271,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
           )}
 
           {/* Candidate Applications */}
-          {jobPostData.applications && (
+          {jobPostData.applications && role !== "admin" && (
             <div>
               <h3 className="font-semibold mb-4">Candidate Applications</h3>
               <Table

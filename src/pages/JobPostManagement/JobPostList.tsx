@@ -217,14 +217,11 @@ const JobPostList: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  // if (isFetching) return <Loader size="large" />;
-  // if (error)
-  //   return <div className="p-6 text-red-600">Error loading job posts</div>;
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-semibold">Job Post Management</h1>
+        {currentRole !== "admin" &&(
         <Button
           type="primary"
           onClick={() => setIsModalOpen(true)}
@@ -232,6 +229,7 @@ const JobPostList: React.FC = () => {
         >
           <PlusOutlined /> Post A New Job
         </Button>
+        )}
       </div>
 
       <CommonTable<JobPostBase>

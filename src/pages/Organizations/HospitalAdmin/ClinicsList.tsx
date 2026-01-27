@@ -3,13 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Avatar, Tag, App } from "antd";
 import React, { useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
-import HospitalRegistration from "../../Registration/Hospital/HospitalRegistration";
+import HospitalRegistration from "./HospitalRegistration";
 import ClinicViewDrawer, { HospitalData } from "./ClinicViewDrawer";
 import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
-import { fetchHospitalAdmin } from "../../../api/admin.api";
+import { fetchHospitalAdmin } from "../../../api/hospitalAdmin.api";
 import { apiClient } from "../../../api/api";
 import StatusBadge from "../../Common/StatusBadge";
+import { deleteHospitalApi } from "../../../api/hospital.api";
+import { deleteHospitalAdminApi } from "../../../api/hospitalAdmin.api";
 
 interface Hospital {
   id: string;
@@ -68,7 +70,7 @@ const ClinicsList: React.FC = () => {
   };
 
   const deleteHospitalMutation = useMutation({
-    mutationFn: (id: string) => apiClient.delete(`/api/hospital-admin/${id}`),
+    mutationFn: (id: string) => deleteHospitalAdminApi(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
     },

@@ -4,6 +4,7 @@ import FormattedDate from "../../Common/FormattedDate";
 import StatusBadge from "../../Common/StatusBadge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../api/api";
+import { updateHospitalAdminStatusApi } from "../../../api/hospitalAdmin.api";
 
 export interface HospitalData {
   id: string;
@@ -36,9 +37,7 @@ const ClinicViewDrawer = ({
 
   const toggleHospitalStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiClient.put(`/api/hospital-admin/${id}/status`, {
-        status,
-      }),
+      updateHospitalAdminStatusApi(id, status),
     onSuccess: () => {
       message.success("Hospital status updated successfully");
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
@@ -53,7 +52,7 @@ const ClinicViewDrawer = ({
     const status = hospitalData.status.toUpperCase();
 
     // Decide action
-    const willActivate = status === "INACTIVE" || status === "PENDING";
+    const willActivate = status === "INACTIVE" || status === "PENDING" || status === "DRAFT";
 
     modal.confirm({
       title: willActivate ? "Activate Hospital" : "Deactivate Hospital",

@@ -7,6 +7,10 @@ export const userLoginApi = (data: { email: string; password: string }) => {
   return apiClient.post<any>("/api/user/login", data);
 };
 
+export const setUserPasswordApi = (userId: string, data: any) => {
+  return apiClient.post<any>(`/api/user/register/set-password/${userId}`, data);
+}
+
 // User Logout
 // export const userLogoutApi = () => {
 //   return apiClient.post<any>("/api/auth/logout");

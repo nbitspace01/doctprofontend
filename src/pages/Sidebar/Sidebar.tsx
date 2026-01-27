@@ -8,9 +8,6 @@ import {
   FileText,
   House,
   LogOut,
-  MessageCircleQuestion,
-  Settings,
-  ShieldCheck,
   ShieldUser,
   UserRoundCog,
 } from "lucide-react";
@@ -101,16 +98,6 @@ const Sidebar: React.FC = () => {
         navigate({ to: "/app/dashboard" });
       },
     },
-    // {
-    //   id: "hospital-dashboard",
-    //   label: "Hospital Dashboard",
-    //   icon: <Building2 />,
-    //   onClick: () => {
-    //     setSelectedItem("hospital-dashboard");
-    //     setExpandedMenus([]);
-    //     navigate({ to: "/app/hospital/dashboard" });
-    //   },
-    // },
     {
       id: "sub-admin",
       label: "Sub-Admin List",
@@ -121,26 +108,6 @@ const Sidebar: React.FC = () => {
         navigate({ to: "/app/subadmin" });
       },
     },
-    {
-      id: "hospital-admin",
-      label: "Hospital Admin List",
-      icon: <ShieldUser />,
-      onClick: () => {
-        setSelectedItem("hospital-admin");
-        setExpandedMenus([]);
-        navigate({ to: "/app/hospital-admin" });
-      },
-    },
-    // {
-    //   id: "sub-admin-dashboard",
-    //   label: "Sub-Admin Dashboard",
-    //   icon: <LayoutDashboard />,
-    //   onClick: () => {
-    //     setSelectedItem("sub-admin-dashboard");
-    //     setExpandedMenus([]);
-    //     navigate({ to: "/app/subadmin/dashboard" });
-    //   },
-    // },
     {
       id: "masters",
       label: "Master List",
@@ -181,7 +148,7 @@ const Sidebar: React.FC = () => {
     {
       id: "organizations",
       label: "Organizations",
-      icon: <Building2 />,
+      icon: <ShieldUser />,
       onClick: () => {
         setSelectedItem("organizations");
         toggleSubmenu("organizations");
@@ -197,14 +164,6 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/clinics" });
           },
         },
-        // {
-        //   id: "colleges",
-        //   label: "Colleges",
-        //   onClick: () => {
-        //     setSelectedSubMenu("colleges");
-        //     navigate({ to: "/app/colleges/list" });
-        //   },
-        // },
       ],
     },
     {
@@ -264,6 +223,16 @@ const Sidebar: React.FC = () => {
       ],
     },
     {
+      id: "report-management",
+      label: "Report Management",
+      icon: <UserRoundCog />,
+      onClick: () => {
+        setSelectedItem("report");
+        toggleSubmenu("report");
+        navigate({ to: "/app/report" });
+      },
+    },
+    {
       id: "kyc",
       label: "KYC Management",
       icon: <UserRoundCog />,
@@ -278,9 +247,7 @@ const Sidebar: React.FC = () => {
   /* -------------------- Role Filter (UNCHANGED LOGIC) -------------------- */
   const menuItems =
     roleName === "hospitaladmin"
-      ? allMenuItems.filter((i) =>
-          ["dashboard", "job-post"].includes(i.id),
-        )
+      ? allMenuItems.filter((i) => ["dashboard", "job-post"].includes(i.id))
       : roleName === "subadmin"
         ? allMenuItems.filter((i) =>
             ["dashboard", "organizations", "ad-management", "kyc"].includes(
@@ -297,6 +264,7 @@ const Sidebar: React.FC = () => {
                 "people",
                 "ad-management",
                 "job-post",
+                "report-management",
                 "kyc",
               ].includes(i.id),
             )
@@ -306,14 +274,20 @@ const Sidebar: React.FC = () => {
   return (
     <Sider
       width={200}
-      className="h-screen bg-white fixed top-20 left-0 overflow-hidden"
       theme="light"
+      style={{ overflow: "visible" }} // ⭐ IMPORTANT
+      className="
+    bg-white fixed top-20 left-0
+    h-[calc(100vh-80px)]
+    flex flex-col
+  "
     >
-      <div className="mt-8 text-md h-[calc(100vh-80px)] overflow-y-auto">
+      {/* Scrollable Menu */}
+      <div className="flex-1 overflow-y-auto px-2 mt-4">
         {menuItems.map((item) => (
           <React.Fragment key={item.id}>
             <div
-              className={`flex items-center h-[60px] mb-3 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
+              className={`flex items-center h-[55px] mb-3 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
                 selectedItem === item.id
                   ? "bg-button-primary text-white"
                   : "text-gray-600 hover:bg-gray-100"
@@ -349,15 +323,16 @@ const Sidebar: React.FC = () => {
             )}
           </React.Fragment>
         ))}
+      </div>
 
-        <div className="fixed bottom-5">
-          <div
-            className="flex items-center h-[60px] text-base text-gray-500 hover:bg-gray-100 px-4 cursor-pointer"
-            onClick={handleLogout}
-          >
-            <LogOut />
-            <span className="ml-3">Logout</span>
-          </div>
+      {/* Logout (NOW VISIBLE) */}
+      <div className="border-t px-2 py-3">
+        <div
+          className="flex items-center h-[56px] text-base text-gray-500 hover:bg-gray-100 px-4 cursor-pointer rounded-md"
+          onClick={handleLogout}
+        >
+          <LogOut />
+          <span className="ml-3">Logout</span>
         </div>
       </div>
     </Sider>

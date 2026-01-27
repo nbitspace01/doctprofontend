@@ -24,7 +24,7 @@ interface CollegeViewDrawerProps {
   collegeData: CollegeData;
 }
 
-type CollegeStatus = "pending" | "active" | "inactive";
+type CollegeStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
   open,
@@ -73,14 +73,14 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
   /* -------------------- Handlers -------------------- */
   const status = collegeData.status;
 
-  const isPending = status === "pending";
-  const isActive = status === "active";
-  const isInactive = status === "inactive";
+  // const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  // const isInactive = status === "INACTIVE";
 
   const getNextStatus = (): CollegeStatus => {
-    if (status === "pending") return "active";
-    if (status === "active") return "inactive";
-    return "active";
+    if (status === "PENDING") return "ACTIVE";
+    if (status === "ACTIVE") return "INACTIVE";
+    return "ACTIVE";
   };
 
   const handleStatusToggle = () => {
@@ -88,9 +88,9 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
 
     modal.confirm({
       title:
-        nextStatus === "active" ? "Activate College?" : "Deactivate College?",
+        nextStatus === "ACTIVE" ? "Activate College?" : "Deactivate College?",
       content: `Are you sure you want to ${nextStatus} "${collegeData.name}"?`,
-      okType: nextStatus === "active" ? "primary" : "danger",
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
         updateStatus({
           collegeId: collegeData.id,
@@ -194,7 +194,7 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
               <div>
                 <div className="text-xs text-gray-500">Status</div>
                 <div className="mt-1">
-                  <StatusBadge status={collegeData.status || "Pending"} />
+                  <StatusBadge status={collegeData.status.toUpperCase() || "PENDING"} />
                 </div>
               </div>
             </div>
