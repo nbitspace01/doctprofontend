@@ -10,20 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-      
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
-      
-      - name: Build Project
-        run: npm run build
-      
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -33,10 +19,14 @@ jobs:
           script: |
             export PATH="/opt/homebrew/bin:$PATH"
             cd /Users/aagatech/Doctpro/doctprofontend/doctpro
+            echo "Stashing local changes..."
             git stash
+            echo "Pulling latest code..."
             git pull
+            echo "Restoring local changes..."
             git stash pop || true
+            echo "Installing dependencies..."
             npm install --legacy-peer-deps
-            npm run build || true
+            echo "Restarting PM2..."
             pm2 restart doctpro-frontend
             echo "Doctpro Frontend Deployed!"
