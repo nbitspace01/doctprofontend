@@ -30,3 +30,46 @@ jobs:
             echo "Restarting PM2..."
             pm2 restart doctpro-frontend
             echo "Doctpro Frontend Deployed!"
+      - name: Discord Success Notification
+        if: success()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "embeds": [{
+              "title": "✅ Deployment Successful",
+              "description": "**Doctpro Frontend** has been deployed successfully!",
+              "color": 65280,
+              "fields": [
+                {"name": " Repository", "value": "'"$GITHUB_REPOSITORY"'", "inline": true},
+                {"name": " Branch", "value": "'"$GITHUB_REF_NAME"'", "inline": true},
+                {"name": " Triggered by", "value": "'"$GITHUB_ACTOR"'", "inline": true},
+                {"name": " Server", "value": "Office Mac Mini", "inline": true}
+              ],
+              "footer": {"text": "Doctpro Deployment System"},
+              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Discord Failure Notification
+        if: failure()
+        run: |
+          curl -H "Content-Type: application/json" \
+          -X POST \
+          -d '{
+            "embeds": [{
+              "title": "❌ Deployment Failed",
+              "description": "**Doctpro Frontend** deployment has failed!",
+              "color": 16711680,
+              "fields": [
+                {"name": " Repository", "value": "'"$GITHUB_REPOSITORY"'", "inline": true},
+                {"name": " Branch", "value": "'"$GITHUB_REF_NAME"'", "inline": true},
+                {"name": " Triggered by", "value": "'"$GITHUB_ACTOR"'", "inline": true},
+                {"name": " Check Logs", "value": "[View Actions](https://github.com/'"$GITHUB_REPOSITORY"'/actions)", "inline": true}
+              ],
+              "footer": {"text": "Doctpro Deployment System"},
+              "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+            }]
+          }' \
+          ${{ secrets.DISCORD_WEBHOOK }}
