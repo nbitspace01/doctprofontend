@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import {
   App,
@@ -14,6 +14,7 @@ import {
   createHospitalApi,
   updateHospitalApi,
 } from "../../../api/hospital.api";
+import { getCountries, getStates, getCities } from "../../../api/location.api";
 import { showError, showSuccess } from "../../Common/Notification";
 
 /* -------------------- Types -------------------- */
@@ -22,6 +23,9 @@ interface HospitalData {
   name: string;
   logoUrl: string | null;
   branchLocation: string;
+  city?: { id: string, name: string }; // Relation
+  cityId?: string;
+  stateId?: string;
   status: string;
   updated_at: string;
 }
@@ -36,55 +40,11 @@ interface AddHospitalModalProps {
 interface HospitalFormValues {
   name: string;
   logoUrl: string | null;
-  branchLocation: string;
+  branchLocation?: string; // Legacy
+  cityId: string;
 }
 
-/* -------------------- Constants -------------------- */
-const STATE_OPTIONS = [
-  { value: "Andhra Pradesh", label: "Andhra Pradesh" },
-  { value: "Arunachal Pradesh", label: "Arunachal Pradesh" },
-  { value: "Assam", label: "Assam" },
-  { value: "Bihar", label: "Bihar" },
-  { value: "Chhattisgarh", label: "Chhattisgarh" },
-  { value: "Goa", label: "Goa" },
-  { value: "Gujarat", label: "Gujarat" },
-  { value: "Haryana", label: "Haryana" },
-  { value: "Himachal Pradesh", label: "Himachal Pradesh" },
-  { value: "Jharkhand", label: "Jharkhand" },
-  { value: "Karnataka", label: "Karnataka" },
-  { value: "Kerala", label: "Kerala" },
-  { value: "Madhya Pradesh", label: "Madhya Pradesh" },
-  { value: "Maharashtra", label: "Maharashtra" },
-  { value: "Manipur", label: "Manipur" },
-  { value: "Meghalaya", label: "Meghalaya" },
-  { value: "Mizoram", label: "Mizoram" },
-  { value: "Nagaland", label: "Nagaland" },
-  { value: "Odisha", label: "Odisha" },
-  { value: "Punjab", label: "Punjab" },
-  { value: "Rajasthan", label: "Rajasthan" },
-  { value: "Sikkim", label: "Sikkim" },
-  { value: "Tamil Nadu", label: "Tamil Nadu" },
-  { value: "Telangana", label: "Telangana" },
-  { value: "Tripura", label: "Tripura" },
-  { value: "Uttar Pradesh", label: "Uttar Pradesh" },
-  { value: "Uttarakhand", label: "Uttarakhand" },
-  { value: "West Bengal", label: "West Bengal" },
-  {
-    value: "Andaman and Nicobar Islands",
-    label: "Andaman and Nicobar Islands",
-  },
-  { value: "Chandigarh", label: "Chandigarh" },
-  {
-    value: "Dadra and Nagar Haveli and Daman and Diu",
-    label: "Dadra and Nagar Haveli and Daman and Diu",
-  },
-  { value: "Delhi", label: "Delhi" },
-  { value: "Jammu and Kashmir", label: "Jammu and Kashmir" },
-  { value: "Ladakh", label: "Ladakh" },
-  { value: "Lakshadweep", label: "Lakshadweep" },
-  { value: "Puducherry", label: "Puducherry" },
-];
-
+/* -------------------- Component -------------------- */
 const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   open,
   onCancel,
@@ -95,18 +55,62 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   const { notification } = App.useApp();
 
   const isEditMode = Boolean(initialData);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+  
+  // Helper state for filtering (not submitted)
+  const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
 
   /* -------------------- Effects -------------------- */
+  useEffect(() => {
+    const initLocations = async () => {
+      try {
+        const countries = await getCountries();
+        const india = countries.find((c: any) => c.code === "IN" || c.name === "India");
+        if (india) {
+          const stateData = await getStates(india.id);
+          setStates(stateData.map((s: any) => ({ label: s.name, value: s.id }))); // value is ID for fetching cities
+        }
+      } catch (error) {
+        console.error("Failed to load locations", error);
+      }
+    };
+    if (open) initLocations();
+  }, [open]);
+
+  // Handler for State Change (Filter)
+  const handleStateChange = async (stateId: string) => {
+    try {
+      setSelectedStateId(stateId);
+      form.setFieldValue('cityId', undefined); // Reset city
+      const cityData = await getCities(stateId, false); // fetch by state
+      setCities(cityData.map((c: any) => ({ label: c.name, value: c.id })));
+    } catch (error) {
+      console.error("Failed to load cities", error);
+    }
+  };
+
   useEffect(() => {
     if (!open) return;
 
     if (initialData) {
       form.setFieldsValue({
-        ...initialData,
-        branchLocation: initialData.branchLocation,
+        name: initialData.name,
+        isHeadBranch: false,
+        cityId: initialData.cityId
       });
+      
+      if (initialData.stateId) {
+        setSelectedStateId(initialData.stateId);
+        // Fetch cities for the existing state so the city dropdown works
+        getCities(initialData.stateId, false).then((cityData) => {
+          setCities(cityData.map((c: any) => ({ label: c.name, value: c.id })));
+        }).catch(err => console.error(err));
+      }
     } else {
       form.resetFields();
+      setSelectedStateId(null);
+      setCities([]);
     }
   }, [open, initialData, form]);
 
@@ -115,8 +119,9 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     mutationFn: (values: HospitalFormValues) =>
       createHospitalApi({
         ...values,
-        branchLocation: values.branchLocation.toLowerCase(),
+        // branchLocation: values.branchLocation?.toLowerCase(), // Deprecated
       }),
+      // ... same success/error handlers
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Hospital Created Successfully",
@@ -127,30 +132,25 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to create hospital";
+      const firstDetail = error?.response?.data?.errors?.[0]?.message;
       showError(notification, {
         message: "Failed to create hospital",
-        description:
-          error.response?.data?.error || "Failed to create hospital",
+        description: firstDetail || apiMessage,
       });
     },
   });
 
   const updateMutation = useMutation({
     mutationFn: (values: HospitalFormValues) => {
-      const payload: any = {
-        ...values,
-        branchLocation: values.branchLocation.toLowerCase(),
-      };
-
-      // if (!values.password) {
-      //   delete payload.password;
-      //   delete payload.confirmPassword;
-      // }
-
-      return updateHospitalApi(initialData!.id, payload);
+      // Logic for update
+      return updateHospitalApi(initialData!.id, values);
     },
     onSuccess: (data: any) => {
-      showSuccess(notification, {
+       showSuccess(notification, {
         message: "Hospital Updated Successfully",
         description: data.message,
       });
@@ -159,9 +159,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
+      const apiMessage =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to update hospital";
+      const firstDetail = error?.response?.data?.errors?.[0]?.message;
       showError(notification, {
         message: "Failed to update hospital",
-        description: error.response?.error || "Failed to update hospital",
+        description: firstDetail || apiMessage,
       });
     },
   });
@@ -191,12 +196,33 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
           </Form.Item>
 
           {/* Branch Location */}
+          {/* Branch Location (State Filter + City Selection) */}
+          <Form.Item label="Filter by State" style={{ marginBottom: 12 }}>
+            <Select 
+              placeholder="Select State first"
+              options={states} 
+              value={selectedStateId}
+              onChange={handleStateChange}
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+            />
+          </Form.Item>
+
           <Form.Item
-            name="branchLocation"
-            label="Branch Location"
-            rules={[{ required: true }]}
+            name="cityId"
+            label="Branch Location (City)"
+            rules={[{ required: true, message: "Please select city" }]}
           >
-            <Select options={STATE_OPTIONS} />
+            <Select 
+              placeholder="Select City"
+              options={cities} 
+              showSearch
+              filterOption={(input, option) =>
+                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+              }
+            />
           </Form.Item>
 
           {/* Head Branch Toggle */}

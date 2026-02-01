@@ -1,30 +1,29 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Card, Form, Input, message, Typography } from "antd";
-import axios from "axios";
 import { useState } from "react";
+import { verifyUserApi } from "../../../api/auth.api";
 
 const { Title, Paragraph, Link } = Typography;
 
 const VerificationCode = () => {
   const [verificationCode, setVerificationCode] = useState<string>("");
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const navigate = useNavigate();
 
-  const mutation = useMutation<string, Error, string>({
+  const mutation = useMutation<any, Error, string>({
     mutationFn: async (code) => {
-      const response = await axios.post(`${URL}/api/auth/verify-user`, {
+      const response = await verifyUserApi({
         token: code,
       });
       return response.data;
     },
     onSuccess: (data) => {
-      message.success(`"Verification successful! ✅"`);
+      message.success("Verification successful! ✅");
       console.log(data);
       navigate({ to: "/auth/login" });
     },
-    onError: (error) => {
-      message.error(`"Error verifying code. ❌ Please try again.",${error}`);
+    onError: (error: any) => {
+      message.error(error.response?.data?.message ?? "Error verifying code. ❌ Please try again.");
     },
   });
 

@@ -135,34 +135,44 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
         </div>
       }
     >
-      <div className="">
+      <div className="space-y-8">
         {hospitalData ? (
           <>
             {/* Header */}
-            <div className="flex items-center gap-4 mb-8">
+            <div className="flex items-center gap-4 mb-6">
               <Avatar
-                size={40}
+                size={48}
                 className="bg-button-primary text-white rounded-full"
               >
                 {avatarInitial}
               </Avatar>
               <div>
-                <h3 className="text-lg font-semibold">{displayName}</h3>
+                <h3 className="text-xl font-semibold">{displayName}</h3>
               </div>
             </div>
 
-            {/* Details */}
-            <div className="grid grid-cols-2 gap-x-12 gap-y-4">
-              <div className="col-span-2">
+            {/* Details Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+              {/* Branch Location */}
+              <div>
                 <div className="text-xs text-gray-500">Branch Location</div>
-                <div className="text-sm">
+                <div className="text-sm font-medium mt-1">
                   {hospitalData.branchLocation || "N/A"}
                 </div>
               </div>
 
+              {/* Status */}
+              <div>
+                <div className="text-xs text-gray-500">Status</div>
+                <div className="mt-1">
+                  <StatusBadge status={hospitalData.status.toUpperCase()} />
+                </div>
+              </div>
+
+              {/* Created On */}
               <div>
                 <div className="text-xs text-gray-500">Created On</div>
-                <div className="text-sm">
+                <div className="text-sm font-medium mt-1">
                   {hospitalData.updated_at
                     ? new Date(hospitalData.updated_at).toLocaleDateString(
                         "en-GB",
@@ -173,13 +183,6 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
                         },
                       )
                     : "N/A"}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-500">Status</div>
-                <div className="mt-1">
-                  <StatusBadge status={hospitalData.status.toUpperCase()} />
                 </div>
               </div>
             </div>

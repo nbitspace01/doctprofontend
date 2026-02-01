@@ -1,9 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Card, Input, Space, Typography, message } from "antd";
+import { App, Button, Card, Input, Space, Typography } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { Logo } from "../../Common/SVG/svg.functions";
 import { useAuth } from "../../Common/Context/AuthContext";
+import { showError, showSuccess } from "../../Common/Notification";
 import type { InputRef } from "antd";
 import { verifyOtpApi } from "../../../api/auth.api";
 
@@ -13,9 +14,11 @@ const { Title, Link } = Typography;
 const OTP_LENGTH = 6;
 const RESEND_TIME = 50;
 
+
 const Verification = () => {
   const [otp, setOtp] = useState<string[]>(Array(OTP_LENGTH).fill(""));
   const [timeLeft, setTimeLeft] = useState(RESEND_TIME);
+  const { notification } = App.useApp();
 
   const navigate = useNavigate();
   const inputRefs = useRef<(InputRef | null)[]>([]);
@@ -80,11 +83,18 @@ const Verification = () => {
     },
     onSuccess: (data) => {  
       persistUser(data);
-      message.success("Verification successful! 🎉");
+      showSuccess(notification, {
+        message: "Verification successful! 🎉",
+        description: data?.message || "Welcome back!",
+      });
       navigate({ to: "/app/dashboard", replace: true });
     },
-    onError: () => {
-      message.error("Invalid OTP. Please try again.");
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || "Invalid OTP. Please try again.";
+      showError(notification, {
+        message: "Verification Failed",
+        description: errorMessage,
+      });
     },
   });
 
@@ -102,7 +112,7 @@ const Verification = () => {
 
   const handleVerify = () => {
     if (!email) {
-      message.error("Email not found. Please login again.");
+      showError(notification, { message: "Email not found", description: "Please login again." });
       navigate({ to: "/auth/login" });
       return;
     }
@@ -110,7 +120,7 @@ const Verification = () => {
     const otpString = otp.join("");
 
     if (otpString.length !== OTP_LENGTH) {
-      message.error("Please enter complete OTP");
+      showError(notification, { message: "Invalid OTP", description: "Please enter complete OTP" });
       return;
     }
 
@@ -120,7 +130,7 @@ const Verification = () => {
   const handleResend = () => {
     setOtp(Array(OTP_LENGTH).fill(""));
     setTimeLeft(RESEND_TIME);
-    message.success("OTP resent successfully");
+    showSuccess(notification, { message: "Success", description: "OTP resent successfully" });
   };
 
   /* -------------------- UI -------------------- */

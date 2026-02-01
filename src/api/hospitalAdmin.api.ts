@@ -21,7 +21,6 @@ export const fetchHospitalAdmin = ({
   filterValues = {},
 }: FetchParams) => {
   const queryParams = buildQueryParams(searchValue, filterValues);
-  // const url = `/api/dashboard/hospital-admin/list?page=${page}&limit=${limit}${
     const url = `/api/hospital-admin/list?page=${page}&limit=${limit}${
     queryParams ? `&${queryParams}` : ""
   }`;
@@ -30,7 +29,10 @@ export const fetchHospitalAdmin = ({
 
 // ----- Update Hospital By ID API -----
 export const updateHospitalAdminApi = (id: string, data: any) => {
-  return apiClient.put<any>(`/api/hospital-admin/${id}`, data);
+  const isFormData = data instanceof FormData;
+  return apiClient.put<any>(`/api/hospital-admin/${id}`, data, {
+    headers: isFormData ? { "Content-Type": "multipart/form-data" } : undefined
+  });
 };
 
 // Hospital Admin Status Update API
@@ -52,3 +54,12 @@ export const deleteHospitalAdminApi = (id: string) => {
 export const fetchHospitalAdminListApi = () =>{
   return apiClient.get<any>(`/api/hospital-admin/list`);
 }
+
+// ----- Upload Hospital KYC API -----
+export const uploadHospitalKycApi = (formData: FormData) => {
+  return apiClient.post<any>(`/api/hospital-admin/upload`, formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

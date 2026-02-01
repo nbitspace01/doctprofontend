@@ -6,7 +6,7 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import { Button, Checkbox, Dropdown, Input, Space, DatePicker } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 
@@ -32,10 +32,18 @@ const SearchFilterDownloadButton = ({
   filterOptions = [],
   onFilterChange,
 }: SearchFilterDownloadButtonProps) => {
-  const [activeFilterKey, setActiveFilterKey] = useState<string | null>(
-    filterOptions.length > 0 ? filterOptions[0].key : null
-  );
+  const [localSearch, setLocalSearch] = useState<Record<string, string>>({});
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [activeFilterKey, setActiveFilterKey] = useState<string | null>(null);
+
+  // Reset active filter when options change
+  useEffect(() => {
+    if (filterOptions.length > 0) {
+      setActiveFilterKey(filterOptions[0].key);
+    } else {
+      setActiveFilterKey(null);
+    }
+  }, [filterOptions]);
 
   const handleFilterChange = (key: string, value: any) => {
     const newFilterValues = { ...filterValues, [key]: value };
@@ -43,11 +51,28 @@ const SearchFilterDownloadButton = ({
     onFilterChange?.(newFilterValues);
   };
 
+  const handleCheckboxChange = (
+    key: string,
+    option: string,
+    checked: boolean,
+  ) => {
+    const currentValues = Array.isArray(filterValues[key])
+      ? filterValues[key]
+      : [];
+    let newValues;
+    if (checked) {
+      newValues = [...currentValues, option];
+    } else {
+      newValues = currentValues.filter((v: string) => v !== option);
+    }
+    handleFilterChange(key, newValues.length > 0 ? newValues : null);
+  };
+
   const renderFilterInput = () => {
     if (!activeFilterKey) return <div className="w-48" />;
 
     const activeFilter = filterOptions.find(
-      (option) => option.key === activeFilterKey
+      (option) => option.key === activeFilterKey,
     );
     if (!activeFilter) return <div className="w-48" />;
 
@@ -73,46 +98,71 @@ const SearchFilterDownloadButton = ({
               placeholder={`Select ${activeFilter.label}`}
               className="w-full"
               format="DD/MM/YYYY"
-              value={filterValues[activeFilterKey] ? dayjs(filterValues[activeFilterKey]) : null}
+              value={
+                filterValues[activeFilterKey]
+                  ? dayjs(filterValues[activeFilterKey])
+                  : null
+              }
               onChange={(date: Dayjs | null) => {
-                handleFilterChange(activeFilterKey, date ? date.format("YYYY-MM-DD") : null);
+                handleFilterChange(
+                  activeFilterKey,
+                  date ? date.format("YYYY-MM-DD") : null,
+                );
               }}
               allowClear
             />
           </div>
         );
       case "checkbox":
+        const searchTerm = localSearch[activeFilterKey] || "";
+        const filteredOptions =
+          activeFilter.options?.filter((opt) =>
+            opt.toLowerCase().includes(searchTerm.toLowerCase()),
+          ) || [];
+
         return (
           <div>
             <Input
-              placeholder={`Search by ${activeFilter.label}`}
+              placeholder={`Search in ${activeFilter.label}`}
               prefix={<SearchOutlined />}
-              value={filterValues[activeFilterKey] || ""}
+              value={searchTerm}
               onChange={(e) =>
-                handleFilterChange(activeFilterKey, e.target.value)
+                setLocalSearch({
+                  ...localSearch,
+                  [activeFilterKey]: e.target.value,
+                })
               }
               allowClear
               style={{ marginBottom: "10px" }}
             />
-            <Space direction="vertical" className="py-2">
-              {activeFilter.options?.map((option) => (
-                <Checkbox
-                  className="custom-checkbox"
-                  key={option}
-                  checked={
-                    filterValues[`${activeFilterKey}_${option}`] || false
-                  }
-                  onChange={(e) =>
-                    handleFilterChange(
-                      `${activeFilterKey}_${option}`,
-                      e.target.checked
-                    )
-                  }
-                >
-                  {option}
-                </Checkbox>
-              ))}
-            </Space>
+            <div className="max-h-60 overflow-y-auto">
+              <Space direction="vertical" className="w-full">
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((option) => (
+                    <Checkbox
+                      className="custom-checkbox w-full"
+                      key={option}
+                      checked={(filterValues[activeFilterKey] || []).includes(
+                        option,
+                      )}
+                      onChange={(e) =>
+                        handleCheckboxChange(
+                          activeFilterKey,
+                          option,
+                          e.target.checked,
+                        )
+                      }
+                    >
+                      {option}
+                    </Checkbox>
+                  ))
+                ) : (
+                  <div className="text-gray-400 text-xs text-center py-2">
+                    No options found
+                  </div>
+                )}
+              </Space>
+            </div>
           </div>
         );
       default:
@@ -121,16 +171,19 @@ const SearchFilterDownloadButton = ({
   };
 
   const filterMenu = (
-    <div className="flex gap-1 bg-white p-2 shadow-lg rounded-md border">
-      <div className="w-48">
-        <ul>
+    <div
+      className="flex gap-1 bg-white p-2 shadow-lg rounded-md border"
+      style={{ minWidth: "400px" }}
+    >
+      <div className="w-48 border-r">
+        <ul className="m-0 p-0 list-none">
           {filterOptions.map((option) => (
             <li
               key={option.key}
               className={`p-2 cursor-pointer rounded-md flex justify-between items-center ${
                 activeFilterKey === option.key
-                  ? "bg-blue-100 text-blue-600"
-                  : "hover:bg-gray-100"
+                  ? "bg-blue-50 text-blue-600 font-medium"
+                  : "hover:bg-gray-50"
               }`}
               onClick={() => setActiveFilterKey(option.key)}
             >
@@ -140,25 +193,26 @@ const SearchFilterDownloadButton = ({
           ))}
         </ul>
       </div>
-      <div className="w-48 p-2">{renderFilterInput()}</div>
+      <div className="w-52 p-2">{renderFilterInput()}</div>
     </div>
   );
 
   return (
-    <div className="p-4 flex justify-between items-center border-b">
-      <Input.Search
-        placeholder="Search"
-        className="max-w-xs"
-        allowClear
-        value={searchValue}
-        onChange={(e) => {
-          onSearch?.(e.target.value);
-        }}
-        onSearch={(value) => {
-          onSearch?.(value);
-        }}
-      />
-      <Space>
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
+      {/* Left: Search Input */}
+      <div className="w-full sm:w-auto flex-1">
+        <Input.Search
+          placeholder="Search"
+          className="w-full sm:max-w-xs"
+          allowClear
+          value={searchValue}
+          onChange={(e) => onSearch?.(e.target.value)}
+          onSearch={(value) => onSearch?.(value)}
+        />
+      </div>
+
+      {/* Right: Buttons */}
+      <div className="flex flex-wrap gap-2 justify-start sm:justify-end">
         {onDownload && (
           <Dropdown
             menu={{
@@ -180,66 +234,30 @@ const SearchFilterDownloadButton = ({
             trigger={["click"]}
           >
             <Button
+              type="text"
               icon={<DownloadOutlined />}
-              className="flex items-center"
+              className="flex items-center text-blue-600 font-bold rounded hover:!bg-blue-600 hover:!text-white rounded-lg"
             >
               Download Report
             </Button>
           </Dropdown>
         )}
+
         {filterOptions.length > 0 && (
           <Dropdown dropdownRender={() => filterMenu} trigger={["click"]}>
-            <Button icon={<FilterFilled />} className="flex items-center">
+            <Button
+              type="default"
+              icon={<FilterFilled />}
+              className="flex items-center text-blue-600 border border-blue-600 font-bold rounded whitespace-nowrap
+             hover:!bg-blue-600 hover:!text-white transition-colors duration-200 rounded-lg"
+            >
               Filter by
             </Button>
           </Dropdown>
         )}
-      </Space>
+      </div>
     </div>
   );
 };
 
 export default SearchFilterDownloadButton;
-
-/*
-Example usage:
-
-// For Student Management
-const studentFilterOptions = [
-  { label: "Name", key: "name", type: "text" },
-  { label: "Course", key: "course", type: "checkbox", options: ["MBBS", "BDS", "BAMS"] },
-  { label: "Year", key: "year", type: "checkbox", options: ["1st Year", "2nd Year", "3rd Year", "4th Year"] },
-  { label: "Status", key: "status", type: "checkbox", options: ["Active", "Inactive", "Graduated"] },
-];
-
-// For Hospital Management
-const hospitalFilterOptions = [
-  { label: "Hospital Name", key: "hospitalName", type: "text" },
-  { label: "Location", key: "location", type: "checkbox", options: ["Chennai", "Bangalore", "Mumbai", "Delhi"] },
-  { label: "Type", key: "type", type: "checkbox", options: ["Government", "Private", "Trust"] },
-  { label: "Status", key: "status", type: "checkbox", options: ["Active", "Pending", "Suspended"] },
-];
-
-// For Campaign Management
-const campaignFilterOptions = [
-  { label: "Campaign Name", key: "campaignName", type: "text" },
-  { label: "Type", key: "type", type: "checkbox", options: ["Digital", "Print", "TV", "Radio"] },
-  { label: "Status", key: "status", type: "checkbox", options: ["Active", "Paused", "Completed"] },
-];
-
-Usage in component:
-<SearchFilterDownloadButton
-  filterOptions={studentFilterOptions}
-  onFilterChange={(filters) => {
-    console.log('Applied filters:', filters);
-    // Apply filters to your data
-  }}
-  onSearch={(value) => {
-    console.log('Search value:', value);
-    // Handle search
-  }}
-  onDownload={() => {
-    // Handle download
-  }}
-/>
-*/

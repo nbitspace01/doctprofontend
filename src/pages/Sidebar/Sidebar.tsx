@@ -10,6 +10,8 @@ import {
   LogOut,
   ShieldUser,
   UserRoundCog,
+  UserCheck,
+  PieChart,
 } from "lucide-react";
 import { getUserInfo } from "../Common/authUtils";
 
@@ -101,7 +103,7 @@ const Sidebar: React.FC = () => {
     {
       id: "sub-admin",
       label: "Sub-Admin List",
-      icon: <ShieldUser />,
+      icon: <UserCheck  />,
       onClick: () => {
         setSelectedItem("sub-admin");
         setExpandedMenus([]);
@@ -119,7 +121,7 @@ const Sidebar: React.FC = () => {
       subMenu: [
         {
           id: "hospitals",
-          label: "Hospital & Clinics List",
+          label: "Hospitals",
           onClick: () => {
             setSelectedItem("masters");
             setSelectedSubMenu("hospitals");
@@ -137,7 +139,7 @@ const Sidebar: React.FC = () => {
         },
         {
           id: "degree-specialization",
-          label: "Degree Specialization",
+          label: "Degree",
           onClick: () => {
             setSelectedSubMenu("degree-specialization");
             navigate({ to: "/app/degree-specialization" });
@@ -156,7 +158,7 @@ const Sidebar: React.FC = () => {
       subMenu: [
         {
           id: "clinics",
-          label: "Hospitals",
+          label: "Hospital Admin",
           onClick: () => {
             setSelectedItem("organizations");
             setSelectedSubMenu("clinics");
@@ -225,10 +227,10 @@ const Sidebar: React.FC = () => {
     {
       id: "report-management",
       label: "Report Management",
-      icon: <UserRoundCog />,
+      icon: <PieChart />,
       onClick: () => {
-        setSelectedItem("report");
-        toggleSubmenu("report");
+        setSelectedItem("report-management");
+        setExpandedMenus([]);
         navigate({ to: "/app/report" });
       },
     },
@@ -273,69 +275,64 @@ const Sidebar: React.FC = () => {
   /* -------------------- Render -------------------- */
   return (
     <Sider
-      width={200}
-      theme="light"
-      style={{ overflow: "visible" }} // ⭐ IMPORTANT
-      className="
-    bg-white fixed top-20 left-0
-    h-[calc(100vh-80px)]
-    flex flex-col
-  "
-    >
-      {/* Scrollable Menu */}
-      <div className="flex-1 overflow-y-auto px-2 mt-4">
-        {menuItems.map((item) => (
-          <React.Fragment key={item.id}>
-            <div
-              className={`flex items-center h-[55px] mb-3 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
-                selectedItem === item.id
-                  ? "bg-button-primary text-white"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-              onClick={item.onClick}
-            >
-              <span
-                className={
-                  selectedItem === item.id ? "text-white" : "text-gray-500"
-                }
-              >
-                {item.icon}
-              </span>
-              <span className="ml-3">{item.label}</span>
-            </div>
-
-            {item.subMenu && expandedMenus.includes(item.id) && (
-              <div className="ml-8">
-                {item.subMenu.map((sub) => (
-                  <div
-                    key={sub.id}
-                    className={`flex items-center h-[40px] mb-2 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
-                      selectedSubMenu === sub.id
-                        ? "bg-[#f7f7f7] text-[#6aa4f0]"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                    onClick={sub.onClick}
-                  >
-                    <span className="ml-3">{sub.label}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Logout (NOW VISIBLE) */}
-      <div className="border-t px-2 py-3">
+  width={200}
+  theme="light"
+  className="bg-white fixed top-20 left-0 flex flex-col"
+  style={{ height: 'calc(100vh - 80px)' }} // Sider height
+>
+  {/* Scrollable Menu */}
+  <div
+    className="overflow-y-auto px-2 mt-4 scrollbar-hide"
+    style={{ height: 'calc(100% - 90px)' }} // subtract logout height
+  >
+    {menuItems.map((item) => (
+      <React.Fragment key={item.id}>
         <div
-          className="flex items-center h-[56px] text-base text-gray-500 hover:bg-gray-100 px-4 cursor-pointer rounded-md"
-          onClick={handleLogout}
+          className={`flex items-center h-[55px] mb-2 text-base px-4 cursor-pointer rounded-md transition-all duration-300 ${
+            selectedItem === item.id
+              ? 'bg-blue-900 text-white shadow-lg scale-105'
+              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+          }`}
+          onClick={item.onClick}
         >
-          <LogOut />
-          <span className="ml-3">Logout</span>
+          <span className={selectedItem === item.id ? 'text-white' : 'text-gray-500'}>
+            {item.icon}
+          </span>
+          <span className="ml-3">{item.label}</span>
         </div>
-      </div>
-    </Sider>
+
+        {item.subMenu && expandedMenus.includes(item.id) && (
+          <div className="ml-8">
+            {item.subMenu.map((sub) => (
+              <div
+                key={sub.id}
+                className={`flex items-center h-[40px] mb-2 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
+                  selectedSubMenu === sub.id ? 'text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+                onClick={sub.onClick}
+              >
+                <span className="ml-3">{sub.label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </React.Fragment>
+    ))}
+  </div>
+
+  {/* Sticky Logout */}
+  <div className="px-2 py-3">
+    <div
+      className="flex items-center bg-gray-100 h-[56px] text-base text-gray-500 hover:bg-gray-200 px-4 cursor-pointer rounded-md"
+      onClick={handleLogout}
+    >
+      <LogOut />
+      <span className="ml-3">Logout</span>
+    </div>
+  </div>
+</Sider>
+
+
   );
 };
 

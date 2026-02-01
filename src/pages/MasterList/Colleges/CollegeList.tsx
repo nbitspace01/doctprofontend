@@ -85,7 +85,18 @@ const CollegeList: React.FC = () => {
       message.success("College deleted successfully");
     },
     onError: (error: any) => {
-      message.error(error?.message || "Failed to delete college");
+      const apiMsg =
+        error?.response?.data?.message ||
+        error?.message ||
+        "Failed to delete college";
+      const linkedStudent =
+        apiMsg.toLowerCase().includes("student") ||
+        apiMsg.toLowerCase().includes("referenc");
+      if (linkedStudent) {
+        message.error("Unable to delete, student linked with this college");
+      } else {
+        message.error(apiMsg);
+      }
     },
   });
 
@@ -217,14 +228,15 @@ const CollegeList: React.FC = () => {
   /* ---------- FILTER OPTIONS ---------- */
   const filterOptions = useMemo(
     () => [
-      { label: "College Name", key: "name", type: "text" },
-      { label: "State", key: "state", type: "text" },
-      { label: "District", key: "district", type: "text" },
+      { label: "College Name", key: "name", type: "text" as const },
+      { label: "State", key: "state", type: "text" as const },
+      { label: "District", key: "district", type: "text" as const },
+      { label: "City", key: "city", type: "text" as const },
       {
         label: "Status",
         key: "status",
-        type: "checkbox",
-        options: ["Active", "Pending", "Unactive"],
+        type: "checkbox" as const,
+        options: ["active", "pending", "inactive"],
       },
     ],
     [],
@@ -232,18 +244,19 @@ const CollegeList: React.FC = () => {
 
   /* ---------- RENDER ---------- */
   return (
-    <div className="p-6">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">Colleges</h1>
-        <Button
-          type="primary"
-          icon={<Plus />}
-          onClick={() => setIsModalOpen(true)}
-          className="bg-button-primary hover:!bg-button-primary"
-        >
-          Add New College
-        </Button>
-      </div>
+    <div className="px-6">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+            <h1 className="text-2xl font-bold">College List</h1>
+            <Button
+              type="primary"
+              onClick={() => setIsModalOpen(true)}
+              className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+                   px-5 py-6 flex items-center gap-2 transition-colors duration-200"
+            >
+              <Plus className="relative -top-0" />
+              Add New College
+            </Button>
+          </div>
 
       <div className="bg-white rounded-lg shadow-sm">
         {isFetching ? (

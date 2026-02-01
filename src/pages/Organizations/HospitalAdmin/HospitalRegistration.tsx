@@ -4,20 +4,20 @@ import {
   App,
   Button,
   Form,
-  Input,
   Modal,
-  Select,
   Upload,
   UploadProps,
 } from "antd";
-import axios from "axios";
 import React, { useEffect, useState } from "react";
-import { TOKEN, USER_ID } from "../../Common/constant.function";
+import { USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
-import PhoneNumberInput from "../../Common/PhoneNumberInput";
-import { apiClient } from "../../../api/api";
-import { createHospitalAdminApi } from "../../../api/hospitalAdmin.api";
+import { createHospitalAdminApi, updateHospitalAdminApi, uploadHospitalKycApi } from "../../../api/hospitalAdmin.api";
 import { setUserPasswordApi } from "../../../api/auth.api";
+import { getCountries, getStates, getCities } from "../../../api/location.api";
+import { HospitalData } from "./ClinicViewDrawer";
+import HospitalBasicInfo from "./HospitalBasicInfo";
+import HospitalKYC from "./HospitalKYC";
+import HospitalPassword from "./HospitalPassword";
 
 // First, let's add an interface for our form data
 interface HospitalRegistrationData {
@@ -45,28 +45,154 @@ interface HospitalRegistrationData {
 interface HospitalRegistrationProps {
   isOpen: boolean;
   onClose: () => void;
+  initialData?: HospitalData | null;
 }
 
 const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   isOpen,
   onClose,
+  initialData,
 }) => {
+  const isEditMode = Boolean(initialData);
   const [currentStep, setCurrentStep] = useState(1);
   const [form] = Form.useForm();
   const [preRegistrationId, setPreRegistrationId] = useState<string>("");
   const [userId, setUserId] = useState<string>("");
   const [uploading, setUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState<string>("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const { notification } = App.useApp();
   // State for KYC file objects
   const [idProofFile, setIdProofFile] = useState<File | null>(null);
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
-  const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  // Location State
+  const [countries, setCountries] = useState<any[]>([]);
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
 
-  // Update the mutation with proper typing and error handling
+  // Fetch Countries on Mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const data = await getCountries();
+        setCountries(data.map((c: any) => ({ label: c.name, value: c.name, key: c.id })));
+      } catch (error) {
+        console.error("Failed to fetch countries", error);
+      }
+    };
+    if (isOpen) fetchCountries();
+  }, [isOpen]);
+
+  // Prefill when editing
+  useEffect(() => {
+    if (isOpen) {
+      if (initialData) {
+        // Edit Mode
+        form.setFieldsValue({
+          name: initialData.name,
+          type: (initialData as any).type,
+          country: initialData.country,
+          state: initialData.state,
+          city: initialData.city,
+          branchLocation: initialData.branchLocation,
+          zipcode: initialData.zipcode,
+          email: initialData.email,
+          phone: initialData.phone,
+          website: (initialData as any).website ?? "",
+          hr_full_name: initialData.hr_full_name,
+          hr_email: initialData.hr_email,
+          hr_phone: initialData.hr_phone,
+        });
+
+        setPreRegistrationId(initialData.id);
+        setUserId(
+          (initialData as any).adminUser?.id ||
+          (initialData as any).adminUserId ||
+          USER_ID ||
+          ""
+        );
+        setImageUrl(initialData.logoUrl || "");
+        setCurrentStep(1);
+
+        // preload KYC display names for step 2 if present (normalized or legacy)
+        const kyc = (initialData as any).kyc;
+        const kycDocs = ((initialData as any).kycDocuments || []) as any[];
+        const idProofDoc =
+          kycDocs.find((d) =>
+            String(d.type || "").toLowerCase().includes("id")
+          ) || kyc?.adminIdProof;
+        const licenseDoc =
+          kycDocs.find((d) =>
+            String(d.type || "").toLowerCase().includes("license")
+          ) || kyc?.hospitalLicense;
+
+        const adminIdProof = idProofDoc || kyc?.adminIdProof;
+        const hospitalLicense = licenseDoc || kyc?.hospitalLicense;
+
+        if (adminIdProof?.number) {
+          form.setFieldsValue({ id_proof_number: adminIdProof.number });
+        }
+        if (adminIdProof?.type) {
+          form.setFieldsValue({ id_proof_type: adminIdProof.type });
+        }
+        if (hospitalLicense?.number) {
+          form.setFieldsValue({ license_number: hospitalLicense.number });
+        }
+        if (hospitalLicense?.type) {
+          form.setFieldsValue({ license_type: hospitalLicense.type });
+        }
+        if (adminIdProof?.url) {
+          form.setFieldsValue({ id_proof_url: adminIdProof.url });
+        }
+        if (hospitalLicense?.url) {
+          form.setFieldsValue({ license_url: hospitalLicense.url });
+        }
+      } else {
+        // Create Mode
+        form.resetFields();
+        setImageUrl("");
+        setCurrentStep(1);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, initialData]);
+
+  const handleCountryChange = async (countryName: string, option: any) => {
+    try {
+      setStates([]);
+      setCities([]);
+      form.setFieldValue('state', undefined);
+      form.setFieldValue('city', undefined);
+
+      const countryId = option.key;
+      if (countryId) {
+        const stateData = await getStates(countryId);
+        setStates(stateData.map((s: any) => ({ label: s.name, value: s.name, key: s.id })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch states", error);
+    }
+  };
+
+  const handleStateChange = async (stateName: string, option: any) => {
+    try {
+      setCities([]);
+      form.setFieldValue('city', undefined);
+
+      const stateId = option.key;
+      if (stateId) {
+        const cityData = await getCities(stateId, false);
+        setCities(cityData.map((c: any) => ({ label: c.name, value: c.name })));
+      }
+    } catch (error) {
+      console.error("Failed to fetch cities", error);
+    }
+  };
+
+  // Create
   const hospitalRegistrationMutation = useMutation({
-    mutationFn: (data: HospitalRegistrationData) =>
+    mutationFn: (data: any) =>
       createHospitalAdminApi(data),
     onSuccess: (data: any) => {
       console.log("Hospital Data", data)
@@ -77,6 +203,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
     onError: (error) => {
       console.error("Registration failed:", error);
+      showError(notification, {
+        message: "Registration Failed",
+        description: (error as any).response?.data?.message || (error as any).message || "Unknown error"
+      });
     },
   });
 
@@ -94,24 +224,25 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       if (data.id_proof_file) {
         formData.append("id_proof", data.id_proof_file);
       }
+      if (data.id_proof_url) {
+        formData.append("id_proof_url", data.id_proof_url);
+      }
       if (data.license_file) {
         formData.append("license", data.license_file);
       }
+      if (data.license_url) {
+        formData.append("license_url", data.license_url);
+      }
 
-      return axios.post(`${API_URL}/api/hospital-admin/upload`, formData, {
-        headers: {
-          Authorization: `Bearer ${TOKEN}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      return uploadHospitalKycApi(formData);
     },
     onSuccess: (response) => {
-      console.log("KYC verification successful:", response.data);
+      console.log("KYC verification successful:", response);
       setCurrentStep(currentStep + 1);
       showSuccess(notification, {
         message: "KYC submitted successfully",
         description:
-          response.data.message ?? "Operation completed successfully",
+          response?.message ?? "Operation completed successfully",
       });
     },
     onError: (error: any) => {
@@ -124,12 +255,44 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
   });
 
-  const setPasswordMutation = useMutation({
-    mutationFn: (data: any) =>
-      setUserPasswordApi(userId, data),
+  const updateHospitalMutation = useMutation({
+    mutationFn: (payload: any) => updateHospitalAdminApi(initialData!.id, payload),
     onSuccess: () => {
+      showSuccess(notification, {
+        message: "Hospital admin updated",
+        description: "Changes saved successfully",
+      });
+    },
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Update failed",
+        description: error?.response?.data?.message || error?.message || "Failed to update hospital admin",
+      });
+    },
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: (data: any) => setUserPasswordApi(userId, data),
+    onSuccess: async () => {
+      if (preRegistrationId) {
+        try {
+          await updateHospitalAdminApi(preRegistrationId, { status: "PENDING" });
+        } catch (err) {
+          console.error("Failed to set hospital status to PENDING", err);
+        }
+      }
+      showSuccess(notification, {
+        message: "Password updated",
+        description: "Password saved and status updated to PENDING",
+      });
       onClose();
     },
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Password update failed",
+        description: error?.response?.data?.message || error?.message,
+      });
+    }
   });
 
   const uploadProps: UploadProps = {
@@ -143,7 +306,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           message: "You can only upload image files!",
           description: "You can only upload image files!",
         });
-        return false;
+        return Upload.LIST_IGNORE;
       }
       const isLt2M = file.size / 1024 / 1024 < 2;
       if (!isLt2M) {
@@ -151,58 +314,11 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           message: "Image must be smaller than 2MB!",
           description: "Image must be smaller than 2MB!",
         });
-        return false;
+        return Upload.LIST_IGNORE;
       }
-      return true;
-    },
-    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
-      try {
-        setUploading(true);
-
-        const formData = new FormData();
-        formData.append("file", file as File);
-        formData.append("entity", "post");
-        formData.append("userId", USER_ID || "");
-
-        const response = await axios.post(
-          `${API_URL}/api/post/upload`,
-          formData,
-          {
-            headers: {
-              "Content-Type": "multipart/form-data",
-              Authorization: `Bearer ${TOKEN}`,
-            },
-            onUploadProgress: (progressEvent) => {
-              if (progressEvent.total) {
-                const percent = Math.round(
-                  (progressEvent.loaded * 100) / progressEvent.total
-                );
-                onProgress?.({ percent });
-              }
-            },
-          }
-        );
-
-        const { url } = response.data;
-
-        setImageUrl(url || "");
-        form.setFieldsValue({ logoUrl: url });
-
-        onSuccess?.(response.data);
-        showSuccess(notification, {
-          message: "Image uploaded successfully!",
-          description: "Image uploaded successfully",
-        });
-      } catch (error) {
-        console.error("Upload error:", error);
-        onError?.(error as Error);
-        showError(notification, {
-          message: "Failed to upload image",
-          description: "Failed to upload image",
-        });
-      } finally {
-        setUploading(false);
-      }
+      setLogoFile(file as File);
+      setImageUrl(URL.createObjectURL(file as File));
+      return false;
     },
   };
 
@@ -238,297 +354,32 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     },
   };
 
-  // Step 1: Basic Information
   const renderStep1 = () => (
-    <Form form={form} layout="vertical">
-      <div className="flex justify-center mb-6">
-        <Upload {...uploadProps}>
-          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserOutlined className="text-3xl text-gray-400" />
-            )}
-          </div>
-        </Upload>
-        {uploading && (
-          <div className="text-center text-sm text-gray-500 mt-2">
-            Uploading...
-          </div>
-        )}
-      </div>
-
-      <Form.Item
-        name="name"
-        label={
-          <span>
-            Hospital/Clinic Name <span className="text-red-500">*</span>
-          </span>
-        }
-        rules={[
-          { required: true, message: "Please enter hospital/clinic name" },
-        ]}
-      >
-        <Input placeholder="Enter Hospital/Clinic Name" />
-      </Form.Item>
-
-      <Form.Item
-        name="type"
-        label={
-          <span>
-            Type <span className="text-red-500">*</span>
-          </span>
-        }
-        rules={[{ required: true, message: "Please select type" }]}
-      >
-        <Select placeholder="Select Type">
-          <Select.Option value="hospital">Hospital</Select.Option>
-          <Select.Option value="clinic">Clinic</Select.Option>
-        </Select>
-      </Form.Item>
-
-      <Form.Item
-        name="branchLocation"
-        label={
-          <span>
-            Branch Location <span className="text-red-500">*</span>
-          </span>
-        }
-        rules={[{ required: true, message: "Please enter branch location" }]}
-      >
-        <Input placeholder="Enter Location" />
-      </Form.Item>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Form.Item
-          name="city"
-          label={
-            <span>
-              City/Town <span className="text-red-500">*</span>
-            </span>
-          }
-          rules={[{ required: true, message: "Please enter city" }]}
-        >
-          <Input placeholder="Enter City/Town" />
-        </Form.Item>
-        <Form.Item
-          name="state"
-          label={
-            <span>
-              State <span className="text-red-500">*</span>
-            </span>
-          }
-          rules={[{ required: true, message: "Please enter state" }]}
-        >
-          <Input placeholder="Enter State" />
-        </Form.Item>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Form.Item
-          name="country"
-          label="Country"
-          rules={[{ required: true, message: "Please enter country" }]}
-        >
-          <Input placeholder="Enter Country" />
-        </Form.Item>
-
-        <Form.Item
-          name="zipcode"
-          label="Zip/Postal Code"
-          rules={[{ required: true, message: "Please enter zip code" }]}
-        >
-          <Input placeholder="Ex 567899" />
-        </Form.Item>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Form.Item
-          name="email"
-          label="Email Address"
-          rules={[
-            { required: true, message: "Please enter email" },
-            { type: "email", message: "Please enter valid email" },
-          ]}
-        >
-          <Input placeholder="surya@xyz.com" />
-        </Form.Item>
-        <PhoneNumberInput name="phone" label="Phone Number" />
-      </div>
-
-      <div className="mb-4">
-        <div className="grid grid-cols-2 gap-4">
-          <Form.Item
-            name="website"
-            label="Website URL"
-            rules={[{ required: true, message: "Please enter website URL" }]}
-          >
-            <Input placeholder="http://www.sample.com" />
-          </Form.Item>
-        </div>
-      </div>
-
-      <div className="mb-4">
-        <h3 className="mb-4">HR/Admin Person Details</h3>
-        <Form.Item
-          name="hr_full_name"
-          label="Full Name"
-          rules={[{ required: true, message: "Please enter full name" }]}
-        >
-          <Input placeholder="Surya" />
-        </Form.Item>
-        <div className="grid grid-cols-2 gap-4">
-          <Form.Item
-            name="hr_email"
-            label="Email Address"
-            rules={[
-              { required: true, message: "Please enter email" },
-              { type: "email", message: "Please enter valid email" },
-            ]}
-          >
-            <Input placeholder="surya@xyz.com" />
-          </Form.Item>
-          <PhoneNumberInput name="hr_phone" label="Phone Number" />
-        </div>
-      </div>
-
-      {/* This hidden field will hold the uploaded logo URL */}
-      <Form.Item name="logoUrl" hidden>
-        <Input />
-      </Form.Item>
-    </Form>
+    <HospitalBasicInfo
+      form={form}
+      countries={countries}
+      states={states}
+      cities={cities}
+      uploadProps={uploadProps}
+      imageUrl={imageUrl}
+      uploading={uploading}
+      handleCountryChange={handleCountryChange}
+      handleStateChange={handleStateChange}
+    />
   );
 
-  // Step 2: KYC Verification
   const renderStep2 = () => (
-    <Form form={form} layout="vertical">
-      <Form.Item
-        name="id_proof_type"
-        label="ID Proof Type"
-        rules={[{ required: true, message: "Please select ID proof type" }]}
-      >
-        <Select placeholder="Select ID Proof Type">
-          <Select.Option value="Aadhaar Card">Aadhaar Card</Select.Option>
-          <Select.Option value="PAN Card">PAN Card</Select.Option>
-          <Select.Option value="Voter ID">Voter ID</Select.Option>
-        </Select>
-      </Form.Item>
-
-      <Form.Item
-        name="id_proof_number"
-        label="ID Proof Number"
-        rules={[{ required: true, message: "Please enter ID proof number" }]}
-      >
-        <Input placeholder="Enter ID Proof Number" />
-      </Form.Item>
-
-      <Form.Item
-        name="id_proof_url"
-        label={
-          <div className="flex items-center gap-2">
-            <span>Admin Person ID Proof</span>
-            <span className="text-gray-500 text-sm">
-              📁 Upload file (PDF/JPG)
-            </span>
-          </div>
-        }
-        rules={[{ required: true, message: "Please upload ID proof" }]}
-      >
-        <Upload {...idProofUploadProps}>
-          <Button icon={<UploadOutlined />} className="w-full">
-            <div className="flex items-center justify-between w-full">
-              <span>Choose File</span>
-              {idProofFile && (
-                <span className="text-gray-500">📁 {idProofFile.name}</span>
-              )}
-            </div>
-          </Button>
-        </Upload>
-      </Form.Item>
-
-      <Form.Item
-        name="license_type"
-        label="License Type"
-        rules={[{ required: true, message: "Please select license type" }]}
-      >
-        <Select placeholder="Select License Type">
-          <Select.Option value="Hospital Registration Certificate">
-            Hospital Registration Certificate
-          </Select.Option>
-          <Select.Option value="Clinic Registration Certificate">
-            Clinic Registration Certificate
-          </Select.Option>
-        </Select>
-      </Form.Item>
-
-      <Form.Item
-        name="license_number"
-        label="License Number"
-        rules={[{ required: true, message: "Please enter license number" }]}
-      >
-        <Input placeholder="Enter License Number" />
-      </Form.Item>
-
-      <Form.Item
-        name="license_url"
-        label={
-          <div className="flex items-center gap-2">
-            <span>Hospital/Clinic License</span>
-            <span className="text-gray-500 text-sm">
-              📁 Upload file (PDF/JPG)
-            </span>
-          </div>
-        }
-        rules={[{ required: true, message: "Please upload license" }]}
-      >
-        <Upload {...licenseUploadProps}>
-          <Button icon={<UploadOutlined />} className="w-full">
-            <div className="flex items-center justify-between w-full">
-              <span>Choose File</span>
-              {licenseFile && (
-                <span className="text-gray-500">📁 {licenseFile.name}</span>
-              )}
-            </div>
-          </Button>
-        </Upload>
-      </Form.Item>
-    </Form>
+    <HospitalKYC
+      form={form}
+      idProofUploadProps={idProofUploadProps}
+      licenseUploadProps={licenseUploadProps}
+      idProofFile={idProofFile}
+      licenseFile={licenseFile}
+    />
   );
 
-  // Step 3: Password
   const renderStep3 = () => (
-    <Form form={form} layout="vertical">
-      <Form.Item
-        name="password"
-        label="New Password"
-        rules={[{ required: true, message: "Please enter new password" }]}
-      >
-        <Input.Password placeholder="Enter new password" />
-      </Form.Item>
-
-      <Form.Item
-        name="confirmPassword"
-        label="Confirm Password"
-        dependencies={["password"]}
-        rules={[
-          { required: true, message: "Please confirm your password" },
-          ({ getFieldValue }) => ({
-            validator(_, value) {
-              if (!value || getFieldValue("password") === value) {
-                return Promise.resolve();
-              }
-              return Promise.reject(new Error("The passwords do not match!"));
-            },
-          }),
-        ]}
-      >
-        <Input.Password placeholder="Confirm password" />
-      </Form.Item>
-    </Form>
+    <HospitalPassword form={form} isEditMode={isEditMode} />
   );
 
   const handleNext = async () => {
@@ -536,70 +387,52 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       const values = await form.validateFields();
 
       if (currentStep === 1) {
-        const formattedValues: HospitalRegistrationData = {
-          name: values.name,
-          type: values.type,
-          branchLocation: values.branchLocation,
-          city: values.city,
-          state: values.state,
-          country: values.country,
-          zipcode: values.zipcode,
-          email: values.email,
-          phone: values.phone,
-          website: values.website,
-          logoUrl: imageUrl, // Use the URL from the state
-          links: [
-            {
-              type: "Website",
-              url: values.website,
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("name", values.name);
+        formData.append("type", values.type);
+        if (values.branchLocation) formData.append("branchLocation", values.branchLocation);
+        if (values.city) formData.append("city", values.city);
+        formData.append("state", values.state);
+        formData.append("country", values.country);
+        formData.append("zipcode", values.zipcode);
+        formData.append("email", values.email);
+        formData.append("phone", values.phone);
+        if (values.website) formData.append("website", values.website);
+        formData.append("hr_full_name", values.hr_full_name);
+        formData.append("hr_email", values.hr_email || "");
+        formData.append("hr_phone", values.hr_phone || "");
+        formData.append("admin_email", values.hr_email || "");
+        formData.append("admin_phone", values.hr_phone || "");
+        formData.append("contact_person", values.hr_full_name || "");
+        formData.append("status", (isEditMode && initialData) ? initialData?.status || "ACTIVE" : "PENDING");
+        const links = [{ type: "Website", url: values.website || "" }];
+        formData.append("links", JSON.stringify(links));
+        if (logoFile) {
+          formData.append("profile_picture", logoFile);
+        }
+
+        if (isEditMode && initialData) {
+          updateHospitalMutation.mutate(formData as any, {
+            onSuccess: () => {
+              setPreRegistrationId(initialData.id);
+              setCurrentStep(2);
             },
-          ],
-          contact_person: values.hr_full_name,
-          admin_email: values.hr_email,
-          admin_phone: values.hr_phone,
-        };
+          });
+        } else {
+          hospitalRegistrationMutation.mutate(formData);
+        }
+        setUploading(false);
+        return;
+      }
 
-        console.log("Formatted values:", formattedValues);
-        hospitalRegistrationMutation.mutate(formattedValues, {
-          onSuccess: (response) => {
-            const { hospital_id, user_id } = response.data;
-            setPreRegistrationId(hospital_id);
-            setUserId(user_id);
-            setCurrentStep(currentStep + 1);
-            showSuccess(notification, {
-              message: "Registration Successful",
-              description: "Proceeding to KYC verification.",
-            });
-          },
-          onError: (error: any) => {
-            showError(notification, {
-              message: "Registration Failed",
-              description:
-                error.response?.data?.message ?? "An unknown error occurred.",
-            });
-          },
-        });
-      } else if (currentStep === 2) {
-        if (!userId || !preRegistrationId) {
-          showError(notification, {
-            message:
-              "Missing required registration data. Please complete step 1 first.",
-          });
+      if (currentStep === 2) {
+        if (!preRegistrationId) {
+          showError(notification, { message: "Missing required registration data." });
           return;
         }
-        if (!values.id_proof_type || !values.id_proof_number || !idProofFile) {
-          showError(notification, {
-            message: "Please fill in all ID proof details",
-          });
-          return;
-        }
-
-        if (!values.license_type || !values.license_number || !licenseFile) {
-          showError(notification, {
-            message: "Please fill in all license details",
-          });
-          return;
-        }
+        if (!userId) setUserId(USER_ID || "");
+        
         const kycData = {
           user_id: userId,
           hospital_id: preRegistrationId,
@@ -609,18 +442,15 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           license_type: values.license_type,
           license_number: values.license_number,
           license_file: licenseFile,
+          id_proof_url: form.getFieldValue('id_proof_url'),
+          license_url: form.getFieldValue('license_url'),
         };
 
-        console.log("Submitting KYC Data:", kycData);
         kycVerificationMutation.mutate(kycData);
-      } else {
-        setCurrentStep(currentStep + 1);
       }
     } catch (error) {
       console.error("Form validation failed:", error);
-      showError(notification, {
-        message: "Please fill in all required fields",
-      });
+      showError(notification, { message: "Please fill in all required fields" });
     }
   };
 
@@ -631,50 +461,30 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-
-      const passwordData = {
-        password: values.password,
-      };
-
-      console.log("Step 3 payload:", passwordData);
-      setPasswordMutation.mutate(passwordData);
-      showSuccess(notification, {
-        message: "Password set successfully",
-        description: "Password set successfully",
-      });
+      const passwordValue = values.password;
+      if (isEditMode && !passwordValue) {
+        showSuccess(notification, { message: "Hospital updated", description: "No password changes applied" });
+        onClose();
+        return;
+      }
+      if (!passwordValue) {
+        showError(notification, { message: "Password required" });
+        return;
+      }
+      setPasswordMutation.mutate({ password: passwordValue });
     } catch (error) {
       console.error("Validation failed:", error);
-      showError(notification, {
-        message: "Validation failed",
-        description: "Validation failed",
-      });
+      showError(notification, { message: "Validation failed" });
     }
   };
 
-  const modalTitle =
-    currentStep === 1
-      ? "Hospital/Clinic Registration"
-      : currentStep === 2
-      ? "KYC Verification"
-      : "Password";
+  const modalTitle = isEditMode ? "Edit Hospital/Clinic" : currentStep === 1 ? "Registration" : currentStep === 2 ? "KYC" : "Password";
 
-  // Optional: Add a useEffect to prevent accessing step 2 without preRegistrationId
   useEffect(() => {
     if (currentStep === 2 && !preRegistrationId) {
-      // Redirect back to step 1 or show error
       setCurrentStep(1);
-      showError(notification, {
-        message: "Please complete step 1 first",
-        description: "Please complete step 1 first",
-      });
     }
   }, [currentStep, preRegistrationId]);
-
-  // Add debugging for userId and preRegistrationId
-  useEffect(() => {
-    console.log("Current userId:", userId);
-    console.log("Current preRegistrationId:", preRegistrationId);
-  }, [userId, preRegistrationId]);
 
   return (
     <div>
@@ -684,31 +494,15 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         onCancel={onClose}
         footer={[
           currentStep > 1 && (
-            <Button
-              key="back"
-              onClick={handleBack}
-              disabled={
-                hospitalRegistrationMutation.isPending ||
-                kycVerificationMutation.isPending
-              }
-            >
-              Back
-            </Button>
+            <Button key="back" onClick={handleBack} disabled={hospitalRegistrationMutation.isPending || kycVerificationMutation.isPending}>Back</Button>
           ),
-          <Button key="cancel" onClick={onClose}>
-            Cancel
-          </Button>,
+          <Button key="cancel" onClick={onClose}>Cancel</Button>,
           <Button
             key="next"
             type="primary"
             className="bg-button-primary"
             onClick={currentStep === 3 ? handleSubmit : handleNext}
-            loading={
-              hospitalRegistrationMutation.isPending ||
-              kycVerificationMutation.isPending ||
-              setPasswordMutation.isPending ||
-              uploading
-            }
+            loading={hospitalRegistrationMutation.isPending || kycVerificationMutation.isPending || setPasswordMutation.isPending || uploading}
           >
             {currentStep === 3 ? "Submit" : "Next"}
           </Button>,

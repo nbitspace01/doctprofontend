@@ -7,6 +7,7 @@ import KycViewDrawer from "./KycViewDrawer";
 import { fetchKYCApi } from "../../api/kyc.api";
 import { useListController } from "../../hooks/useListController";
 import CommonTable from "../../components/Common/CommonTable";
+import StatusBadge from "../Common/StatusBadge";
 
 /* ---------- TYPES ---------- */
 interface KYCData {
@@ -18,7 +19,7 @@ interface KYCData {
   created_on: string;
   kyc_status: string;
   documents?: KycDocument[];
-  user: Userdata[];
+  user: Userdata | Userdata[];
 }
 
 interface Userdata {
@@ -104,7 +105,10 @@ const KycList: React.FC = () => {
 
   /* -------------------- Handlers -------------------- */
   const handleView = (record: KYCData) => {
-    setSelectedKYC(record);
+    setSelectedKYC({
+      ...record,
+      user: Array.isArray(record.user) ? record.user[0] : record.user,
+    });
     setIsViewDrawerOpen(true);
   };
 
@@ -193,11 +197,7 @@ const KycList: React.FC = () => {
                 ? "warning"
                 : "error";
 
-          return (
-            <Tag color={color} className="capitalize">
-              {status}
-            </Tag>
-          );
+          return <StatusBadge status={status} />;
         },
       },
       {
@@ -205,7 +205,12 @@ const KycList: React.FC = () => {
         key: "action",
         render: (_: any, record: KYCData) => (
           <CommonDropdown
-            onView={() => handleView(record)}
+            onView={() =>
+              handleView({
+                ...record,
+                user: Array.isArray(record.user) ? record.user[0] : record.user,
+              })
+            }
             // onEdit={() => handleEdit(record)}
             // onDelete={() => handleDelete(record)}
           />
@@ -268,10 +273,8 @@ const KycList: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between mb-6">
-        <h1 className="text-2xl font-bold">KYC Management</h1>
-      </div>
+    <div className="px-6">
+      <h1 className="text-2xl font-bold pb-4">KYC Management</h1>
 
       <div className="bg-white rounded-lg shadow-sm">
         <CommonTable
@@ -297,6 +300,10 @@ const KycList: React.FC = () => {
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
           kycData={selectedKYC}
+          onChanged={() => {
+            queryClient.invalidateQueries({ queryKey: ["KYC"] });
+            queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
+          }}
         />
       )}
     </div>

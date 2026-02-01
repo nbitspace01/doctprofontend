@@ -19,6 +19,11 @@ export interface AdsPostData {
   description: string;
   status: string;
   imageUrl?: string;
+  country?: string;
+  state?: string;
+  redirectUrl?: string;
+  contentType?: string;
+  createdByName?: string;
 }
 
 /* ================================
@@ -48,6 +53,7 @@ export interface AdsPostFormValues {
   redirectUrl: string;
   description: string;
   displayLocation?: string;
+  status?: string;
 }
 
 /* ================================
@@ -68,6 +74,7 @@ export interface AdsPostPayload {
   redirectUrl: string;
   description: string;
   displayLocation?: string;
+  status?: string;
 }
 
 /* ================================

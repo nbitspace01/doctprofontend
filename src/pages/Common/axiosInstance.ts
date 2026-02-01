@@ -31,7 +31,11 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    // Only redirect to login if 401 AND not already on login page AND not a login request failure
+    // We want login failures (wrong password) to just throw error so UI can show message
+    const isLoginRequest = error.config?.url?.includes("/login");
+
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem("userToken");
       window.location.href = "/auth/login";
     }

@@ -1,5 +1,5 @@
 import React from "react";
-import { App, Button, Drawer } from "antd";
+import { App, Avatar, Button, Drawer } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import FormattedDate from "../../Common/FormattedDate";
 import { updateDegreeApi } from "../../../api/degree.api";
@@ -115,28 +115,45 @@ const DegreeView: React.FC<DegreeViewProps> = ({
       }
     >
       <div className="space-y-8">
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Degree Name</p>
-            <p className="text-base">{degreeData?.name}</p>
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Avatar
+            size={44}
+            className="bg-button-primary text-white rounded-full"
+          >
+            {degreeData?.name?.charAt(0)?.toUpperCase() || "D"}
+          </Avatar>
+
+          <div>
+            <h3 className="text-lg font-semibold">
+              {degreeData?.name || "Degree"}
+            </h3>
           </div>
         </div>
 
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Specialization</p>
-            <p className="text-base">{degreeData?.specialization}</p>
-          </div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Status</p>
-            <p className="text-base"><StatusBadge status={degreeData?.status.toUpperCase()} /></p>
-          </div>
-        </div>
+        {/* Divider */}
+        <div className="border-t" />
 
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Created on</p>
-            <p className="text-base">
+        {/* Details */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+          {/* Degree Name */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Degree Name</p>
+            <p className="text-sm font-medium">{degreeData?.name || "N/A"}</p>
+          </div>
+
+          {/* Specialization */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Specialization</p>
+            <p className="text-sm font-medium">
+              {degreeData?.specialization || "N/A"}
+            </p>
+          </div>
+
+          {/* Created On */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Created On</p>
+            <p className="text-sm font-medium">
               {degreeData?.created_at ? (
                 <FormattedDate
                   dateString={degreeData.created_at}
@@ -146,6 +163,14 @@ const DegreeView: React.FC<DegreeViewProps> = ({
                 "N/A"
               )}
             </p>
+          </div>
+
+          {/* Status */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Status</p>
+            <div className="mt-1">
+              <StatusBadge status={degreeData?.status?.toUpperCase()} />
+            </div>
           </div>
         </div>
       </div>

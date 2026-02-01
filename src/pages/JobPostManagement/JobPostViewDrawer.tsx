@@ -130,21 +130,6 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
     });
   };
 
-  const handleRepost = () => {
-    modal.confirm({
-      title: "Repost Job?",
-      content: `This will move "${jobPostData.title}" back to pending approval.`,
-      okText: "Repost",
-      okType: "primary",
-      onOk: () =>
-        updateStatus({
-          id: jobPostData.id,
-          status: "pending",
-          repostedAt: new Date().toISOString(),
-        }),
-    });
-  };
-
   if (!jobPostData) {
     return (
       <Drawer
@@ -181,11 +166,6 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
 
 
               <div className="flex gap-2">
-                {role !== "admin" && (
-                  <Button size="large" type="primary" onClick={handleRepost}>
-                    Repost
-                  </Button>
-                )}
                 <Button
                   size="large"
                   className={`px-8 ${
@@ -202,97 +182,123 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
           ) : null
         }
       >
-        <div className="space-y-6">
-          {/* Job Details - Two Column Layout */}
-          <div className="grid grid-cols-2 gap-6">
-            {/* Left Column */}
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-500">Job Tittle</p>
-                <p className="font-medium">{jobPostData.title}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Specialisation</p>
-                <p>{jobPostData.specialization}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Location</p>
-                <p>{jobPostData.location}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Start Date</p>
-                <p className="text-blue-600">{jobPostData?.valid_from}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">No of Applications Received</p>
-                <p>{jobPostData.noOfApplications}</p>
-              </div>
-            </div>
+       <div className="space-y-8">
+  {/* Job Details */}
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+    {/* Left Column */}
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Job Title</p>
+        <p className="text-sm font-medium">{jobPostData?.title || "N/A"}</p>
+      </div>
 
-            {/* Right Column */}
-            <div className="space-y-4">
-              <div>
-                <p className="text-gray-500">Exp Required</p>
-                <p>{jobPostData.experience_required}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Employment Type</p>
-                <p>{jobPostData.workType}</p>
-              </div>
-              <div>
-                <p className="text-gray-500">Status</p>
-                <StatusBadge status={jobPostData.status} />
-              </div>
-              <div>
-                <p className="text-gray-500">End Date</p>
-                <p className="text-orange-600">{jobPostData?.expires_at}</p>
-              </div>
-            </div>
-          </div>
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Specialization</p>
+        <p className="text-sm font-medium">
+          {jobPostData?.specialization || "N/A"}
+        </p>
+      </div>
 
-          {/* Hospital Bio */}
-          {jobPostData.hospital_bio && jobPostData.hospital_bio.length > 0 && (
-            <div className="border-2 border-dashed border-blue-300 p-4 rounded">
-              <div
-                className="flex justify-between items-center cursor-pointer mb-2"
-                onClick={() => setIsHospitalBioExpanded(!isHospitalBioExpanded)}
-              >
-                <span className="font-semibold">Hospital Bio</span>
-                {isHospitalBioExpanded ? (
-                  <MinusOutlined />
-                ) : (
-                  <span className="text-gray-400">+</span>
-                )}
-              </div>
-              {isHospitalBioExpanded && (
-                <p className="mt-6"> {jobPostData.hospital_bio}</p>
-              )}
-            </div>
-          )}
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Location</p>
+        <p className="text-sm font-medium">
+          {jobPostData?.location || "N/A"}
+        </p>
+      </div>
 
-          {/* Candidate Applications */}
-          {jobPostData.applications && role !== "admin" && (
-            <div>
-              <h3 className="font-semibold mb-4">Candidate Applications</h3>
-              <Table
-                columns={candidateColumns}
-                dataSource={jobPostData.applications.map((c) => ({
-                  ...c,
-                  key: c.id,
-                }))}
-                pagination={false}
-                size="small"
-              />
-            </div>
-          )}
-        </div>
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Start Date</p>
+        <p className="text-sm font-medium text-blue-600">
+          {jobPostData?.valid_from || "N/A"}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500 mb-1">
+          No. of Applications Received
+        </p>
+        <p className="text-sm font-medium">
+          {jobPostData?.applications?.length ?? 0}
+        </p>
+      </div>
+    </div>
+
+    {/* Right Column */}
+    <div className="space-y-5">
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Experience Required</p>
+        <p className="text-sm font-medium">
+          {jobPostData?.experience_required || "N/A"}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Employment Type</p>
+        <p className="text-sm font-medium">
+          {jobPostData?.workType || "N/A"}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500 mb-1">Status</p>
+        <StatusBadge status={jobPostData?.status} />
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500 mb-1">End Date</p>
+        <p className="text-sm font-medium text-orange-600">
+          {jobPostData?.expires_at || "N/A"}
+        </p>
+      </div>
+    </div>
+  </div>
+
+  {/* Hospital Bio */}
+  {jobPostData?.hospital_bio && (
+    <div className="border border-dashed border-blue-300 rounded-lg p-4">
+      <div
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() =>
+          setIsHospitalBioExpanded((prev) => !prev)
+        }
+      >
+        <p className="font-semibold">Hospital Bio</p>
+        <span className="text-gray-400 text-lg">
+          {isHospitalBioExpanded ? "−" : "+"}
+        </span>
+      </div>
+
+      {isHospitalBioExpanded && (
+        <p className="mt-4 text-sm text-gray-700 leading-relaxed">
+          {jobPostData.hospital_bio}
+        </p>
+      )}
+    </div>
+  )}
+
+  {/* Candidate Applications */}
+  {jobPostData?.applications && role !== "admin" && (
+    <div>
+      <h3 className="font-semibold mb-4">Candidate Applications</h3>
+      <Table
+        columns={candidateColumns}
+        dataSource={jobPostData.applications.map((c) => ({
+          ...c,
+          key: c.id,
+        }))}
+        pagination={false}
+        size="small"
+      />
+    </div>
+  )}
+</div>
+
       </Drawer>
       <JobPostApplicantViewDrawer
         open={isApplicantDrawerOpen}
         onClose={() => setIsApplicantDrawerOpen(false)}
         applicant={selectedApplicant}
       />
-      ;
     </div>
   );
 };

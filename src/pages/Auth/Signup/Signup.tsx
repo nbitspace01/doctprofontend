@@ -3,8 +3,8 @@ import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Divider, Form, Input, Select, Typography } from "antd";
 import Paragraph from "antd/es/typography/Paragraph";
-import axios from "axios";
 import React, { useState } from "react";
+import { userRegisterApi } from "../../../api/auth.api";
 import loginIllustration from "../../../assets/illustrationlogin.png";
 
 const { Title, Link } = Typography;
@@ -21,12 +21,11 @@ interface FormValues {
 const SignUp: React.FC = () => {
   const [isFormValid, setIsFormValid] = useState(false);
   const [pageState, setPageState] = useState<"form" | "success">("form");
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const navigate = useNavigate();
 
   const mutation = useMutation({
     mutationFn: async (values: FormValues) => {
-      const response = await axios.post(`${URL}/api/user/register`, values);
+      const response = await userRegisterApi(values);
       return response.data;
     },
     onSuccess: (data) => {
@@ -35,14 +34,9 @@ const SignUp: React.FC = () => {
       setPageState("success");
       navigate({ to: "/auth/verify" });
     },
-    onError: (error: Error) => {
-      if (axios.isAxiosError(error)) {
-        console.error("Signup failed:", error.response?.data ?? error.message);
-        alert("Signup failed. Please try again.");
-      } else {
-        console.error("Unexpected error:", error.message);
-        alert("An unexpected error occurred.");
-      }
+    onError: (error: any) => {
+      console.error("Signup failed:", error.response?.data ?? error.message);
+      alert(error.response?.data?.message ?? "Signup failed. Please try again.");
     },
   });
 

@@ -15,7 +15,7 @@ export interface CollegeData {
   district: string;
   hospitals: any[];
   created_at: string;
-  status: "active" | "pending" | "inactive";
+  status: string;
 }
 
 interface CollegeViewDrawerProps {
@@ -71,7 +71,7 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
   });
 
   /* -------------------- Handlers -------------------- */
-  const status = collegeData.status;
+  const status = (collegeData.status || "").toUpperCase() as CollegeStatus;
 
   // const isPending = status === "PENDING";
   const isActive = status === "ACTIVE";
@@ -105,7 +105,7 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
       placement="right"
       open={open}
       onClose={onClose}
-      width={600}
+      width={500}
       className="custom-drawer"
       footer={
         <div className="flex justify-between items-center">
@@ -133,42 +133,55 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
         </div>
       }
     >
-      <div className="">
+      <div>
         {collegeData ? (
           <>
-            <div className="flex items-center gap-4 mb-8">
+            {/* Header */}
+            <div className="flex items-center gap-4 mb-6">
               {collegeData.logo ? (
                 <Image
                   src={profileImage}
-                  width={40}
-                  height={40}
+                  width={44}
+                  height={44}
                   alt="College"
                   className="rounded-full"
                 />
               ) : (
                 <Avatar
-                  size={40}
+                  size={44}
                   className="bg-button-primary text-white rounded-full"
                 >
                   {avatarInitial}
                 </Avatar>
               )}
+
               <div>
                 <h3 className="text-lg font-semibold">{displayName}</h3>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
+
+            {/* Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+              {/* State */}
               <div>
                 <div className="text-xs text-gray-500">State</div>
-                <div className="text-sm">{collegeData.state || "N/A"}</div>
+                <div className="text-sm font-medium mt-1">
+                  {collegeData.state || "N/A"}
+                </div>
               </div>
+
+              {/* District */}
               <div>
                 <div className="text-xs text-gray-500">District</div>
-                <div className="text-sm">{collegeData.district || "N/A"}</div>
+                <div className="text-sm font-medium mt-1">
+                  {collegeData.district || "N/A"}
+                </div>
               </div>
-              <div className="col-span-2">
+
+              {/* Associated Colleges */}
+              <div className="sm:col-span-2">
                 <div className="text-xs text-gray-500">Associated Colleges</div>
-                <div className="text-sm">
+                <div className="text-sm font-medium mt-1 leading-relaxed">
                   {collegeData.hospitals && collegeData.hospitals.length > 0
                     ? collegeData.hospitals
                         .map((hospital: any) => hospital.name)
@@ -176,9 +189,11 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
                     : "No hospitals associated"}
                 </div>
               </div>
+
+              {/* Created On */}
               <div>
-                <div className="text-xs text-gray-500">Created on</div>
-                <div className="text-sm">
+                <div className="text-xs text-gray-500">Created On</div>
+                <div className="text-sm font-medium mt-1">
                   {collegeData.created_at
                     ? new Date(collegeData.created_at).toLocaleDateString(
                         "en-GB",
@@ -191,16 +206,22 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
                     : "N/A"}
                 </div>
               </div>
+
+              {/* Status */}
               <div>
                 <div className="text-xs text-gray-500">Status</div>
                 <div className="mt-1">
-                  <StatusBadge status={collegeData.status.toUpperCase() || "PENDING"} />
+                  <StatusBadge
+                    status={collegeData.status?.toUpperCase() || "PENDING"}
+                  />
                 </div>
               </div>
             </div>
           </>
         ) : (
-          <div className="text-center text-gray-500">No college data found</div>
+          <div className="text-center text-gray-500 py-12">
+            No college data found
+          </div>
         )}
       </div>
     </Drawer>

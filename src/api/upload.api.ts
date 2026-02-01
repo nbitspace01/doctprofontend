@@ -8,12 +8,15 @@ export interface UploadImageResponse {
 
 export const uploadImageAPI = async (
   file: File,
+  userIdOverride?: string
 ): Promise<UploadImageResponse> => {
   const formData = new FormData();
 
+  const finalUserId = userIdOverride || localStorage.getItem("userId") || "";
+
   formData.append("file", file);
   formData.append("entity", "ads");
-  formData.append("userId", USER_ID ?? "");
+  formData.append("userId", finalUserId);
 
   return apiClient.post<any>("/api/post/upload", formData, {
     headers: {

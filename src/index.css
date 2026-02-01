@@ -2,6 +2,7 @@ body {
   margin: 0;
   overflow: hidden;
 }
+
 html {
   overflow: hidden;
 }
@@ -22,3 +23,21 @@ html {
 /* .ant-layout {
 @apply dark:bg-black dark:text-white;
 } */
+
+/* global.css or component CSS */
+.scrollbar-hide {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE 10+ */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  /* Chrome, Safari, Opera */
+}
+
+.custom-header .ant-table-thead>tr>th {
+  color: #01258a;
+  font-weight: 600;
+}

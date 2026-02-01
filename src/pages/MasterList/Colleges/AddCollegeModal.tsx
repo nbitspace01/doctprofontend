@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Modal,
   Select,
@@ -10,6 +10,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchHospitalListApi } from "../../../api/hospital.api";
 import { createCollegeApi, updateCollegeApi } from "../../../api/college.api";
+import { getCountries, getStates, getCities, getDistricts } from "../../../api/location.api";
 import { showError, showSuccess } from "../../Common/Notification";
 
 /* ---------- TYPES ---------- */
@@ -21,6 +22,7 @@ export interface CollegeData {
   name: string;
   state: string;
   district: string;
+  city?: string;
   hospitals: any[];
   created_at: string;
   status: "active" | "pending" | "inactive";
@@ -46,80 +48,6 @@ interface Hospital {
   name: string;
 }
 
-/* -------------------- Constants -------------------- */
-export const STATE_OPTIONS = [
-  { label: "Andhra Pradesh", value: "Andhra Pradesh" },
-  { label: "Arunachal Pradesh", value: "Arunachal Pradesh" },
-  { label: "Assam", value: "Assam" },
-  { label: "Bihar", value: "Bihar" },
-  { label: "Chhattisgarh", value: "Chhattisgarh" },
-  { label: "Goa", value: "Goa" },
-  { label: "Gujarat", value: "Gujarat" },
-  { label: "Haryana", value: "Haryana" },
-  { label: "Himachal Pradesh", value: "Himachal Pradesh" },
-  { label: "Jharkhand", value: "Jharkhand" },
-  { label: "Karnataka", value: "Karnataka" },
-  { label: "Kerala", value: "Kerala" },
-  { label: "Madhya Pradesh", value: "Madhya Pradesh" },
-  { label: "Maharashtra", value: "Maharashtra" },
-  { label: "Manipur", value: "Manipur" },
-  { label: "Meghalaya", value: "Meghalaya" },
-  { label: "Mizoram", value: "Mizoram" },
-  { label: "Nagaland", value: "Nagaland" },
-  { label: "Odisha", value: "Odisha" },
-  { label: "Punjab", value: "Punjab" },
-  { label: "Rajasthan", value: "Rajasthan" },
-  { label: "Sikkim", value: "Sikkim" },
-  { label: "Tamil Nadu", value: "Tamil Nadu" },
-  { label: "Telangana", value: "Telangana" },
-  { label: "Tripura", value: "Tripura" },
-  { label: "Uttar Pradesh", value: "Uttar Pradesh" },
-  { label: "Uttarakhand", value: "Uttarakhand" },
-  { label: "West Bengal", value: "West Bengal" },
-];
-
-export const DISTRICT_OPTIONS = [
-  { label: "Chennai", value: "Chennai" },
-  { label: "Coimbatore", value: "Coimbatore" },
-  { label: "Madurai", value: "Madurai" },
-  { label: "Salem", value: "Salem" },
-  { label: "Erode", value: "Erode" },
-  { label: "Thanjavur", value: "Thanjavur" },
-  { label: "Tiruchirappalli", value: "Tiruchirappalli" },
-  { label: "Bangalore", value: "Bangalore" },
-  { label: "Mysore", value: "Mysore" },
-  { label: "Mangalore", value: "Mangalore" },
-  { label: "Hyderabad", value: "Hyderabad" },
-  { label: "Warangal", value: "Warangal" },
-  { label: "Secunderabad", value: "Secunderabad" },
-  { label: "Mumbai", value: "Mumbai" },
-  { label: "Pune", value: "Pune" },
-  { label: "Nagpur", value: "Nagpur" },
-  { label: "Ahmedabad", value: "Ahmedabad" },
-  { label: "Surat", value: "Surat" },
-  { label: "Vadodara", value: "Vadodara" },
-  { label: "Jaipur", value: "Jaipur" },
-  { label: "Jodhpur", value: "Jodhpur" },
-  { label: "Udaipur", value: "Udaipur" },
-  { label: "Lucknow", value: "Lucknow" },
-  { label: "Kanpur", value: "Kanpur" },
-  { label: "Varanasi", value: "Varanasi" },
-  { label: "Patna", value: "Patna" },
-  { label: "Gaya", value: "Gaya" },
-  { label: "Ranchi", value: "Ranchi" },
-  { label: "Jamshedpur", value: "Jamshedpur" },
-  { label: "Bhopal", value: "Bhopal" },
-  { label: "Indore", value: "Indore" },
-  { label: "Gwalior", value: "Gwalior" },
-  { label: "Thiruvananthapuram", value: "Thiruvananthapuram" },
-  { label: "Kochi", value: "Kochi" },
-  { label: "Kozhikode", value: "Kozhikode" },
-  { label: "Shillong", value: "Shillong" },
-  { label: "Gangtok", value: "Gangtok" },
-  { label: "Imphal", value: "Imphal" },
-  { label: "Agartala", value: "Agartala" },
-];
-
 /* -------------------- Component -------------------- */
 const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
   open,
@@ -132,13 +60,71 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
 
   const isEditMode = Boolean(initialData);
 
+  /* -------------------- Location Logic -------------------- */
+  const [states, setStates] = useState<{ label: string; value: string; key: string }[]>([]);
+  const [districts, setDistricts] = useState<{ label: string; value: string; key?: string }[]>([]);
+  const [cities, setCities] = useState<{ label: string; value: string; key?: string }[]>([]);
+
+  useEffect(() => {
+    const initLocations = async () => {
+      try {
+        // Load all states (no country filter) so edit modal works for any country.
+        const stateData = await getStates();
+        setStates(stateData.map((s: any) => ({ label: s.name, value: s.name, key: s.id })));
+      } catch (error) {
+        console.error("Failed to load locations", error);
+      }
+    };
+    if (open) initLocations();
+  }, [open]);
+
+  const handleStateChange = async (_stateName: string, option: any) => {
+    try {
+      const stateId = option.key;
+      if (!stateId) return;
+      const districtData = await getDistricts(stateId);
+      const mappedDistricts = districtData.map((d: any) => ({
+        label: d.name,
+        value: d.name,
+        key: d.id,
+      }));
+      setDistricts(mappedDistricts);
+      setCities([]);
+      form.setFieldValue("district", undefined);
+      form.setFieldValue("city", undefined);
+    } catch (error) {
+      console.error("Failed to load districts", error);
+    }
+  };
+
+  const handleDistrictChange = async (_districtName: string, option: any) => {
+    try {
+      const districtId = option.key;
+      if (!districtId) return;
+      const cityData = await getCities(districtId, true);
+      const mapped = cityData.map((c: any) => ({
+        label: c.name,
+        value: c.name,
+        key: c.id,
+      }));
+      setCities(mapped);
+      form.setFieldValue("city", undefined);
+    } catch (error) {
+      console.error("Failed to load cities", error);
+    }
+  };
+
   /* -------------------- QUERY -------------------- */
   const { data: hospitalResponse, isFetching } = useQuery({
-    queryKey: ["colleges"],
+    queryKey: ["colleges-hospitals"],
     queryFn: fetchHospitalListApi,
   });
 
-  const hospitals: Hospital[] = hospitalResponse ?? [];
+  const hospitals: Hospital[] = Array.isArray((hospitalResponse as any)?.data)
+    ? (hospitalResponse as any).data
+    : Array.isArray(hospitalResponse)
+      ? hospitalResponse
+      : [];
 
   const hospitalOptions = hospitals.map((h) => ({
     label: h.name,
@@ -146,20 +132,75 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
   }));
 
   /* -------------------- Effects -------------------- */
-  useEffect(() => {
-    if (!open || !initialData || !hospitalOptions.length) return;
+  const primedIdRef = React.useRef<string | null>(null);
 
-    if (initialData) {
+  useEffect(() => {
+    const primeEditForm = async () => {
+      if (!initialData) return;
+      if (primedIdRef.current === initialData.id) return; // avoid loops
+
+      // Set hospital selections immediately
       form.setFieldsValue({
         ...initialData,
-        state: initialData.state || "",
-        district: initialData.district || "",
         hospitalIds: initialData.hospitals.map((h) => h.id) || [],
       });
-    } else {
+
+      // Find matching state option (case-insensitive)
+      const stateOpt = states.find(
+        (s) => s.value.toLowerCase() === (initialData.state || "").toLowerCase()
+      );
+
+      if (stateOpt) {
+        // Load districts for this state
+        const districtData = await getDistricts(stateOpt.key);
+        const mappedDistricts = districtData.map((d: any) => ({
+          label: d.name,
+          value: d.name,
+          key: d.id,
+        }));
+        setDistricts(mappedDistricts);
+
+        // Pick district option
+        const districtOpt = mappedDistricts.find(
+          (d: { value: string }) =>
+            d.value.toLowerCase() === (initialData.district || "").toLowerCase()
+        );
+
+        if (districtOpt) {
+          const cityData = await getCities(districtOpt.key, true);
+          const mappedCities = cityData.map((c: any) => ({
+            label: c.name,
+            value: c.name,
+            key: c.id,
+          }));
+          setCities(mappedCities);
+        }
+
+        // Finally set all location fields
+        form.setFieldsValue({
+          state: stateOpt.value,
+          district: districtOpt?.value || initialData.district || "",
+          city: initialData.city || "",
+        });
+      } else {
+        // Fallback: just set existing strings; options will still render typed text
+        form.setFieldsValue({
+          state: initialData.state || "",
+          district: initialData.district || "",
+          city: initialData.city || "",
+        });
+      }
+
+      primedIdRef.current = initialData.id;
+    };
+
+    if (open && initialData && states.length) {
+      void primeEditForm();
+    } else if (!initialData) {
       form.resetFields();
+      primedIdRef.current = null;
     }
-  }, [open, initialData, hospitalOptions, form]);
+  }, [open, initialData, states, form]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
@@ -240,6 +281,7 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
         <Form.Item name="profile_image" hidden>
           <Input />
         </Form.Item>
+
         <Form.Item
           label="College Name"
           name="name"
@@ -248,28 +290,46 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
           <Input />
         </Form.Item>
 
-        <Form.Item
-          label="City / Town"
-          name="city"
-          rules={[{ required: true, message: "Please enter city" }]}
-        >
-          <Input />
-        </Form.Item>
-
-        <Form.Item
-          label="District"
-          name="district"
-          rules={[{ required: true, message: "Please select district" }]}
-        >
-          <Select options={DISTRICT_OPTIONS} />
-        </Form.Item>
 
         <Form.Item
           label="State"
           name="state"
           rules={[{ required: true, message: "Please select state" }]}
         >
-          <Select options={STATE_OPTIONS} />
+          <Select
+            options={states}
+            showSearch
+            optionFilterProp="label"
+            placeholder="Select state"
+            onChange={(value, option) => handleStateChange(value, option)}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="District"
+          name="district"
+          rules={[{ required: true, message: "Please select district/city" }]}
+        >
+          <Select
+            options={districts}
+            showSearch
+            optionFilterProp="label"
+            placeholder="Select district"
+            onChange={(value, option) => handleDistrictChange(value, option)}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="City / Town"
+          name="city"
+          rules={[{ required: true, message: "Please select city/town" }]}
+        >
+          <Select
+            options={cities.length ? cities : districts}
+            showSearch
+            optionFilterProp="label"
+            placeholder="Select city/town"
+          />
         </Form.Item>
 
         <Form.Item

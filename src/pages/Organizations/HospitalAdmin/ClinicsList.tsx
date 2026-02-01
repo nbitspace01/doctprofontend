@@ -7,23 +7,16 @@ import HospitalRegistration from "./HospitalRegistration";
 import ClinicViewDrawer, { HospitalData } from "./ClinicViewDrawer";
 import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
-import { fetchHospitalAdmin } from "../../../api/hospitalAdmin.api";
-import { apiClient } from "../../../api/api";
+import {
+  fetchHospitalAdmin,
+  updateHospitalAdminApi,
+} from "../../../api/hospitalAdmin.api";
 import StatusBadge from "../../Common/StatusBadge";
-import { deleteHospitalApi } from "../../../api/hospital.api";
 import { deleteHospitalAdminApi } from "../../../api/hospitalAdmin.api";
-
-interface Hospital {
-  id: string;
-  name: string;
-  branchLocation: string;
-  address: string;
-  status: "Active" | "Inactive" | "Pending" | "pending";
-  logoUrl?: string;
-}
+import { Plus } from "lucide-react";
 
 interface PaginatedResponse {
-  data: Hospital[];
+  data: HospitalData[];
   total: number;
 }
 
@@ -42,6 +35,7 @@ const ClinicsList: React.FC = () => {
   } = useListController();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [editHospital, setEditHospital] = useState<HospitalData | null>(null);
   const [selectedHospital, setSelectedHospital] = useState<HospitalData | null>(
     null,
   );
@@ -66,6 +60,7 @@ const ClinicsList: React.FC = () => {
   const handleOpenModal = () => setIsModalVisible(true);
   const handleCloseModal = () => {
     setIsModalVisible(false);
+    setEditHospital(null);
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
   };
 
@@ -91,12 +86,14 @@ const ClinicsList: React.FC = () => {
 
   const filterOptions = [
     { label: "Name", key: "name", type: "text" as const },
-    { label: "Branch Location", key: "branchLocation", type: "text" as const },
+    { label: "Country", key: "country", type: "text" as const },
+    { label: "State", key: "state", type: "text" as const },
+    { label: "City", key: "city", type: "text" as const },
     {
       label: "Status",
       key: "status",
       type: "checkbox" as const,
-      options: ["Active", "Inactive", "Pending"],
+      options: ["ACTIVE", "INACTIVE", "PENDING"],
     },
   ];
 
@@ -108,7 +105,7 @@ const ClinicsList: React.FC = () => {
       i + 1,
       h.name,
       h.branchLocation,
-      h.address || "N/A",
+      (h as any).address || "N/A",
       h.status,
     ]);
 
@@ -139,10 +136,10 @@ const ClinicsList: React.FC = () => {
       key: "id",
     },
     {
-      title: "Hospital/Clinic Name",
+      title: "Hospital Name",
       dataIndex: "name",
       key: "name",
-      render: (text: string, record: Hospital) => (
+      render: (text: string, record: HospitalData) => (
         <div className="flex items-center gap-2">
           {record.logoUrl ? (
             <img
@@ -166,10 +163,18 @@ const ClinicsList: React.FC = () => {
     },
     {
       title: "Address",
-      dataIndex: "address",
       key: "address",
-      render: (address: string) =>
-        address === "null, null, null" ? "N/A" : address || "N/A",
+      render: (_: unknown, record: HospitalData) => {
+        const parts = [
+          record.branchLocation,
+          record.city,
+          record.state,
+          record.country,
+        ]
+          .filter(Boolean)
+          .join(", ");
+        return parts || "N/A";
+      },
     },
     {
       title: "Status",
@@ -183,36 +188,41 @@ const ClinicsList: React.FC = () => {
       render: (_: any, record: HospitalData) => (
         <CommonDropdown
           onView={() => setSelectedHospital(record)}
-          onEdit={() => {}}
+          onEdit={() => {
+            setEditHospital(record);
+            setIsModalVisible(true);
+          }}
           onDelete={() => confirmDeleteHospital(record.id)}
-          showEdit={false}
+          showEdit={true}
         />
       ),
     },
   ];
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Hospital Management</h1>
+    <div className="px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Hospital-Admin List</h1>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
           onClick={handleOpenModal}
-          className="bg-button-primary"
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+               px-5 py-6 flex items-center gap-2 transition-colors duration-200"
         >
-          Add New Hospital & Clinics
+          <Plus className="relative -top-0" />
+          Add New Hospital Admin
         </Button>
       </div>
 
       {isModalVisible && (
         <HospitalRegistration
           isOpen={isModalVisible}
+          initialData={editHospital}
           onClose={handleCloseModal}
         />
       )}
 
-      <CommonTable<Hospital>
+      <CommonTable<HospitalData>
         rowKey="id"
         columns={columns}
         data={hospitals}

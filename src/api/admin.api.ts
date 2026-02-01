@@ -67,8 +67,13 @@ export const fetchSubAdmin = ({
   console.log("searchValue:", searchValue);
 console.log("filterValues:", filterValues);
 
-  return apiClient.get<any>(url);
-}; 
+  return apiClient.get<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(url);
+};
 
 // Fetch Sub Admin By ID
 export const fetchSubAdminById = (id: string) => {

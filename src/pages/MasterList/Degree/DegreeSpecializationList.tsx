@@ -10,6 +10,7 @@ import FormattedDate from "../../Common/FormattedDate";
 import { deleteDegreeApi, fetchDegreesApi } from "../../../api/degree.api";
 import CommonTable from "../../../components/Common/CommonTable";
 import { useListController } from "../../../hooks/useListController";
+import { Plus } from "lucide-react";
 
 interface DegreeData {
   id: string;
@@ -192,15 +193,16 @@ const DegreeSpecializationList: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Degree & Specialization</h1>
+    <div className="px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Degree List</h1>
         <Button
           type="primary"
-          icon={<PlusOutlined />}
           onClick={() => setIsModalOpen(true)}
-          className="bg-button-primary hover:!bg-button-primary"
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+               px-5 py-6 flex items-center gap-2 transition-colors duration-200"
         >
+          <Plus className="relative -top-0" />
           Add New Degree
         </Button>
       </div>
