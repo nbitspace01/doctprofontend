@@ -94,6 +94,32 @@ export const totalHospital = () => {
     </svg>
   );
 };
+
+export const totalJobPost = () => {
+  return (
+    <svg
+      width="54"
+      height="54"
+      viewBox="0 0 54 54"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer Background */}
+      <rect width="54" height="54" rx="27" fill="#F3E8FF" />
+      
+      {/* Inner Circle */}
+      <rect x="5" y="5" width="44" height="44" rx="22" fill="#8B5CF6" />
+      
+      {/* Icon (like a clipboard / document for job post) */}
+      <path
+        d="M20 14H34C34.5523 14 35 14.4477 35 15V39C35 39.5523 34.5523 40 34 40H20C19.4477 40 19 39.5523 19 39V15C19 14.4477 19.4477 14 20 14ZM21 16V18H33V16H21ZM21 20V22H33V20H21ZM21 24V26H30V24H21ZM21 28V30H30V28H21Z"
+        fill="white"
+      />
+    </svg>
+  );
+};
+
+
 export const totalStudents = () => {
   return (
     <svg

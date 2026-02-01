@@ -1,19 +1,19 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Card, Input, Typography, message } from "antd";
-import axios from "axios";
+import { App, Button, Card, Input, Typography } from "antd";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../Common/SVG/svg.functions";
-import { showMessage } from "../Common/ResponseMessage";
+import { showError, showSuccess } from "../Common/Notification";
+import { verifyOtpApi } from "../../api/auth.api";
 
 const { Link } = Typography;
 
 const ForgotPasswordVerifyOtp = () => {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [timeLeft, setTimeLeft] = useState(50);
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const navigate = useNavigate();
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { notification } = App.useApp();
 
   const email = localStorage.getItem("userEmail");
 
@@ -92,29 +92,11 @@ const ForgotPasswordVerifyOtp = () => {
 
   const mutation = useMutation({
     mutationFn: async (payload: { email: string; otp: string }) => {
-      console.log("Mutation function called with payload:", payload);
-      console.log("Making POST request to:", `${URL}/api/user/verify-otp`);
-      
-      try {
-        const response = await axios.post(
-          `${URL}/api/user/verify-otp`,
-          payload,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        console.log("API response received:", response.data);
-        return response.data;
-      } catch (error: any) {
-        console.error("API call failed:", error);
-        console.error("Error response data:", error.response?.data);
-        console.error("Error status:", error.response?.status);
-        throw error;
-      }
+      console.log("Calling verifyOtpApi with payload:", payload);
+      const response = await verifyOtpApi(payload);
+      return response.data;
     },
-    onSuccess: async (data) => {
+    onSuccess: async (data: any) => {
       console.log("OTP verification response:", data);
       // Store userId - check different possible response structures
       const userId = data.userId || data.user?.id || data.id || data.data?.userId || data.data?.user?.id;
@@ -125,7 +107,7 @@ const ForgotPasswordVerifyOtp = () => {
         console.log("userId saved to localStorage:", localStorage.getItem("userIdForgotPassword"));
       } else {
         console.error("No userId found in response:", data);
-        message.error("User ID not found in response. Please try again.");
+        showError(notification, { message: "Error", description: "User ID not found in response. Please try again." });
         return;
       }
       
@@ -134,10 +116,11 @@ const ForgotPasswordVerifyOtp = () => {
         replace: true,
       });
       await new Promise((resolve) => setTimeout(resolve, 100));
-      showMessage.success("Verification successful! ✅");
+      showSuccess(notification, { message: "Success", description: "Verification successful! ✅" });
     },
-    onError: (error) => {
-      message.error("Invalid OTP. Please try again.");
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || "Invalid OTP. Please try again.";
+      showError(notification, { message: "Verification Failed", description: errorMessage });
       console.log("error", error);
     },
   });
@@ -149,7 +132,7 @@ const ForgotPasswordVerifyOtp = () => {
     
     if (!email) {
       console.error("Email is missing from localStorage");
-      message.error("Email is required");
+      showError(notification, { message: "Error", description: "Email is required" });
       return;
     }
 
@@ -158,7 +141,7 @@ const ForgotPasswordVerifyOtp = () => {
     
     if (otpString.length !== 6) {
       console.error("OTP is incomplete. Length:", otpString.length);
-      message.error("Please enter a complete OTP");
+      showError(notification, { message: "Error", description: "Please enter a complete OTP" });
       return;
     }
 
@@ -170,22 +153,13 @@ const ForgotPasswordVerifyOtp = () => {
     console.log("Calling API /api/user/verify-otp with payload:", payload);
     console.log("Full API URL:", `${URL}/api/user/verify-otp`);
     
-    mutation.mutate(payload, {
-      onError: (error) => {
-        console.error("Mutation error:", error);
-        console.error("Error response:", error.response);
-        console.error("Error message:", error.message);
-      },
-      onSuccess: (data) => {
-        console.log("API call successful:", data);
-      },
-    });
+    mutation.mutate(payload);
   };
 
   const handleResend = () => {
     setTimeLeft(50);
     setOtp(["", "", "", "", "", ""]);
-    message.info("OTP has been resent");
+    showSuccess(notification, { message: "Success", description: "OTP has been resent" });
   };
 
   return (

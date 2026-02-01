@@ -13,8 +13,9 @@ import {
   fetchOwnJobPostsApi,
 } from "../../api/jobpost.api";
 import StatusBadge from "../Common/StatusBadge";
-import { roleProps } from "../../App";
+import { roleProps, UserRole } from "../../App";
 import { JobPostBase, JobPostResponse } from "./jobPostTypes";
+import { Plus } from "lucide-react";
 
 const JobPostList: React.FC = () => {
   const { modal, message } = App.useApp();
@@ -28,7 +29,7 @@ const JobPostList: React.FC = () => {
     null,
   );
   const [currentRole, setCurrentRole] = useState<roleProps["role"] | null>(
-    null,
+    (localStorage.getItem("roleName") as roleProps["role"]) || null,
   );
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -56,23 +57,24 @@ const JobPostList: React.FC = () => {
 
   /* -------------------- Query -------------------- */
   const { data: jobPostData, isFetching } = useQuery<JobPostResponse, Error>({
-    queryKey: ["jobPosts", currentRole, currentUserId, currentPage, pageSize, searchValue, filterValues],
+    queryKey: [
+      "jobPosts",
+      currentRole,
+      currentUserId,
+      currentPage,
+      pageSize,
+      searchValue,
+      filterValues,
+    ],
     queryFn: () => {
-      if (currentRole !== "admin") {
-        return fetchOwnJobPostsApi({
-          page: currentPage,
-          limit: pageSize,
-          searchValue,
-          filterValues,
-        });
-      } else {
-        return fetchJobPostsApi({
-          page: currentPage,
-          limit: pageSize,
-          searchValue,
-          filterValues,
-        });
-      }
+      const isAdmin = currentRole === "admin";
+      const apiFn =  fetchOwnJobPostsApi;
+      return apiFn({
+        page: currentPage,
+        limit: pageSize,
+        searchValue,
+        filterValues,
+      });
     },
     enabled: !!currentRole && !!currentUserId,
     refetchOnMount: true,
@@ -132,9 +134,11 @@ const JobPostList: React.FC = () => {
       { title: "Employment Type", dataIndex: "workType", width: 140 },
       {
         title: "No of Applications",
-        dataIndex: "noOfApplications",
         width: 160,
-        render: (v?: number | null) => (v != null ? v.toLocaleString() : "0"),
+        render: (_: any, record: JobPostBase) => {
+          const count = record.applications?.length || 0;
+          return count.toLocaleString();
+        },
       },
 
       {
@@ -198,7 +202,7 @@ const JobPostList: React.FC = () => {
       j.location,
       j.specialization,
       j.workType,
-      j.noOfApplications,
+      j.applications?.length || 0,
       j.status,
     ]);
     const content = [headers, ...rows]
@@ -217,21 +221,21 @@ const JobPostList: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  // if (isFetching) return <Loader size="large" />;
-  // if (error)
-  //   return <div className="p-6 text-red-600">Error loading job posts</div>;
-
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Job Post Management</h1>
+    <div className="px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Job-Post List</h1>
+        {currentRole && currentRole !== "admin" &&(
         <Button
           type="primary"
           onClick={() => setIsModalOpen(true)}
-          className="bg-button-primary hover:!bg-button-primary"
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+               px-5 py-6 flex items-center gap-2 transition-colors duration-200"
         >
-          <PlusOutlined /> Post A New Job
+          <Plus className="relative -top-0" />
+          Post A New Job
         </Button>
+        )}
       </div>
 
       <CommonTable<JobPostBase>
@@ -270,7 +274,7 @@ const JobPostList: React.FC = () => {
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
           jobPostData={selectedJobPost}
-          role={currentRole}
+          role={(currentRole || "admin") as UserRole}
         />
       )}
     </div>

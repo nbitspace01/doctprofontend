@@ -6,6 +6,7 @@ import {
   updateStudentApi,
   updateStudentStatusApi,
 } from "../../../api/student.api";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface StudentData {
   studentId: string;
@@ -20,7 +21,7 @@ interface StudentData {
   specialization: string;
   startYear: number;
   endYear: number;
-  kycStatus: boolean;
+  kycStatus: string;
   status: string;
 }
 
@@ -153,11 +154,6 @@ const StudentView: React.FC<StudentViewProps> = ({
                 <h3 className="text-lg font-medium">
                   {studentData.studentName}
                 </h3>
-                <Tag
-                  color={studentData.status === "ACTIVE" ? "success" : "error"}
-                >
-                  {studentData.status}
-                </Tag>
               </div>
               <p className="text-gray-500">
                 Student ID: #{studentData.studentId.slice(0, 8)}
@@ -190,11 +186,11 @@ const StudentView: React.FC<StudentViewProps> = ({
             <InfoField label="End Year" value={studentData.endYear || "NA"} />
             <InfoField
               label="KYC Status"
-              value={
-                <Tag color={studentData.kycStatus ? "success" : "error"}>
-                  {studentData.kycStatus ? "Verified" : "Not Verified"}
-                </Tag>
-              }
+              value={<StatusBadge status={studentData.kycStatus || "NA"} />}
+            />
+            <InfoField
+              label="KYC Status"
+              value={<StatusBadge status={studentData.status} />}
             />
           </div>
         </div>

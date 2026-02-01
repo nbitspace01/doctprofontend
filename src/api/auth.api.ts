@@ -1,46 +1,38 @@
 import { apiClient } from "./api";
 
-
 // ----- User Auth APIs -----
+
+// User Registration
+export const userRegisterApi = (data: any) => {
+  return apiClient.post<any>("/api/user/register", data);
+};
+
 // User Login
 export const userLoginApi = (data: { email: string; password: string }) => {
   return apiClient.post<any>("/api/user/login", data);
 };
 
-// User Logout
-// export const userLogoutApi = () => {
-//   return apiClient.post<any>("/api/auth/logout");
-// };
+// Set User Password (Initial Registration flow)
+export const setUserPasswordApi = (userId: string, data: any) => {
+  return apiClient.post<any>(`/api/user/register/set-password/${userId}`, data);
+};
 
-// User Password Reset
-// export const userPasswordResetApi = (data: { email: string }) => {
-//   return apiClient.post<any>("/api/auth/password-reset", data);
-// };
+// Forgot Password - Send OTP
+export const forgotPasswordSendOtpApi = (data: { email: string }) => {
+  return apiClient.post<any>("/api/user/forgot-password/send-otp", data);
+};
 
-// User Password Update
-// export const userPasswordUpdateApi = (data: {
-//   token: string;
-//   newPassword: string;
-// }) => {
-//   return apiClient.post<any>("/api/auth/password-update", data);
-// };
-
-// Fetch User Profile
-// export const fetchUserProfileApi = () => {
-//   return apiClient.get<any>("/api/auth/profile");
-// };
-
-// Update User Profile
-// export const updateUserProfileApi = (data: any) => {
-//   return apiClient.put<any>("/api/auth/profile", data);
-// };
-
-// OTP Verification
+// OTP Verification (Shared for Registration and Forgot Password)
 export const verifyOtpApi = (data: { email: string; otp: string }) => {
   return apiClient.post<any>("/api/user/verify-otp", data);
 };
 
-// Resend OTP
-// export const resendOtpApi = (data: { email: string }) => {
-//   return apiClient.post<any>("/api/auth/resend-otp", data);
-// };
+// Forgot Password - Reset Password
+export const forgotPasswordResetApi = (userId: string, data: { newPassword: string }) => {
+  return apiClient.post<any>(`/api/user/forgot-password/reset/${userId}`, data);
+};
+
+// Verify User Token (Alternative flow)
+export const verifyUserApi = (data: { token: string }) => {
+  return apiClient.post<any>("/api/auth/verify-user", data);
+};

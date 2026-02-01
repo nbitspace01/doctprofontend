@@ -3,10 +3,8 @@ import { Form, Input, Button, message } from "antd";
 import { MailOutlined } from "@ant-design/icons";
 import loginIllustration from "../../assets/illustrationlogin.png";
 import { Logo } from "../Common/SVG/svg.functions";
-import { ApiRequest } from "../Common/constant.function";
 import { useNavigate } from "@tanstack/react-router";
-
-const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+import { forgotPasswordSendOtpApi } from "../../api/auth.api";
 
 const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
@@ -14,7 +12,7 @@ const ForgotPassword: React.FC = () => {
   const onFinish = async (values: { email: string }) => {
     setLoading(true);
     try {
-      await ApiRequest.post(`${URL}/api/user/forgot-password/send-otp`, {
+      await forgotPasswordSendOtpApi({
         email: values.email,
       });
 
@@ -23,8 +21,9 @@ const ForgotPassword: React.FC = () => {
       
       message.success("Password reset link has been sent to your email");
       navigate({ to: "/auth/forgot-password/verify-otp", replace: true });
-    } catch (error) {
-      message.error("Failed to send reset link");
+    } catch (error: any) {
+      console.error("Forgot password error:", error);
+      message.error(error.response?.data?.message ?? "Failed to send reset link");
     } finally {
       setLoading(false);
     }

@@ -15,6 +15,8 @@ import { AdsPostData, AdsPostResponse } from "./adsPostTypes";
 import AdsPostViewDrawer from "./AdsPostViewDrawer";
 import { roleProps } from "../../App";
 import { AdsPostIcon, totalHospital } from "../Common/SVG/svg.functions";
+import { Plus } from "lucide-react";
+import Dashboard, { DashboardStatCard } from "../Dashboard/Dashboard";
 
 const AdsPostList: React.FC<roleProps> = ({ role }) => {
   const { modal, message } = App.useApp();
@@ -162,6 +164,14 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
         key: "adType",
       },
       {
+        title: "Created By",
+        dataIndex: "createdByName",
+        key: "createdByName",
+        render: (name: string) => (
+          <span className="font-medium">{name || "N/A"}</span>
+        ),
+      },
+      {
         title: "Display Start",
         dataIndex: "startDate",
         key: "startDate",
@@ -219,7 +229,14 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
       {
         label: "Status",
         key: "status",
-        options: ["Active", "Scheduled", "Pending", "Expired"],
+        type: "checkbox" as const,
+        options: ["ACTIVE", "PENDING", "DRAFT", "INACTIVE", "REJECTED"],
+      },
+      {
+        label: "Ad Type",
+        key: "adType",
+        type: "checkbox" as const,
+        options: ["Banner", "Popup"],
       },
     ],
     [],
@@ -235,6 +252,7 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
       "Ad Title",
       "Company Name",
       "Type",
+      "Created By",
       "Display Start",
       "End Date",
       "Status",
@@ -250,6 +268,7 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
         `"${row.title || "N/A"}"`,
         `"${row.companyName || "N/A"}"`,
         `"${row.adType || "N/A"}"`,
+        `"${row.createdByName || "N/A"}"`,
         `"${row.startDate ? new Date(row.startDate).toLocaleDateString() : "N/A"}"`,
         `"${row.endDate ? new Date(row.endDate).toLocaleDateString() : "N/A"}"`,
         `"${row.status || "N/A"}"`,
@@ -277,32 +296,30 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Ads Post</h1>
+    <div className="px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Ads-Post List</h1>
         {currentRole !== "admin" && (
           <Button
             type="primary"
-            className="bg-button-primary hover:!bg-button-primary"
             onClick={() => setIsModalOpen(true)}
+            className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+               px-5 py-6 flex items-center gap-2 transition-colors duration-200"
           >
-            + Create Ad Post
+            <Plus className="relative -top-0" />
+            Add New Ads Post
           </Button>
         )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <Card className="shadow-sm bg-white p-2">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full text-white">{AdsPostIcon()}</div>
-            <div>
-              <p className="text-gray-600 text-sm">Ads Post Count</p>
-              <p className="text-2xl font-bold">
-                {totalCount ?? 0}
-              </p>
-            </div>
-          </div>
-        </Card>
+        <DashboardStatCard
+          title="Ads Post Count"
+          value={totalCount ?? 0}
+          icon={AdsPostIcon()}
+          gradientFrom="blue-500"
+          gradientTo="indigo-400"
+        />
       </div>
 
       <CommonTable<AdsPostData>

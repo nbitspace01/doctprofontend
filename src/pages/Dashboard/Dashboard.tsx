@@ -5,13 +5,47 @@ import {
   totalCollege,
   totalHealthCare,
   totalHospital,
+  totalJobPost,
 } from "../../pages/Common/SVG/svg.functions";
+import { Briefcase } from "lucide-react";
 import {
   fetchDashboardCounts,
   fetchHospitalAdminDashboardCounts,
   fetchSubAdminDashboardCounts,
 } from "../../api/dashboard.api";
 import { roleProps } from "../../App";
+
+// ---------------- Reusable Card ----------------
+  export const DashboardStatCard: React.FC<{
+    title: string;
+    value: number | string;
+    icon?: React.ReactNode;
+    gradientFrom?: string;
+    gradientTo?: string;
+  }> = ({
+    title,
+    value,
+    icon,
+    gradientFrom = "blue-500",
+    gradientTo = "blue-400",
+  }) => (
+    <Card className="shadow-lg rounded-xl p-5 hover:shadow-2xl transition-shadow duration-300">
+      <div className="flex items-center gap-4">
+        <div
+          className={`flex items-center justify-center w-18 h-18 rounded-full bg-gradient-to-tr from-${gradientFrom} to-${gradientTo} text-white text-xl font-semibold shadow-md`}
+        >
+          {icon || value}
+        </div>
+        <div>
+          <p className="text-gray-500 uppercase text-xs tracking-wide">
+            {title}
+          </p>
+          <p className="text-3xl font-extrabold text-gray-900 mt-1">{value}</p>
+        </div>
+      </div>
+    </Card>
+  );
+
 
 const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
   /* -------------------- Local State -------------------- */
@@ -85,6 +119,7 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
           ? "Hospital Admin Dashboard"
           : "Loading...";
 
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -94,85 +129,53 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
       {/* ---------------- ADMIN STATS CARDS ---------------- */}
       {currentRole === "admin" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="shadow-sm bg-white p-2">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full text-white">
-                {totalHospital()}
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Hospital Admin Count</p>
-                <p className="text-2xl font-bold">
-                  {dashboardCounts?.users?.hospital_admins ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="shadow-sm bg-white p-2">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full text-white">
-                {totalCollege()}
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Sub Admin Count</p>
-                <p className="text-2xl font-bold">
-                  {dashboardCounts?.sub_admins ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
+          <DashboardStatCard
+            title="Hospital Admin Count"
+            value={dashboardCounts?.users?.hospital_admins ?? 0}
+            icon={totalHospital()}
+            gradientFrom="blue-500"
+            gradientTo="blue-400"
+          />
+          <DashboardStatCard
+            title="Sub Admin Count"
+            value={dashboardCounts?.sub_admins ?? 0}
+            icon={totalCollege()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
         </div>
       )}
 
       {/* ---------------- SUB ADMIN STATS CARDS ---------------- */}
       {currentRole === "subadmin" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="shadow-sm bg-white p-2">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full text-white">
-                {totalHospital()}
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Hospital Admin Count</p>
-                <p className="text-2xl font-bold">
-                  {dashboardCounts?.data?.totalHospitalAdmins ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
-
-          <Card className="shadow-sm bg-white p-2">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full text-white">
-                {totalHealthCare()}
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">KYC Pending</p>
-                <p className="text-2xl font-bold">
-                  {dashboardCounts?.data?.pendingKyc ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
+          <DashboardStatCard
+            title="Hospital Admin Count"
+            value={dashboardCounts?.totalHospitalAdmins ?? 0}
+            icon={totalHospital()}
+            gradientFrom="blue-500"
+            gradientTo="blue-400"
+          />
+          <DashboardStatCard
+            title="KYC Pending"
+            value={dashboardCounts?.pendingKyc ?? 0}
+            icon={totalHealthCare()}
+            gradientFrom="orange-500"
+            gradientTo="yellow-400"
+          />
         </div>
       )}
 
       {/* ---------------- HOSPITAL ADMIN STATS CARDS ---------------- */}
       {currentRole === "hospitaladmin" && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-          <Card className="shadow-sm bg-white p-2">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-full text-white">
-                {totalHospital()}
-              </div>
-              <div>
-                <p className="text-gray-600 text-sm">Job Post Count</p>
-                <p className="text-2xl font-bold">
-                  {dashboardCounts?.data?.totalJobPosts ?? 0}
-                </p>
-              </div>
-            </div>
-          </Card>
+          <DashboardStatCard
+            title="Job Post Count"
+            value={dashboardCounts?.totalJobPosts ?? 0}
+            icon={totalJobPost()}
+            gradientFrom="green-500"
+            gradientTo="teal-400"
+          />
         </div>
       )}
     </div>

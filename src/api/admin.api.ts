@@ -67,8 +67,13 @@ export const fetchSubAdmin = ({
   console.log("searchValue:", searchValue);
 console.log("filterValues:", filterValues);
 
-  return apiClient.get<any>(url);
-}; 
+  return apiClient.get<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+  }>(url);
+};
 
 // Fetch Sub Admin By ID
 export const fetchSubAdminById = (id: string) => {
@@ -83,59 +88,7 @@ export const SubAdminUpdate = async (
   return apiClient.put<any>(`/api/user/update-sub-admin/${id}`, data);
 };
 
-// Update Status
-// export const SubAdminStatusUpdate = async (
-//   id: string,
-//   data: any
-// ) => {
-//   return apiClient.put<any>(`/api/user/update-sub-admin/${id}`, data);
-// };
-
 // Delete Sub Admin
 export const SubAdminDelete = async (id: string) => {
   return apiClient.delete<any>(`/api/user/delete-sub-admin/${id}`);
-};
-
-
-// ------Hospital Admin APIs------
-// Create Hospital Admin
-export const HospitalAdminRegister = async (data: SubAdminRegisterPayload) => {
-  // return apiClient.post<any>("/api/user/create-hospital-admin", data);
-  return apiClient.post<any>("/api/user/create-hospital-admin", data);
-};
-
-// Fetch Hospital Admin List
-export const fetchHospitalAdmin = ({
-  page,
-  limit,
-  searchValue = "",
-  filterValues = {},
-}: FetchParams) => {
-  const queryParams = buildQueryParams(searchValue, filterValues);
-  // const url = `/api/dashboard/hospital-admin/list?page=${page}&limit=${limit}${
-    const url = `/api/hospital-admin/list?page=${page}&limit=${limit}${
-    queryParams ? `&${queryParams}` : ""
-  }`;
-  return apiClient.get<any>(url);
-};
-
-// Fetch Hospital Admin By ID
-export const fetchHospitalAdminById = (id: string) => {
-  // return apiClient.get<any>(`/api/user/hospital-admin/${id}`);
-  return apiClient.get<any>(`/api/user/hospital-admin/${id}`);
-};
-
-// Update Hospital Admin
-export const HospitalAdminUpdate = async (
-  id: string,
-  data: SubAdminRegisterPayload
-) => {
-  // return apiClient.put<any>(`/api/user/update-hospital-admin/${id}`, data);
-  return apiClient.put<any>(`/api/user/hospital-admin/${id}`, data);
-};
-
-// Delete Hospital Admin
-export const HospitalAdminDelete = async (id: string) => {
-  // return apiClient.delete<any>(`/api/user/delete-hospital-admin/${id}`);
-  return apiClient.delete<any>(`/api/user/hospital-admin/${id}`);
 };

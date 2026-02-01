@@ -58,7 +58,7 @@ export interface JobPostViewDrawerProps {
   open: boolean;
   onClose: () => void;
   jobPostData: JobPostBase;
-  role: roleProps;
+  role: UserRole;
 }
 
 /* -------------------- Create / Edit -------------------- */
