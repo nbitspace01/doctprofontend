@@ -9,6 +9,7 @@ import { useListController } from "../../../hooks/useListController";
 import CommonTable from "../../../components/Common/CommonTable";
 import { deleteStudentApi, fetchStudentsApi } from "../../../api/student.api";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface StudentData {
   studentId: string;
@@ -23,7 +24,7 @@ interface StudentData {
   specialization: string;
   startYear: number;
   endYear: number;
-  kycStatus: boolean;
+  kycStatus: string;
   status: string;
 }
 
@@ -154,16 +155,8 @@ const StudentList: React.FC = () => {
         title: "KYC Status",
         dataIndex: "kycStatus",
         width: 150,
-        render: (status: boolean) => (
-          <span
-            className={`text-sm px-3 py-1 rounded-full ${
-              status
-                ? "text-green-600 bg-green-50"
-                : "text-orange-500 bg-orange-50"
-            }`}
-          >
-            {status ? "Verified" : "Pending"}
-          </span>
+        render: (status: string) => (
+          <StatusBadge status={status} />
         ),
       },
       {
@@ -171,15 +164,9 @@ const StudentList: React.FC = () => {
         dataIndex: "status",
         width: 150,
         render: (status: string) => (
-          <span
-            className={`text-sm px-3 py-1 rounded-full ${
-              status?.toLowerCase() === "active"
-                ? "text-green-600 bg-green-50"
-                : "text-red-600 bg-red-50"
-            }`}
-          >
-            {status}
-          </span>
+         <StatusBadge
+            status={status} />
+         
         ),
       },
       {
@@ -278,8 +265,8 @@ const StudentList: React.FC = () => {
   // console.log("final data", students);
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6">Students</h1>
+    <div className="px-6">
+      <h1 className="text-2xl font-bold pb-4">Students</h1>
 
       <CommonTable<StudentData>
         rowKey="studentId"

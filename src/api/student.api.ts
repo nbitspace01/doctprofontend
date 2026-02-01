@@ -46,3 +46,12 @@ export const updateStudentStatusApi = (id: string, data: any) => {
 export const deleteStudentApi = (id: string) => {
   return apiClient.delete<any>(`/api/student/delete/${id}`);
 };
+
+// ----- Register Student Education -----
+export const registerStudentEducation = (userId: string, data: FormData) => {
+  return apiClient.post<any>(`/api/student/register/education/student/${userId}`, data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+};

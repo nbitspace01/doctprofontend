@@ -139,7 +139,8 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
     const nextStatus = getNextStatus();
 
     modal.confirm({
-      title: nextStatus === "ACTIVE" ? "Activate Degree?" : "Deactivate Degree?",
+      title:
+        nextStatus === "ACTIVE" ? "Activate Degree?" : "Deactivate Degree?",
       content: `Are you sure you want to ${nextStatus} "${professionalData.name}"?`,
       okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
@@ -148,17 +149,6 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           status: nextStatus,
         }),
     });
-    // modal.confirm({
-    //   title:
-    //     nextStatus === "active" ? "Activate Degree?" : "Deactivate Degree?",
-    //   content: `Are you sure you want to ${nextStatus} "${degreeData.name}"?`,
-    //   okType: nextStatus === "active" ? "primary" : "danger",
-    //   onOk: () =>
-    //     updateStatus({
-    //       degreeId: degreeData.id,
-    //       status: nextStatus,
-    //     }),
-    // });
   };
 
   return (
@@ -195,9 +185,9 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
       }
     >
       {professionalData ? (
-        <div className="space-y-6">
-          {/* Header Section */}
-          <div className="flex items-center space-x-4">
+        <div className="space-y-8">
+          {/* Header */}
+          <div className="flex items-center gap-4">
             {professionalData.profilePicture ? (
               <Image
                 src={professionalData.profilePicture}
@@ -211,25 +201,37 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
                 {getAvatarInitial()}
               </Avatar>
             )}
+
             <div>
               <h2 className="text-lg font-semibold">{getFullName()}</h2>
-              <p className="text-gray-600">{professionalData.email || "N/A"}</p>
+              <p className="text-sm text-gray-500">
+                {professionalData.email || "N/A"}
+              </p>
             </div>
           </div>
 
-          {/* Details Grid */}
-          <div className="space-y-4">
+          {/* Divider */}
+          <div className="border-t" />
+
+          {/* Details */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-2">
             <div>
-              <p className="text-sm text-gray-500">Phone Number</p>
-              <p className="font-medium">{professionalData.phoneNumber || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">Phone Number</p>
+              <p className="text-sm font-medium">
+                {professionalData.phoneNumber || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Role</p>
-              <p className="font-medium">{professionalData.role || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">Role</p>
+              <p className="text-sm font-medium">
+                {professionalData.role || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">DOB</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">DOB</p>
+              <p className="text-sm font-medium">
                 {professionalData.dob ? (
                   <FormattedDate
                     dateString={professionalData.dob}
@@ -240,79 +242,107 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
                 )}
               </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Gender</p>
-              <p className="font-medium">{professionalData.gender || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">Gender</p>
+              <p className="text-sm font-medium">
+                {professionalData.gender || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">City</p>
-              <p className="font-medium">{professionalData.city || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">City</p>
+              <p className="text-sm font-medium">
+                {professionalData.city || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">State</p>
-              <p className="font-medium">{professionalData.state || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">State</p>
+              <p className="text-sm font-medium">
+                {professionalData.state || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Country</p>
-              <p className="font-medium">{professionalData.country || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">Country</p>
+              <p className="text-sm font-medium">
+                {professionalData.country || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Degree</p>
-              <p className="font-medium">{professionalData.degree || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">Degree</p>
+              <p className="text-sm font-medium">
+                {professionalData.degree || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Specialization</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">Specialization</p>
+              <p className="text-sm font-medium">
                 {professionalData.specialization || "N/A"}
               </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Start Year</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">Start Year</p>
+              <p className="text-sm font-medium">
                 {professionalData.startYear || "N/A"}
               </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">End Year</p>
-              <p className="font-medium">{professionalData.endYear || "N/A"}</p>
+              <p className="text-xs text-gray-500 mb-1">End Year</p>
+              <p className="text-sm font-medium">
+                {professionalData.endYear || "N/A"}
+              </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Start Month</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">Start Month</p>
+              <p className="text-sm font-medium">
                 {professionalData.startMonth || "N/A"}
               </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Start Year Exp</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">
+                Experience Start Year
+              </p>
+              <p className="text-sm font-medium">
                 {professionalData.startYearExp || "N/A"}
               </p>
             </div>
+
             {professionalData.college && (
               <div>
-                <p className="text-sm text-gray-500">College</p>
-                <p className="font-medium">
+                <p className="text-xs text-gray-500 mb-1">College</p>
+                <p className="text-sm font-medium">
                   {professionalData.college.name || "N/A"}
                 </p>
               </div>
             )}
+
             {professionalData.hospital && (
               <div>
-                <p className="text-sm text-gray-500">Hospital</p>
-                <p className="font-medium">
+                <p className="text-xs text-gray-500 mb-1">Hospital</p>
+                <p className="text-sm font-medium">
                   {professionalData.hospital.name || "N/A"}
                 </p>
               </div>
             )}
+
             <div>
-              <p className="text-sm text-gray-500">Status</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">Status</p>
+              <p className="text-sm font-medium">
                 {professionalData.isActive ? "Active" : "Inactive"}
               </p>
             </div>
+
             <div>
-              <p className="text-sm text-gray-500">Created At</p>
-              <p className="font-medium">
+              <p className="text-xs text-gray-500 mb-1">Created At</p>
+              <p className="text-sm font-medium">
                 {professionalData.createdAt ? (
                   <FormattedDate
                     dateString={professionalData.createdAt}
@@ -326,8 +356,8 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
           </div>
         </div>
       ) : (
-        <div className="text-center text-gray-500">
-          No professionalData available
+        <div className="text-center text-gray-500 py-12">
+          No professional data available
         </div>
       )}
     </Drawer>

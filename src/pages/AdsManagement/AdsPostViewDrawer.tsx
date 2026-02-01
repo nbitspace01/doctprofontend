@@ -70,11 +70,6 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
       id: adsData.id,
       status,
     };
-    // if (status === "APPROVED") {
-    // approveMutation.mutate(payload);
-    // } else {
-    //   rejectMutation.mutate(payload);
-    // }
   };
 
   if (!adsData) {
@@ -115,7 +110,7 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
 
             <div className="flex gap-2">
               <Button
-                disabled={adsData.status == "INACTIVE"}
+                disabled={adsData.status == "REJECTED"}
                 loading={approveMutation.isPending}
                 size="large"
                 danger
@@ -151,23 +146,27 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
         <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
           <div>
             <div className="text-xs text-gray-500">Company Name</div>
-            <div className="text-sm">{adsData.companyName || "N/A"}</div>
+            <div className="text-sm font-medium mt-1">{adsData.companyName || "N/A"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Ad Type</div>
-            <div className="text-sm">{adsData.adType}</div>
+            <div className="text-sm font-medium mt-1">{adsData.adType}</div>
+          </div>
+          <div>
+            <div className="text-xs text-gray-500">Created By</div>
+            <div className="text-sm font-medium mt-1">{adsData.createdByName || "N/A"}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Display Location</div>
-            <div className="text-sm">{adsData.displayLocation}</div>
+            <div className="text-sm font-medium mt-1">{adsData.displayLocation}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Start Date</div>
-            <div className="text-sm">{adsData.startDate}</div>
+            <div className="text-sm font-medium mt-1">{adsData.startDate}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">End Date</div>
-            <div className="text-sm">{adsData.endDate}</div>
+            <div className="text-sm font-medium mt-1">{adsData.endDate}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-2">Status</div>
@@ -180,7 +179,7 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
         {/* Description */}
         <div className="mb-8">
           <div className="text-xs text-gray-500 mb-1">Description</div>
-          <Typography.Text className="text-sm">
+          <Typography.Text className="text-sm font-medium mt-1">
             {adsData.description}
           </Typography.Text>
         </div>
@@ -188,7 +187,7 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
         {/* Ad Image Section */}
         {adsData.imageUrl && (
           <div className="mb-8">
-            <div className="text-xs font-medium text-gray-500 mb-1">
+            <div className="text-xs font-medium text-gray-500 mb-2">
               Ad Image
             </div>
             <Image

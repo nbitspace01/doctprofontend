@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
-import { App, Button, Drawer } from "antd";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import React from "react";
+import { App, Avatar, Button, Drawer } from "antd";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import FormattedDate from "../../Common/FormattedDate";
 import { updateDegreeApi } from "../../../api/degree.api";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface DegreeData {
   id: string;
@@ -19,7 +20,7 @@ interface DegreeViewProps {
   degreeData: DegreeData;
 }
 
-type DegreeStatus = "pending" | "active" | "inactive";
+type DegreeStatus = "PENDING" | "ACTIVE" | "INACTIVE";
 
 const DegreeView: React.FC<DegreeViewProps> = ({
   open,
@@ -28,23 +29,6 @@ const DegreeView: React.FC<DegreeViewProps> = ({
 }) => {
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
-
-  /* -------------------- Derived Values -------------------- */
-  const displayName = useMemo(() => {
-    if (degreeData.name) return degreeData.name;
-
-    const fullName = `${degreeData.name || ""}`.trim();
-
-    return fullName || "N/A";
-  }, [degreeData]);
-
-  const avatarInitial = useMemo(() => {
-    if (degreeData.name) return degreeData.name[0].toUpperCase();
-    if (degreeData.name) return degreeData.name[0].toUpperCase();
-  }, [degreeData]);
-
-  // const profileImage =
-  //   degreeData.profile_image || degreeData.image_url || "";
 
   /* -------------------- Update Status -------------------- */
   const { mutate: updateStatus, isPending: isPendingMutation } = useMutation({
@@ -68,16 +52,16 @@ const DegreeView: React.FC<DegreeViewProps> = ({
   });
 
   /* -------------------- Handlers -------------------- */
-  const status = degreeData.status;
+  const status = degreeData.status.toUpperCase();
 
-  const isPending = status === "pending";
-  const isActive = status === "active";
-  const isInactive = status === "inactive";
+  // const isPending = status === "PENDING";
+  const isActive = status === "ACTIVE";
+  // const isInactive = status === "INACTIVE";
 
   const getNextStatus = (): DegreeStatus => {
-    if (status === "pending") return "active";
-    if (status === "active") return "inactive";
-    return "active";
+    if (status === "PENDING") return "ACTIVE";
+    if (status === "ACTIVE") return "INACTIVE";
+    return "ACTIVE";
   };
 
   const handleStatusToggle = () => {
@@ -85,9 +69,9 @@ const DegreeView: React.FC<DegreeViewProps> = ({
 
     modal.confirm({
       title:
-        nextStatus === "active" ? "Activate Degree?" : "Deactivate Degree?",
+        nextStatus === "ACTIVE" ? "Activate Degree?" : "Deactivate Degree?",
       content: `Are you sure you want to ${nextStatus} "${degreeData.name}"?`,
-      okType: nextStatus === "active" ? "primary" : "danger",
+      okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
         updateStatus({
           degreeId: degreeData.id,
@@ -131,28 +115,45 @@ const DegreeView: React.FC<DegreeViewProps> = ({
       }
     >
       <div className="space-y-8">
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Degree Name</p>
-            <p className="text-base">{degreeData?.name}</p>
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <Avatar
+            size={44}
+            className="bg-button-primary text-white rounded-full"
+          >
+            {degreeData?.name?.charAt(0)?.toUpperCase() || "D"}
+          </Avatar>
+
+          <div>
+            <h3 className="text-lg font-semibold">
+              {degreeData?.name || "Degree"}
+            </h3>
           </div>
         </div>
 
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Specialization</p>
-            <p className="text-base">{degreeData?.specialization}</p>
-          </div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Status</p>
-            <p className="text-base">{degreeData?.status}</p>
-          </div>
-        </div>
+        {/* Divider */}
+        <div className="border-t" />
 
-        <div>
-          <div className="mb-4">
-            <p className="text-gray-500 mb-1">Created on</p>
-            <p className="text-base">
+        {/* Details */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-6">
+          {/* Degree Name */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Degree Name</p>
+            <p className="text-sm font-medium">{degreeData?.name || "N/A"}</p>
+          </div>
+
+          {/* Specialization */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Specialization</p>
+            <p className="text-sm font-medium">
+              {degreeData?.specialization || "N/A"}
+            </p>
+          </div>
+
+          {/* Created On */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Created On</p>
+            <p className="text-sm font-medium">
               {degreeData?.created_at ? (
                 <FormattedDate
                   dateString={degreeData.created_at}
@@ -162,6 +163,14 @@ const DegreeView: React.FC<DegreeViewProps> = ({
                 "N/A"
               )}
             </p>
+          </div>
+
+          {/* Status */}
+          <div>
+            <p className="text-xs text-gray-500 mb-1">Status</p>
+            <div className="mt-1">
+              <StatusBadge status={degreeData?.status?.toUpperCase()} />
+            </div>
           </div>
         </div>
       </div>

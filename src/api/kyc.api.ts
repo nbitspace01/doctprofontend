@@ -12,10 +12,10 @@ interface KycSubmission {
   kyc_status: string;
 }
 
-// Create KYC
-export const createKYCApi = (data: any) => {
-  return apiClient.post<any>(`/api/student/create`, data);
-};
+// Create KYC (Unused & Incorrect Endpoint)
+// export const createKYCApi = (data: any) => {
+//   return apiClient.post<any>(`/api/student/create`, data);
+// };
 
 // Fetch KYC
 export const fetchKYCApi = ({

@@ -43,7 +43,7 @@ const SubAdmin: React.FC = () => {
   const [editData, setEditData] = useState<SubAdminData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedSubAdmin, setSelectedSubAdmin] = useState<SubAdminData | null>(
-    null
+    null,
   );
 
   /* -------------------- List Controller -------------------- */
@@ -185,7 +185,7 @@ const SubAdmin: React.FC = () => {
         ),
       },
     ],
-    [currentPage, pageSize]
+    [currentPage, pageSize],
   );
 
   /* -------------------- Filters -------------------- */
@@ -215,7 +215,7 @@ const SubAdmin: React.FC = () => {
         options: ["ACTIVE", "INACTIVE"],
       },
     ],
-    []
+    [],
   );
 
   /* -------------------- Download -------------------- */
@@ -263,15 +263,16 @@ const SubAdmin: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">Sub-Admin List</h1>
+    <div className="px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">Sub-Admin List</h1>
         <Button
           type="primary"
-          icon={<Plus />}
           onClick={() => setIsModalOpen(true)}
-          className="bg-button-primary hover:!bg-button-primary"
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+               px-5 py-6 flex items-center gap-2 transition-colors duration-200"
         >
+          <Plus className="relative -top-0" />
           Add New Sub Admin
         </Button>
       </div>

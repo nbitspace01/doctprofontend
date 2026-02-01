@@ -296,8 +296,8 @@ const HealthCareList: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6">Healthcare Professionals</h1>
+    <div className="px-6">
+      <h1 className="text-2xl font-bold pb-4">Healthcare Professionals</h1>
 
       <CommonTable<HealthcareProfessionalData>
         rowKey="id"

@@ -15,7 +15,6 @@ import axios from "axios";
 import { getToken } from "../Common/authUtils";
 import dayjs from "dayjs";
 import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
-import { TOKEN, USER_ID } from "../Common/constant.function";
 import { showError, showSuccess } from "../Common/Notification";
 
 interface JobPostData {
@@ -78,7 +77,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
         experience_required: initialData.experience_required,
         salary: initialData.salary,
         location: initialData.location || "chennai",
-        workType : initialData.workType,
+        workType: initialData.workType,
         degree_required: initialData.degree_required,
         specialization: initialData.specialization,
         description: initialData.description,
@@ -137,8 +136,12 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
       description: values.description,
       hospital_website: values.hospital_website,
       hospital_bio: values.hospital_bio,
-      valid_from: values.valid_from ? new Date(values.valid_from).toLocaleDateString("en-IN") : "-",
-      expires_at: values.expires_at ? new Date(values.expires_at).toLocaleDateString("en-IN") : "-",
+      valid_from: values.valid_from
+        ? new Date(values.valid_from).toLocaleDateString("en-IN")
+        : "-",
+      expires_at: values.expires_at
+        ? new Date(values.expires_at).toLocaleDateString("en-IN")
+        : "-",
     };
 
     createJobPostMutation.mutate(payload);
@@ -313,8 +316,17 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
               >
                 <DatePicker
                   className="w-full"
+                  onChange={() => form.setFieldsValue({ expires_at: null })}
                   format="MM/DD/YYYY"
                   placeholder="MM/DD/YYYY"
+                  disabledDate={(current) => {
+                    const today = dayjs().startOf("day");
+                    const oneYearLater = dayjs().add(1, "year").endOf("day");
+
+                    return (
+                      current && (current < today || current > oneYearLater)
+                    );
+                  }}
                 />
               </Form.Item>
 
@@ -327,6 +339,26 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
                   className="w-full"
                   format="MM/DD/YYYY"
                   placeholder="MM/DD/YYYY"
+                  disabledDate={(current) => {
+                    const startDate = form.getFieldValue("valid_from");
+                    const today = dayjs().startOf("day");
+
+                    if (!current) return false;
+
+                    // If start date not selected yet
+                    if (!startDate) {
+                      return current < today;
+                    }
+
+                    const start = dayjs(startDate).startOf("day");
+                    const maxEndDate = start.add(30, "day").endOf("day");
+
+                    return (
+                      current < start || // before start date
+                      current < today || // past dates
+                      current > maxEndDate // after 30 days from start
+                    );
+                  }}
                 />
               </Form.Item>
             </div>

@@ -4,19 +4,43 @@ import FormattedDate from "../../Common/FormattedDate";
 import StatusBadge from "../../Common/StatusBadge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "../../../api/api";
+import { updateHospitalAdminStatusApi } from "../../../api/hospitalAdmin.api";
 
 export interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
+  address?: string;
   city: string;
   state: string;
   country: string;
+  type?: string;
+  zipcode?: string;
   email: string;
   phone: string;
   status: string;
+  logoUrl?: string;
   created_at: string;
   adminUserId: string | null;
+  hr_full_name?: string;
+  hr_email?: string;
+  hr_phone?: string;
+  website?: string;
+  adminUser?: { id: string; email?: string; phone?: string; status?: string };
+  kyc?: {
+    adminIdProof?: {
+      type?: string;
+      url?: string;
+      number?: string;
+      status?: string;
+    } | null;
+    hospitalLicense?: {
+      type?: string;
+      url?: string;
+      number?: string;
+      status?: string;
+    } | null;
+  };
 }
 
 interface ClinicViewDrawerProps {
@@ -36,9 +60,7 @@ const ClinicViewDrawer = ({
 
   const toggleHospitalStatusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
-      apiClient.put(`/api/hospital-admin/${id}/status`, {
-        status,
-      }),
+      updateHospitalAdminStatusApi(id, status),
     onSuccess: () => {
       message.success("Hospital status updated successfully");
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
@@ -53,7 +75,8 @@ const ClinicViewDrawer = ({
     const status = hospitalData.status.toUpperCase();
 
     // Decide action
-    const willActivate = status === "INACTIVE" || status === "PENDING";
+    const willActivate =
+      status === "INACTIVE" || status === "PENDING" || status === "DRAFT";
 
     modal.confirm({
       title: willActivate ? "Activate Hospital" : "Deactivate Hospital",
@@ -76,7 +99,7 @@ const ClinicViewDrawer = ({
     <Drawer
       open={isOpen}
       onClose={onClose}
-      width={600}
+      width={500}
       title="Hospital Admin Details"
       footer={
         <div className="flex justify-between items-center">
@@ -108,9 +131,15 @@ const ClinicViewDrawer = ({
       <div className="px-2">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <Avatar size={64} className="bg-button-primary text-white">
-            {hospitalData.name.charAt(0)}
+          <Avatar
+            size={64}
+            src={hospitalData.logoUrl} // image URL
+            className="bg-button-primary text-white font-semibold"
+            onError={() => false} // prevents broken image icon
+          >
+            {hospitalData.name?.charAt(0)?.toUpperCase()}
           </Avatar>
+
           <div>
             <h2 className="text-xl font-semibold">{hospitalData.name}</h2>
             <p className="text-gray-500">{hospitalData.branchLocation}</p>

@@ -1,27 +1,21 @@
 import React, { useEffect, useState } from "react";
 import {
   Form,
-  Input,
-  Select,
-  DatePicker,
-  Upload,
   Button,
   Modal,
-  message,
   App,
 } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import type { UploadFile, UploadProps } from "antd/es/upload/interface";
+import type { UploadFile } from "antd/es/upload/interface";
 import { useMutation } from "@tanstack/react-query";
 import {
-  AdsPostFormValues,
   AdsPostPayload,
   CreateAdPostProps,
 } from "./adsPostTypes";
 import { createAdsPostAPI, updateAdsPostAPI } from "../../api/adsPost.api";
 import { showError, showSuccess } from "../Common/Notification";
-import { uploadImageAPI } from "../../api/upload.api";
 import dayjs from "dayjs";
+import { getCountries, getStates } from "../../api/location.api";
+import { AdsPostFormFields } from "./AdsPostFormFields";
 
 const CreateAdPost: React.FC<CreateAdPostProps> = ({
   open,
@@ -34,66 +28,64 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
 
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [countries, setCountries] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
+  const [states, setStates] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
 
   const isEditMode = Boolean(initialData);
 
-  const [previewOpen, setPreviewOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState("");
+  /* -------------------- Location Logic -------------------- */
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const countryData = await getCountries();
+        const mapped = countryData.map((c: any) => ({
+          label: c.name,
+          value: c.name,
+          key: c.id,
+        }));
+        setCountries(mapped);
 
-  const handlePreview = (file: UploadFile) => {
-    setPreviewImage(file.url || "");
-    setPreviewOpen(true);
-  };
+        if (initialData?.country) {
+          const selectedCountry = mapped.find(
+            (c: any) => c.value === initialData.country,
+          );
+          if (selectedCountry) {
+            const stateData = await getStates(selectedCountry.key);
+            setStates(
+              stateData.map((s: any) => ({
+                label: s.name,
+                value: s.name,
+                key: s.id,
+              })),
+            );
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch locations", err);
+      }
+    };
+    if (open) fetchLocations();
+  }, [open, initialData]);
 
-  /* -------------------- Upload Config -------------------- */
-  const handleUpload: UploadProps["customRequest"] = async ({
-    file,
-    onSuccess,
-    onError,
-  }) => {
+  const handleCountryChange = async (value: string, option: any) => {
     try {
-      setUploading(true);
-
-      const res = await uploadImageAPI(file as File);
-      const imageUrl = res.url;
-      // console.log("Image", res.url);
-      form.setFieldsValue({ imageUrl });
-      setFileList([
-        {
-          uid: (file as any).uid,
-          name: (file as any).name,
-          status: "done",
-          url: imageUrl,
-        },
-      ]);
-
-      onSuccess?.(res);
+      const countryId = option.key;
+      const stateData = await getStates(countryId);
+      setStates(
+        stateData.map((s: any) => ({
+          label: s.name,
+          value: s.name,
+          key: s.id,
+        })),
+      );
+      form.setFieldsValue({ state: undefined });
     } catch (err) {
-      onError?.(err as any);
-    } finally {
-      setUploading(false);
+      console.error("Failed to fetch states", err);
     }
-  };
-
-  const uploadProps: UploadProps = {
-    maxCount: 1,
-    accept: "image/*",
-    customRequest: handleUpload,
-    beforeUpload: (file) => {
-      const allowedTypes = ["image/jpeg", "image/png", "image/jpg"];
-
-      if (!allowedTypes.includes(file.type)) {
-        message.error("Only JPG / PNG images allowed");
-        return Upload.LIST_IGNORE;
-      }
-
-      if (file.size / 1024 / 1024 > 2) {
-        message.error("Image must be under 2MB");
-        return Upload.LIST_IGNORE;
-      }
-
-      return true;
-    },
   };
 
   /* -------------------- Effects -------------------- */
@@ -122,14 +114,11 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       form.resetFields();
       setFileList([]);
     }
-  }, [open, initialData]);
+  }, [open, initialData, form]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
-    mutationFn: (values: AdsPostFormValues) =>
-      createAdsPostAPI({
-        ...values,
-      }),
+    mutationFn: (payload: AdsPostPayload) => createAdsPostAPI(payload),
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Ads Post Created Successfully",
@@ -143,19 +132,18 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
     onError: (error: any) => {
       showError(notification, {
         message: "Failed to create ads post",
-        description: error.response?.data?.error || "Failed to create ads post",
+        description:
+          error?.response?.data?.errors?.[0]?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to create ads post",
       });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (values: AdsPostFormValues) => {
-      const payload: any = {
-        ...values,
-      };
-
-      return updateAdsPostAPI(initialData!.id, payload);
-    },
+    mutationFn: (payload: AdsPostPayload) =>
+      updateAdsPostAPI(initialData!.id, payload),
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Ads Post Updated Successfully",
@@ -169,32 +157,81 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
     onError: (error: any) => {
       showError(notification, {
         message: "Failed to update ads post",
-        description: error.response?.error || "Failed to update ads post",
+        description:
+          error?.response?.data?.errors?.[0]?.message ||
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to update ads post",
       });
     },
   });
 
   /* -------------------- Submit -------------------- */
-  const handleSubmit = (values: AdsPostFormValues) => {
-    const payload: AdsPostPayload = {
-      title: values.title,
-      companyName: values.companyName,
-      adType: values.adType,
-      country: values.country,
-      state: values.state,
-      contentType: values.contentType,
-      imageUrl: values.imageUrl,
-      redirectUrl: values.redirectUrl,
-      description: values.description,
-      displayLocation: values.displayLocation,
-      startDate: values.startDate.toString(),
-      endDate: values.endDate.toString()
-    };
-    console.log(" media Url:", values.imageUrl);
+  const handleSubmit = async (forcedStatus?: string) => {
+    try {
+      setUploading(true);
 
-    isEditMode
-      ? updateMutation.mutate(payload)
-      : createMutation.mutate(payload);
+      const values = await form.validateFields();
+
+      // 🔒 Validate file for create mode
+      if (!isEditMode && !fileList.length) {
+        showError(notification, {
+          message: "Media Required",
+          description: "Please upload an image or video",
+        });
+        return;
+      }
+
+      const formData = new FormData();
+
+      // Append normal fields
+      formData.append("title", values.title);
+      formData.append("companyName", values.companyName);
+      formData.append("adType", values.adType);
+      formData.append("country", values.country);
+      formData.append("state", values.state);
+      formData.append("contentType", values.contentType);
+      formData.append("redirectUrl", values.redirectUrl);
+      formData.append("description", values.description);
+      formData.append("displayLocation", values.displayLocation);
+      formData.append("startDate", values.startDate.toISOString());
+      formData.append("endDate", values.endDate.toISOString());
+      
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        formData.append("createdBy", userId);
+      }
+      
+      formData.append(
+        "status",
+        forcedStatus || (isEditMode ? initialData?.status! : "DRAFT"),
+      );
+
+      // 🔥 Append file ONLY if selected and it is a new file (has originFileObj)
+      if (fileList[0]?.originFileObj) {
+        formData.append("media", fileList[0].originFileObj);
+      }
+
+      if (isEditMode) {
+        updateMutation.mutate(formData as any);
+      } else {
+        createMutation.mutate(formData as any);
+      }
+    } catch (error: any) {
+      if (error.errorFields) {
+        showError(notification, {
+          message: "Validation Error",
+          description: error.errorFields[0]?.errors[0],
+        });
+      } else {
+        showError(notification, {
+          message: "Submission Error",
+          description: error.message,
+        });
+      }
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -208,190 +245,63 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       width={800}
       footer={null}
     >
-      <div className="max-w-3xl mx-auto p-6">
-        <h1>{isEditMode ? "Edit Ad Post" : "Create Ad Post"}</h1>
+      <div className="max-w-3xl mx-auto p-4">
+        <h2 className="text-xl font-bold mb-4">
+          {isEditMode ? "Edit Ad Post" : "Create Ad Post"}
+        </h2>
         <Form
           form={form}
           layout="vertical"
-          onFinish={handleSubmit}
-          className="space-y-4"
+          className="space-y-2"
+          initialValues={{
+            status: "DRAFT",
+            contentType: "image",
+            adType: "Banner",
+          }}
         >
-          <Form.Item
-            label="Ad Title"
-            name="title"
-            rules={[{ required: true, message: "Please enter ad title" }]}
-          >
-            <Input placeholder="Enter Ad Title" className="w-full" />
-          </Form.Item>
+          <AdsPostFormFields
+            form={form}
+            countries={countries}
+            states={states}
+            onCountryChange={handleCountryChange}
+            fileList={fileList}
+            setFileList={setFileList}
+          />
 
-          <Form.Item
-            label="Company Name"
-            name="companyName"
-            rules={[{ required: true, message: "Please enter company name" }]}
-          >
-            <Input placeholder="Enter Company Name" />
-          </Form.Item>
-
-          <Form.Item
-            label="Ad Type"
-            name="adType"
-            rules={[{ required: true, message: "Please select ad type" }]}
-          >
-            <Select placeholder="Select Ad Type">
-              <Select.Option value="banner">Banner</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="Display Location"
-            name="displayLocation"
-            rules={[
-              { required: true, message: "Please enter display location" },
-            ]}
-          >
-            <Input placeholder="Enter display location" />
-          </Form.Item>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              label="State"
-              name="state"
-              rules={[{ required: true, message: "Please select state" }]}
-            >
-              <Select placeholder="Select State">
-                <Select.Option value="state1">State 1</Select.Option>
-                <Select.Option value="state2">State 2</Select.Option>
-              </Select>
-            </Form.Item>
-
-            <Form.Item
-              label="Country"
-              name="country"
-              rules={[{ required: true, message: "Please select country" }]}
-            >
-              <Select placeholder="Select Country">
-                <Select.Option value="country1">Country 1</Select.Option>
-                <Select.Option value="country2">Country 2</Select.Option>
-              </Select>
-            </Form.Item>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Form.Item
-              label="Start Date & Time"
-              name="startDate"
-              rules={[{ required: true, message: "Please select start date" }]}
-            >
-              <DatePicker showTime className="w-full" />
-            </Form.Item>
-
-            <Form.Item
-              label="End Date & Time"
-              name="endDate"
-              rules={[{ required: true, message: "Please select end date" }]}
-            >
-              <DatePicker showTime className="w-full" />
-            </Form.Item>
-          </div>
-
-          <Form.Item
-            label="Content Type"
-            name="contentType"
-            rules={[{ required: true, message: "Please select content type" }]}
-          >
-            <Select placeholder="Select Content Type">
-              <Select.Option value="image">Image</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            label="Upload Media"
-            // name="imageUrl"
-            rules={[{ required: true, message: "Please upload media" }]}
-          >
-            <Upload
-              {...uploadProps}
-              listType="picture-card"
-              fileList={fileList}
-              onChange={({ fileList }) => {
-                setFileList(fileList);
-
-                if (fileList.length === 0) {
-                  form.setFieldsValue({ imageUrl: undefined });
-                }
-              }}
-              showUploadList={{
-                showPreviewIcon: false,
-                showRemoveIcon: true,
-              }}
-            >
-              {fileList.length < 1 && (
-                <div>
-                  <UploadOutlined />
-                  <div className="mt-2">Upload</div>
-                </div>
-              )}
-            </Upload>
-          </Form.Item>
-          <Form.Item
-            name="imageUrl"
-            hidden
-            rules={[{ required: true, message: "Please upload media" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            label="redirectUrl"
-            name="redirectUrl"
-            rules={[{ required: true, message: "Please enter link" }]}
-          >
-            <Input placeholder="http://example.com" />
-          </Form.Item>
-
-          <Form.Item
-            label="Description"
-            name="description"
-            rules={[{ required: true, message: "Please enter description" }]}
-          >
-            <Input.TextArea rows={4} placeholder="Type Something..." />
-          </Form.Item>
-
-          <div className="flex justify-end space-x-4">
+          <div className="flex justify-end space-x-4 pt-4">
             <Button
               onClick={() => {
                 form.resetFields();
                 setFileList([]);
                 onCancel();
               }}
-              className="px-6"
             >
               Cancel
             </Button>
             <Button
-              type="primary"
-              htmlType="submit"
-              className="px-6"
+              className="bg-gray-100"
+              onClick={() => handleSubmit("DRAFT")}
               loading={
                 uploading ||
                 createMutation.isPending ||
                 updateMutation.isPending
               }
             >
-              Publish
+              Save as Draft
             </Button>
-            <Button className="px-6">Save as Draft</Button>
+            <Button
+              type="primary"
+              onClick={() => handleSubmit("PUBLISH")}
+              loading={
+                uploading ||
+                createMutation.isPending ||
+                updateMutation.isPending
+              }
+            >
+              {isEditMode ? "Update & Publish" : "Publish"}
+            </Button>
           </div>
         </Form>
-
-        {/* <Modal
-          open={previewOpen}
-          title="Preview"
-          footer={null}
-          onCancel={() => setPreviewOpen(false)}
-        >
-          <img alt="preview" className="w-full" src={previewImage} />
-        </Modal> */}
       </div>
     </Modal>
   );

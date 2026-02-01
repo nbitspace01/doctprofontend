@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { App, Avatar, Button, Drawer, Form, Input } from "antd";
-import axios from "axios";
-import React from "react";
+import { App, Avatar, Button, Drawer, Form, Input, Upload, message } from "antd";
+import { UploadOutlined, UserOutlined } from "@ant-design/icons";
+import type { UploadProps } from "antd";
+import React, { useState } from "react";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
 import { showError, showSuccess } from "../Common/Notification";
+import { updateUserProfileApi } from "../../api/user.api";
 
 interface EditProfileDrawerProps {
   visible: boolean;
@@ -15,6 +17,7 @@ interface EditProfileDrawerProps {
     note: string;
     phoneNumber: string;
     role: string;
+    profilePicture?: string;
   };
 }
 
@@ -27,47 +30,69 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
+  const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+
   const USER_ID = localStorage.getItem("userId");
 
   React.useEffect(() => {
     if (initialValues) {
       form.setFieldsValue(initialValues);
+      setPreviewUrl(initialValues.profilePicture || null);
     }
   }, [form, initialValues]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: any) => {
-      const response = await axios.put(`${URL}/api/user/profile/${USER_ID}`, {
-        first_name: values.fullName.split(" ")[0] || values.fullName,
-        last_name: values.fullName.split(" ").slice(1).join(" ") || "",
-        note: values.note || "",
-        phone: values.phoneNumber,
-      });
-      return response.data;
+      const formData = new FormData();
+      
+      const firstName = values.fullName.split(" ")[0] || values.fullName;
+      const lastName = values.fullName.split(" ").slice(1).join(" ") || "";
+
+      formData.append("first_name", firstName);
+      formData.append("last_name", lastName);
+      formData.append("note", values.note || "");
+      formData.append("phone", values.phoneNumber);
+
+      if (file) {
+        formData.append("profile_picture", file);
+      }
+
+      // Use centralized API
+      // USER_ID captured from localStorage in component scope
+      if (!USER_ID) throw new Error("User ID not found");
+      
+      return updateUserProfileApi(USER_ID, formData);
     },
-    onSuccess: (data) => {
+    onSuccess: (response: any) => { // response is the AxiosResponse or data returned by apiClient?
+      // apiClient.put returns request<T> which returns response.data (normalized or raw)
+      // So 'response' here is likely the actual data object if normalized, or we should check.
+      // Based on api.ts: return normalized as T.
+      
+      const data = response; 
+
       showSuccess(notification, {
         message: "Profile Updated Successfully",
-        description: data.message,
+        description: data.message || "Profile updated",
       });
       // Invalidate and refetch userProfile query
       const currentUserId = localStorage.getItem("userId");
       queryClient.invalidateQueries({ queryKey: ["userProfile", currentUserId] });
       
       // Update localStorage with new name if available
-      if (data.data) {
-        const updatedName = data.data.name || 
-          (data.data.first_name && data.data.last_name 
-            ? `${data.data.first_name} ${data.data.last_name}` 
-            : data.data.first_name || data.data.last_name || "");
+      if (data.id) {
+        const updatedName = data.name || 
+          (data.first_name && data.last_name 
+            ? `${data.first_name} ${data.last_name}` 
+            : data.first_name || data.last_name || "");
         if (updatedName) {
           const nameParts = updatedName.trim().split(" ");
           localStorage.setItem("firstName", nameParts[0] || "");
           localStorage.setItem("lastName", nameParts.slice(1).join(" ") || "");
         }
-        if (data.data.phone) {
-          localStorage.setItem("userPhone", data.data.phone);
+        if (data.phone) {
+          localStorage.setItem("userPhone", data.phone);
         }
       }
       
@@ -79,7 +104,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message ?? "Failed to update profile";
+        error.response?.data?.message ?? error.message ?? "Failed to update profile";
       showError(notification, {
         message: "Failed to update profile",
         description: errorMessage,
@@ -91,6 +116,20 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
     form.validateFields().then((values) => {
       updateProfileMutation.mutate(values);
     });
+  };
+
+  const uploadProps: UploadProps = {
+    beforeUpload: (file) => {
+      const isLt2M = file.size / 1024 / 1024 < 5;
+      if (!isLt2M) {
+        message.error("Image must be smaller than 5MB!");
+        return Upload.LIST_IGNORE;
+      }
+      setFile(file);
+      setPreviewUrl(window.URL.createObjectURL(file));
+      return false;
+    },
+    showUploadList: false,
   };
 
   return (
@@ -107,6 +146,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
             className="bg-button-primary"
             type="primary"
             onClick={handleSubmit}
+            loading={updateProfileMutation.isPending}
           >
             Save Profile
           </Button>
@@ -114,16 +154,18 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       }
     >
       <Form form={form} layout="vertical" initialValues={initialValues}>
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
-            <Avatar size={64} className="bg-button-primary">
-              {initialValues?.fullName.charAt(0)}
-            </Avatar>
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative mb-4">
+             {previewUrl ? (
+                <Avatar src={previewUrl} size={100} />
+             ) : (
+                <Avatar size={100} icon={<UserOutlined />} />
+             )}
           </div>
+          <Upload {...uploadProps}>
+            <Button icon={<UploadOutlined />}>Change Picture</Button>
+          </Upload>
         </div>
-        {/* <p className="text-center text-gray-500 text-sm mb-6">
-          JPG/PNG Format, Max Size 5MB
-        </p> */}
 
         <Form.Item
           label="Full Name"
@@ -138,9 +180,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         <Form.Item
           label="Note"
           name="note"
-          // rules={[
-          //   { required: true, min: 3, message: "Required, Min 3 Characters" },
-          // ]}
         >
           <Input placeholder="Enter note" />
         </Form.Item>
@@ -149,13 +188,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
           <Input disabled className="bg-gray-50" />
         </Form.Item>
 
-        {/* <Form.Item
-          label="Phone Number"
-          name="phoneNumber"
-          rules={[{ required: true, message: "Phone number is required" }]}
-        >
-          <Input placeholder="Enter phone number" prefix={<MobileIcon />} />
-        </Form.Item> */}
         <PhoneNumberInput name="phoneNumber" label="Phone Number" />
 
         <Form.Item label="Role" name="role">

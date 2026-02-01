@@ -16,11 +16,11 @@ import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import SubAdmin from "./pages/SubAdmin/SubAdmin";
-import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
+// import HospitalAdmin from "./pages/HospitalAdmin/HospitalAdmin";
 import HospitalList from "./pages/MasterList/Hospitals/HospitalList";
 import CollegeList from "./pages/MasterList/Colleges/CollegeList";
 import DegreeSpecializationList from "./pages/MasterList/Degree/DegreeSpecializationList";
-import ClinicsList from "./pages/Organizations/Clinics/ClinicsList";
+import ClinicsList from "./pages/Organizations/HospitalAdmin/ClinicsList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
@@ -28,13 +28,14 @@ import AdsPostList from "./pages/AdsManagement/AdsPostList";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 // import ListCollege from "./pages/Organizations/College/ListCollege";
 // import SubAdminDashboard from "./pages/SubAdminFlow/SubAdminDashboard";
-import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
-import PostManagementList from "./pages/PostManagement/PostManagementList";
+// import CampaignList from "./pages/PeopleManagement/Campaign/CampaignList";
+// import PostManagementList from "./pages/PostManagement/PostManagementList";
 import ChangePassword from "./pages/Auth/ChangePassword";
 import ForgotPasswordVerifyOtp from "./pages/Auth/ForgotPasswordVerifyOtp";
 import { AuthProvider } from "./pages/Common/Context/AuthContext";
 // import HospitalDashboard from "./pages/Dashboard/HospitalDashboard";
 import JobPostList from "./pages/JobPostManagement/JobPostList";
+import ReportManagementList from "./pages/ReportManagement/ReportManagementList";
 
 
 export interface roleProps {
@@ -134,11 +135,11 @@ const subAdminRoute = createRoute({
   component: () => <SubAdmin />,
 });
 
-const hospitalAdminRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "hospital-admin",
-  component: () => <HospitalAdmin />,
-});
+// const hospitalAdminRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "hospital-admin",
+//   component: () => <HospitalAdmin />,
+// });
 
 const hospitalsRoute = createRoute({
   getParentRoute: () => appRoute,
@@ -182,16 +183,22 @@ const healthcareRoute = createRoute({
   component: () => <HealthCareList />,
 });
 
-const campaignRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "campaign",
-  component: () => <CampaignList />,
-});
+// const campaignRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "campaign",
+//   component: () => <CampaignList />,
+// });
 
 const kycRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "kyc",
   component: () => <KycList />,
+});
+
+const reportRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "report",
+  component: () => <ReportManagementList />,
 });
 
 const adsRoute = createRoute({
@@ -200,11 +207,11 @@ const adsRoute = createRoute({
   component: () => <AdsPostList role={userRole} />,
 });
 
-const postManagementRoute = createRoute({
-  getParentRoute: () => appRoute,
-  path: "post-management/list",
-  component: () => <PostManagementList />,
-});
+// const postManagementRoute = createRoute({
+//   getParentRoute: () => appRoute,
+//   path: "post-management/list",
+//   component: () => <PostManagementList />,
+// });
 
 // const hospitalDashboardRoute = createRoute({
 //   getParentRoute: () => appRoute,
@@ -232,7 +239,7 @@ const routeTree = rootRoute.addChildren([
     dashboardRoute,
     // subadminDashboardRoute,
     subAdminRoute,
-    hospitalAdminRoute,
+    // hospitalAdminRoute,
     hospitalsRoute,
     collegesRoute,
     // collegeListRoute,
@@ -242,8 +249,9 @@ const routeTree = rootRoute.addChildren([
     healthcareRoute,
     kycRoute,
     adsRoute,
-    campaignRoute,
-    postManagementRoute,
+    reportRoute,
+    // campaignRoute,
+    // postManagementRoute,
     // hospitalDashboardRoute,
     jobPostRoute,
   ]),

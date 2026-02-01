@@ -1,7 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Form, Input, Modal } from "antd";
 import React from "react";
-import { useResetPassword } from "../../api/user";
+import { useResetPassword } from "../../api/user.api";
 
 interface ChangePasswordModalProps {
   visible: boolean;

@@ -1,22 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Modal,
   Form,
   Input,
-  Select,
   Button,
   App,
-  message,
-  UploadProps,
-  Image,
-  Upload,
 } from "antd";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import api from "../../Common/axiosInstance";
+import { useMutation } from "@tanstack/react-query";
 import { showError, showSuccess } from "../../Common/Notification";
 import { createDegreeApi, updateDegreeApi } from "../../../api/degree.api";
-import { TOKEN, USER_ID } from "../../Common/constant.function";
-import { UserOutlined } from "@ant-design/icons";
 
 interface DegreeData {
   id: string;
@@ -48,77 +40,18 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
   const [form] = Form.useForm();
   const { notification } = App.useApp();
 
-  const [imageUrl, setImageUrl] = useState("");
-  const [uploading, setUploading] = useState(false);
-
   const isEditMode = Boolean(initialData);
-
-  /* -------------------- Upload Config -------------------- */
-  const uploadProps: UploadProps = {
-    maxCount: 1,
-    showUploadList: false,
-    accept: "image/*",
-    beforeUpload: (file) => {
-      if (!file.type.startsWith("image/")) {
-        message.error("You can only upload image files!");
-        return false;
-      }
-      if (file.size / 1024 / 1024 >= 2) {
-        message.error("Image must be smaller than 2MB!");
-        return false;
-      }
-      return true;
-    },
-    customRequest: async ({ file, onSuccess, onError, onProgress }) => {
-      try {
-        setUploading(true);
-
-        const formData = new FormData();
-        formData.append("file", file as File);
-        formData.append("entity", "post");
-        formData.append("userId", USER_ID || "");
-
-        const response = await api.post(`/api/post/upload`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${TOKEN}`,
-          },
-          onUploadProgress: (e) => {
-            if (e.total) {
-              onProgress?.({
-                percent: Math.round((e.loaded * 100) / e.total),
-              });
-            }
-          },
-        });
-
-        const { url } = response.data;
-        setImageUrl(url || "");
-        form.setFieldsValue({ profile_image: url });
-
-        onSuccess?.(response.data);
-        message.success("Image uploaded successfully!");
-      } catch (error) {
-        onError?.(error as Error);
-        message.error("Failed to upload image");
-      } finally {
-        setUploading(false);
-      }
-    },
-  };
 
   /* -------------------- Effects -------------------- */
   useEffect(() => {
     if (!open) return;
 
     if (initialData) {
-      // setImageUrl(initialData.profile_image || "");
       form.setFieldsValue({
         ...initialData,
         specialization: initialData.specialization,
       });
     } else {
-      setImageUrl("");
       form.resetFields();
     }
   }, [open, initialData, form]);
@@ -136,7 +69,6 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
         description: data.message,
       });
       form.resetFields();
-      setImageUrl("");
       onCancel();
       onSubmit(data);
     },
@@ -153,7 +85,6 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
       const payload: any = {
         ...values,
         specialization: values.specialization.toLowerCase(),
-        profile_image: imageUrl,
       };
 
       return updateDegreeApi(initialData!.id, payload);
@@ -164,7 +95,6 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
         description: data.message,
       });
       form.resetFields();
-      setImageUrl("");
       onCancel();
       onSubmit(data);
     },
@@ -190,21 +120,6 @@ const DegreeAddModal: React.FC<DegreeAddModalProps> = ({
       width={600}
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
-        <div className="flex justify-center mb-6">
-          <Upload {...uploadProps} key={initialData?.id || "new"}>
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  preview={false}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <UserOutlined className="text-3xl text-gray-400" />
-              )}
-            </div>
-          </Upload>
-        </div>
         <Form.Item
           name="name"
           label="Degree Name"

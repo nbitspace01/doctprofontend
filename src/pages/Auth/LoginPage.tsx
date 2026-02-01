@@ -37,12 +37,11 @@ const LoginPage = () => {
       });
       navigate({ to: "/auth/verify" });
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      const errorMessage = error.response?.data?.message || error.message || "An error occurred during login";
       showError(notification, {
         message: "Login Failed",
-        description:
-          error?.message ??
-          "An error occurred during login",
+        description: errorMessage,
         duration: 5,
       });
     },

@@ -39,14 +39,16 @@ const CommonTable = <T extends { [key: string]: any }>({
   onDownload,
 }: CommonTableProps<T>) => {
   return (
-    <div className="bg-white rounded-lg shadow w-full">
-      <SearchFilterDownloadButton
-        onSearch={onSearch}
-        searchValue={searchValue}
-        filterOptions={filters}
-        onFilterChange={onFilterChange}
-        onDownload={onDownload}
-      />
+    <div className="bg-white rounded-lg shadow w-full overflow-hidden">
+      <div className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <SearchFilterDownloadButton
+          onSearch={onSearch}
+          searchValue={searchValue}
+          filterOptions={filters}
+          onFilterChange={onFilterChange}
+          onDownload={onDownload}
+        />
+      </div>
 
       {loading ? (
         <div className="flex justify-center items-center py-8">
@@ -54,19 +56,23 @@ const CommonTable = <T extends { [key: string]: any }>({
         </div>
       ) : (
         <>
-          <Table<T>
-            columns={columns}
-            dataSource={data}   // ✅ DIRECT API DATA
-            rowKey={rowKey}
-            pagination={false}
-            scroll={{ x: "max-content" }}
-          />
+          <div className="overflow-x-auto">
+            <Table<T>
+              columns={columns}
+              dataSource={data} // ✅ DIRECT API DATA
+              rowKey={rowKey}
+              pagination={false}
+              scroll={{ x: "max-content" }}
+              className="custom-header"
+            />
+          </div>
+          
 
-          <div className="flex justify-end py-7 px-8">
+          <div className="w-full flex justify-center sm:justify-end py-4 px-4 sm:px-6">
             <Pagination
               current={currentPage}
               pageSize={pageSize}
-              total={total}     // ✅ API total
+              total={total}
               showSizeChanger
               showQuickJumper
               showTotal={(total, range) =>
@@ -74,6 +80,8 @@ const CommonTable = <T extends { [key: string]: any }>({
               }
               onChange={onPageChange}
               onShowSizeChange={onPageChange}
+              size="small"
+              className="!text-blue-800 !border-blue-800 !hover:bg-blue-600 !hover:text-white"
             />
           </div>
         </>

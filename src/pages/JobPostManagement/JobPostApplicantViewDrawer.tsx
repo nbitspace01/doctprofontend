@@ -2,7 +2,10 @@ import { CloseOutlined, FileTextOutlined } from "@ant-design/icons";
 import { App, Avatar, Button, Drawer, message, Modal } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import StatusBadge from "../Common/StatusBadge";
-import { applicationStatusJobPostApi, statusJobPostApi } from "../../api/jobpost.api";
+import {
+  applicationStatusJobPostApi,
+  statusJobPostApi,
+} from "../../api/jobpost.api";
 import { ApplicantViewDrawerProps } from "./jobPostTypes";
 
 const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
@@ -134,37 +137,43 @@ const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
       }
     >
       {/* -------------------- Header -------------------- */}
-      <div className="flex items-center gap-4 mb-6">
-        <Avatar size={64}>{user.first_name?.charAt(0)?.toUpperCase()}</Avatar>
+      <div className="flex items-start gap-4 pb-6 border-b">
+        <Avatar
+          size={64}
+          className="bg-button-primary text-white flex-shrink-0"
+        >
+          {user.first_name?.charAt(0)?.toUpperCase()}
+        </Avatar>
 
-        <div>
-          <h3 className="text-lg font-semibold">
+        <div className="space-y-0.5">
+          <h3 className="text-lg font-semibold leading-tight">
             {user.first_name} {user.last_name}
           </h3>
-          <p className="text-gray-500">{user.email}</p>
-          <p className="text-gray-500">{user.phone}</p>
+          <p className="text-sm text-gray-500">{user.email}</p>
+          <p className="text-sm text-gray-500">{user.phone}</p>
         </div>
       </div>
 
-      {/* -------------------- Status -------------------- */}
-      <div className="mb-4">
-        <p className="text-gray-500 mb-1">Application Status</p>
-        <StatusBadge status={applicant.status} />
-      </div>
+      {/* -------------------- Status + Applied Date -------------------- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 py-6 border-b">
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Application Status</p>
+          <StatusBadge status={applicant.status} />
+        </div>
 
-      {/* -------------------- Applied Date -------------------- */}
-      <div className="mb-4">
-        <p className="text-gray-500 mb-1">Applied On</p>
-        <p className="text-blue-600">
-          {new Date(applicant.applied_at).toLocaleDateString()}
-        </p>
+        <div>
+          <p className="text-xs text-gray-500 mb-1">Applied On</p>
+          <p className="text-sm font-medium text-blue-600">
+            {new Date(applicant.applied_at).toLocaleDateString()}
+          </p>
+        </div>
       </div>
 
       {/* -------------------- Cover Letter -------------------- */}
       {applicant.coverLetter && (
-        <div className="mb-6">
-          <p className="text-gray-500 mb-1">Cover Letter</p>
-          <div className="border rounded p-3 bg-gray-50 text-sm">
+        <div className="py-6 border-b">
+          <p className="text-xs text-gray-500 mb-2">Cover Letter</p>
+          <div className="border rounded-lg p-4 bg-gray-50 text-sm text-gray-700 leading-relaxed">
             {applicant.coverLetter}
           </div>
         </div>
@@ -172,13 +181,14 @@ const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
 
       {/* -------------------- Resume -------------------- */}
       {applicant.resumeUrl && (
-        <div className="mb-6">
-          <p className="text-gray-500 mb-2">Resume</p>
+        <div className="pt-6">
+          <p className="text-xs text-gray-500 mb-3">Resume</p>
           <Button
             type="primary"
             icon={<FileTextOutlined />}
             href={applicant.resumeUrl}
             target="_blank"
+            className="flex items-center gap-2"
           >
             View Resume
           </Button>

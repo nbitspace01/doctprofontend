@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { showSuccess } from "../Common/Notification";
 import { ApproveKYCStatusApi, rejectKYCStatusApi } from "../../api/kyc.api";
+import StatusBadge from "../Common/StatusBadge";
 
 interface KycDocument {
   document_number: string | null;
@@ -12,13 +13,13 @@ interface KycDocument {
 }
 
 interface Userdata {
-  id: string,
-  email: string,
+  id: string;
+  email: string;
   phone: string;
 }
 
 interface kycData {
-  kycId: string,
+  kycId: string;
   name: string;
   role: string;
   email: string;
@@ -26,32 +27,21 @@ interface kycData {
   created_on: string;
   documents?: KycDocument[];
   kyc_status: string;
-  user?: Userdata[];
+  user?: Userdata | Userdata[];
 }
 
 interface KycViewDrawerProps {
   open: boolean;
   onClose: () => void;
   kycData: kycData;
+  onChanged?: () => void;
 }
-
-// const fetchKycDetails = async (kycData: string) => {
-//   const API_URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
-//   const { data } = await axios.get<KycDetails>(
-//     `${API_URL}/api/kyc/kyc-submissions/${kycId}`,
-//     {
-//       headers: {
-//         Authorization: `Bearer ${localStorage.getItem("userToken")}`,
-//       },
-//     },
-//   );
-//   return data;
-// };
 
 const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   open,
   onClose,
   kycData,
+  onChanged,
 }) => {
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
@@ -59,12 +49,6 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   const [rejectRemarks, setRejectRemarks] = useState("");
   const queryClient = useQueryClient();
   const { notification } = App.useApp();
-
-  // const { data: kycDetails, isLoading } = useQuery({
-  //   queryKey: ["kycDetails", kycId],
-  //   queryFn: () => fetchKycDetails(kycId),
-  //   enabled: open && !!kycId,
-  // });
 
   const rejectMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -77,6 +61,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
       setRejectModalVisible(false);
       onClose();
+      onChanged?.();
       showSuccess(notification, {
         message: "KYC Rejected Successfully",
         description: data?.message || "KYC has been rejected successfully",
@@ -92,6 +77,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
       queryClient.invalidateQueries({ queryKey: ["kyc-submissions"] });
       setApproveModalVisible(false);
       onClose();
+      onChanged?.();
       showSuccess(notification, {
         message: "KYC Approved Successfully",
         description: data?.message || "KYC has been approved successfully",
@@ -104,7 +90,11 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   };
 
   const handleConfirmApprove = () => {
-    approveMutation.mutate(kycData?.user?.id);
+    const userObj = Array.isArray(kycData.user)
+      ? kycData.user[0]
+      : kycData.user;
+    if (!userObj?.id) return;
+    approveMutation.mutate(userObj.id);
   };
 
   const handleReject = () => {
@@ -112,7 +102,11 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
   };
 
   const handleConfirmReject = () => {
-    rejectMutation.mutate(kycData?.user?.id);
+    const userObj = Array.isArray(kycData.user)
+      ? kycData.user[0]
+      : kycData.user;
+    if (!userObj?.id) return;
+    rejectMutation.mutate(userObj.id);
   };
 
   const formatDate = (dateString: string) => {
@@ -131,87 +125,92 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
         onClose={onClose}
         open={open}
         width={400}
+        footer={
+          <div className="flex justify-between gap-3">
+            {/* Cancel */}
+            <Button size="large" onClick={onClose} className="px-6 bg-gray-100">
+              Cancel
+            </Button>
+
+            {/* Reject */}
+            <Button
+              danger
+              size="large"
+              loading={rejectMutation.isPending}
+              onClick={handleReject}
+              className="px-6"
+            >
+              Reject
+            </Button>
+
+            {/* Approve */}
+            <Button
+              type="primary"
+              size="large"
+              loading={approveMutation.isPending}
+              onClick={handleApprove}
+              className="px-6"
+            >
+              Approve
+            </Button>
+          </div>
+        }
       >
-        { kycData ? (
-          <div className="space-y-6">
-            <div className="flex items-center ">
-              <div className="" />
-              <Avatar
-                size={48}
-                className="bg-button-primary  rounded-full mr-2 text-white"
-              >
+        {kycData ? (
+          <div className="space-y-8">
+            {/* Header */}
+            <div className="flex items-center gap-4">
+              <Avatar size={48} className="bg-button-primary text-white">
                 {kycData.name?.charAt(0)}
               </Avatar>
-              <div className="flex flex-col items-center">
-                <h3 className="font-medium text-lg !mt-2">{kycData.name}</h3>
-                <p className="text-gray-500">{kycData.role}</p>
+
+              <div>
+                <h3 className="text-lg font-semibold leading-tight">
+                  {kycData.name}
+                </h3>
+                <p className="text-sm text-gray-500">{kycData.role}</p>
               </div>
             </div>
 
+            {/* Basic Info */}
             <div className="space-y-4">
               <div>
-                <p className="text-gray-500">Email Address</p>
-                <p>{kycData.email}</p>
+                <p className="text-sm text-gray-500">Email Address</p>
+                <p className="font-medium">{kycData.email}</p>
               </div>
+
               <div>
-                <p className="text-gray-500">Phone Number</p>
-                <p>{kycData.phone}</p>
+                <p className="text-sm text-gray-500">Phone Number</p>
+                <p className="font-medium">{kycData.phone}</p>
               </div>
+
               <div>
-                <p className="text-gray-500">Created on</p>
-                <p>{formatDate(kycData.created_on)}</p>
+                <p className="text-sm text-gray-500">Created On</p>
+                <p className="font-medium">{formatDate(kycData.created_on)}</p>
               </div>
             </div>
 
+            {/* KYC Documents */}
             <div>
               <h4 className="font-medium mb-4">KYC Documents</h4>
+
               <div className="space-y-4">
                 {kycData.documents?.map((doc, index) => (
-                  <div key={index} className="border rounded p-4">
-                    <div className="flex justify-between items-center mb-2">
+                  <div key={index} className="border rounded-lg p-4 bg-white">
+                    <div className="flex justify-between items-center mb-3">
                       <span className="font-medium">{doc.type}</span>
-                      <span
-                        className={`px-2 py-1 rounded text-sm ${
-                          doc.status === "APPROVED"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {doc.status}
-                      </span>
+
+                     <StatusBadge status={doc.status.toUpperCase()} />
                     </div>
+
                     <Image
                       src={doc.url}
                       alt={doc.type}
-                      className="w-full h-40 object-cover rounded"
+                      className="w-full h-44 object-cover rounded-md"
                     />
                   </div>
                 ))}
               </div>
-            </div>
-
-            <div className="flex gap-4 mt-8">
-              <Button
-                onClick={handleReject}
-                disabled={rejectMutation.isPending}
-                className="flex-1 py-2 border border-red-500 text-red-500 rounded hover:bg-red-50 disabled:opacity-50"
-              >
-                {rejectMutation.isPending ? "Rejecting..." : "Reject"}
-              </Button>
-              <Button
-                onClick={onClose}
-                className="flex-1 py-2 bg-gray-100 rounded hover:bg-gray-200"
-              >
-                Cancel
-              </Button>
-
-              <Button
-                onClick={handleApprove}
-                disabled={approveMutation.isPending}
-                className="flex-1 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-              >
-                {approveMutation.isPending ? "Approving..." : "Approve"}
-              </Button>
             </div>
           </div>
         ) : null}

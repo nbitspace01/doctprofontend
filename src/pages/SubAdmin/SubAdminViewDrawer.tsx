@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { App, Avatar, Button, Drawer, Image, Tag } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { SubAdminUpdate } from "../../api/admin.api";
+import StatusBadge from "../Common/StatusBadge";
 
 interface SubAdminData {
   id: string;
@@ -79,10 +80,10 @@ const SubAdminViewDrawer: React.FC<ViewSubAdminProps> = ({
             data: oldData.data.map((item: any) =>
               item.id === variables.subAdminId
                 ? { ...item, status: variables.status }
-                : item
+                : item,
             ),
           };
-        }
+        },
       );
 
       message.success("Status updated successfully");
@@ -173,58 +174,61 @@ const SubAdminViewDrawer: React.FC<ViewSubAdminProps> = ({
           </div>
         </div>
 
-        {/* Contact */}
-        <div className="space-y-4">
-          <div>
+        {/* Two-column layout for details */}
+        <div className="flex flex-wrap -mx-2">
+          {/* Phone Number */}
+          <div className="w-1/2 px-2 mb-4">
             <p className="text-sm text-gray-500">Phone Number</p>
             <p className="font-medium">{subAdminData.phone || "N/A"}</p>
           </div>
 
-          <div>
+          {/* Role */}
+          <div className="w-1/2 px-2 mb-4">
             <p className="text-sm text-gray-500">Role</p>
             <Tag color="green">{subAdminData.role || "N/A"}</Tag>
           </div>
-        </div>
 
-        {/* Organization */}
-        <div className="space-y-4">
-          <div>
+          {/* Organisation Type */}
+          <div className="w-1/2 px-2 mb-4">
             <p className="text-sm text-gray-500">Organisation Type</p>
-            <p className="text-purple-600">
+            <p className="font-medium">
               {subAdminData.organization_type || "N/A"}
             </p>
           </div>
 
-          <div>
+          {/* State */}
+          <div className="w-1/2 px-2 mb-4">
             <p className="text-sm text-gray-500">State</p>
             <p className="font-medium">{subAdminData.state || "N/A"}</p>
           </div>
 
-          <div>
+          {/* District */}
+          <div className="w-1/2 px-2 mb-4">
             <p className="text-sm text-gray-500">District</p>
             <p className="font-medium">{subAdminData.district || "N/A"}</p>
           </div>
 
+          {/* Location (if available) */}
           {subAdminData.location && (
-            <div>
+            <div className="w-1/2 px-2 mb-4">
               <p className="text-sm text-gray-500">Location</p>
               <p className="font-medium">{subAdminData.location}</p>
             </div>
           )}
-        </div>
 
-        {/* Status */}
-        <div>
-          <p className="text-sm text-gray-500">Status</p>
-          <p className="font-medium">{subAdminData.status || "N/A"}</p>
-        </div>
+          {/* Status */}
+          <div className="w-1/2 px-2 mb-4">
+            <p className="text-sm text-gray-500">Status</p>
+            <p className="font-medium"><StatusBadge status={subAdminData.status || "N/A"} /></p>
+          </div>
 
-        {/* Active User */}
-        <div>
-          <p className="text-sm text-gray-500">Active User</p>
-          <p className="font-medium">
-            {subAdminData.active_user ? "Yes" : "No"}
-          </p>
+          {/* Active User */}
+          <div className="w-1/2 px-2 mb-4">
+            <p className="text-sm text-gray-500">Active User</p>
+            <p className="font-medium">
+              {subAdminData.active_user ? "Yes" : "No"}
+            </p>
+          </div>
         </div>
       </div>
     </Drawer>

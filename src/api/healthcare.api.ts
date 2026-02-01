@@ -47,3 +47,12 @@ export const updateHealthcareProfessionalApi = (id: string, data: any) => {
 export const deleteHealthcareProfessionalApi = (id: string) => {
   return apiClient.delete<any>(`/api/professional/delete/${id}`);
 };
+
+// Start Registration / Education with Media
+export const registerHealthcareProfessionalEducation = (userId: string, data: FormData) => {
+  return apiClient.post<any>(`/api/professional/register/education/healthcareProfessional/${userId}`, data, {
+    headers: {
+        "Content-Type": "multipart/form-data",
+    }
+  });
+};

@@ -4,7 +4,7 @@ import { CloseOutlined } from "@ant-design/icons";
 import EditProfileDrawer from "./EditProfileDrawer";
 import ResetPasswordModal from "./ResetPasswordModal";
 import { useQuery } from "@tanstack/react-query";
-import axiosInstance from "../Common/axiosInstance";
+import { fetchUserProfileApi } from "../../api/user.api";
 
 interface ViewProfileDrawerProps {
   visible: boolean;
@@ -24,17 +24,14 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
   onClose,
   profileData: initialProfileData,
 }) => {
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   const USER_ID = localStorage.getItem("userId");
   
   // Fetch fresh profile data when drawer is open
   const { data: userProfile } = useQuery({
     queryKey: ["userProfile", USER_ID],
     queryFn: async () => {
-      const response = await axiosInstance.get(
-        `${URL}/api/user/profile/${USER_ID}`
-      );
-      return response.data;
+      const response = await fetchUserProfileApi(USER_ID!);
+      return response;
     },
     enabled: !!USER_ID && visible, // Only fetch when drawer is visible
     refetchOnMount: true,
@@ -93,8 +90,8 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
         <div className="flex flex-col space-y-6 h-full">
           <div className="flex-1">
             <div className="flex items-center space-x-4">
-              <Avatar size={64} className="bg-button-primary">
-                {profileData.name.charAt(0)}
+              <Avatar size={64} src={userProfile?.profile_picture} className="bg-button-primary">
+                {!userProfile?.profile_picture && profileData.name.charAt(0)}
               </Avatar>
               <div>
                 <h2 className="text-lg font-medium mt-1">{profileData.name}</h2>
@@ -157,6 +154,7 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
           note: profileData.note,
           phoneNumber: profileData.phone,
           role: profileData.role,
+          profilePicture: userProfile?.profile_picture,
         }}
       />
       <ResetPasswordModal

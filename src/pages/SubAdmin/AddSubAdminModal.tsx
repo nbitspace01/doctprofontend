@@ -19,6 +19,7 @@ import { showError, showSuccess } from "../Common/Notification";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
 import api from "../Common/axiosInstance";
 import { SubAdminRegister, SubAdminUpdate } from "../../api/admin.api";
+import { getCountries, getStates, getCities } from "../../api/location.api";
 
 /* -------------------- Types -------------------- */
 interface SubAdminData {
@@ -70,37 +71,6 @@ const ORGANIZATION_OPTIONS = [
   { value: "Training Center", label: "Training Center" },
 ];
 
-const LOCATION_OPTIONS = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-].map((state) => ({ value: state, label: state }));
-
 /* -------------------- Component -------------------- */
 const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
   open,
@@ -113,8 +83,53 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
   const [imageUrl, setImageUrl] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
 
   const isEditMode = Boolean(initialData);
+
+  /* -------------------- Location Logic -------------------- */
+  const [states, setStates] = useState<any[]>([]);
+  const [cities, setCities] = useState<any[]>([]);
+
+  // Fetch Initial Data (India -> States)
+  useEffect(() => {
+    const initLocations = async () => {
+      try {
+        const countries = await getCountries();
+        const india = countries.find(
+          (c: any) => c.code === "IN" || c.name === "India",
+        );
+        if (india) {
+          const stateData = await getStates(india.id);
+          // Store ID as 'key' or in 'data-id' if Select allows, OR just Map id in value?
+          // Antd Select options: { label, value, ...extra }
+          setStates(
+            stateData.map((s: any) => ({
+              label: s.name,
+              value: s.name,
+              key: s.id,
+            })),
+          );
+        }
+      } catch (error) {
+        console.error("Failed to load locations", error);
+      }
+    };
+    if (open) initLocations();
+  }, [open]);
+
+  const handleStateChange = async (stateName: string, option: any) => {
+    try {
+      const stateId = option.key;
+      if (!stateId) return;
+
+      const cityData = await getCities(stateId, false);
+      setCities(cityData.map((c: any) => ({ label: c.name, value: c.name })));
+      form.setFieldValue("district", undefined);
+    } catch (error) {
+      console.error("Failed to load cities", error);
+    }
+  };
 
   /* -------------------- Upload Config -------------------- */
   const uploadProps: UploadProps = {
@@ -124,37 +139,15 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     beforeUpload: (file) => {
       if (!file.type.startsWith("image/")) {
         message.error("You can only upload image files!");
-        return false;
+        return Upload.LIST_IGNORE;
       }
       if (file.size / 1024 / 1024 >= 2) {
         message.error("Image must be smaller than 2MB!");
-        return false;
+        return Upload.LIST_IGNORE;
       }
-      return true;
-    },
-    customRequest: async ({ file, onSuccess, onError }) => {
-      try {
-        setUploading(true);
-
-        const formData = new FormData();
-        formData.append("file", file as File);
-        formData.append("entity", "post");
-        formData.append("userId", USER_ID || "");
-
-        const response = await api.post(`/api/post/upload`, formData);
-
-        const { url } = response.data;
-        setImageUrl(url || "");
-        form.setFieldsValue({ profile_image: url });
-
-        onSuccess?.(response.data);
-        message.success("Image uploaded successfully!");
-      } catch (error) {
-        onError?.(error as Error);
-        message.error("Failed to upload image");
-      } finally {
-        setUploading(false);
-      }
+      setPendingFile(file as File);
+      setImageUrl(URL.createObjectURL(file as File));
+      return false; // prevent auto-upload
     },
   };
 
@@ -164,28 +157,22 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
     if (initialData) {
       setImageUrl(initialData.profile_image || "");
+      setPendingFile(null);
       form.setFieldsValue({
         ...initialData,
         state: initialData.state || initialData.location,
-        district:
-          initialData.district || initialData.associated_location || "",
+        district: initialData.district || initialData.associated_location || "",
       });
     } else {
       setImageUrl("");
+      setPendingFile(null);
       form.resetFields();
     }
   }, [open, initialData, form]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
-    mutationFn: (values: SubAdminFormValues) =>
-      SubAdminRegister({
-        ...values,
-        organization_type: values.organization_type.toLowerCase(),
-        state: values.state.toLowerCase(),
-        district: values.district.toLowerCase(),
-        profile_image: imageUrl,
-      }),
+    mutationFn: (values: SubAdminFormValues) => SubAdminRegister(values),
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Sub-admin Created Successfully",
@@ -197,31 +184,21 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
+      const apiMsg =
+        error?.message ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Failed to create sub-admin";
       showError(notification, {
         message: "Failed to create sub-admin",
-        description:
-          error.response?.data?.error || "Failed to create sub-admin",
+        description: apiMsg,
       });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (values: SubAdminFormValues) => {
-      const payload: any = {
-        ...values,
-        organization_type: values.organization_type.toLowerCase(),
-        state: values.state.toLowerCase(),
-        district: values.district.toLowerCase(),
-        profile_image: imageUrl,
-      };
-
-      if (!values.password) {
-        delete payload.password;
-        delete payload.confirmPassword;
-      }
-
-      return SubAdminUpdate(initialData!.id, payload);
-    },
+    mutationFn: (values: SubAdminFormValues) =>
+      SubAdminUpdate(initialData!.id, values),
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Sub-admin Updated Successfully",
@@ -233,19 +210,48 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       onSubmit(data);
     },
     onError: (error: any) => {
+      const apiMsg =
+        error?.message ||
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        "Failed to update sub-admin";
       showError(notification, {
         message: "Failed to update sub-admin",
-        description:
-          error.response?.error || "Failed to update sub-admin",
+        description: apiMsg,
       });
     },
   });
 
   /* -------------------- Submit -------------------- */
   const handleSubmit = (values: SubAdminFormValues) => {
+    const formData = new FormData();
+
+    // Text fields
+    Object.entries(values).forEach(([key, value]) => {
+      if (value) {
+        formData.append(key, value as string);
+      }
+    });
+
+    // File (ONLY if selected)
+    if (pendingFile) {
+      formData.append("profile_picture", pendingFile);
+    }
+
+    // Normalize
+    formData.set("organization_type", values.organization_type.toLowerCase());
+    formData.set("state", values.state.toLowerCase());
+    formData.set("district", values.district.toLowerCase());
+
+    // Password handling (edit)
+    if (!values.password) {
+      formData.delete("password");
+      formData.delete("confirmPassword");
+    }
+
     isEditMode
-      ? updateMutation.mutate(values)
-      : createMutation.mutate(values);
+      ? updateMutation.mutate(formData as any)
+      : createMutation.mutate(formData as any);
   };
 
   /* -------------------- Render -------------------- */
@@ -274,15 +280,19 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           </Upload>
         </div>
 
-        <Form.Item name="profile_image" hidden>
+        <Form.Item
+          name="first_name"
+          label="First Name"
+          rules={[{ required: true }]}
+        >
           <Input />
         </Form.Item>
 
-        <Form.Item name="first_name" label="First Name" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-
-        <Form.Item name="last_name" label="Last Name" rules={[{ required: true }]}>
+        <Form.Item
+          name="last_name"
+          label="Last Name"
+          rules={[{ required: true }]}
+        >
           <Input />
         </Form.Item>
 
@@ -311,20 +321,27 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
         </div>
 
         <Form.Item name="state" label="State" rules={[{ required: true }]}>
-          <Select options={LOCATION_OPTIONS} />
+          <Select
+            options={states}
+            onChange={(value, option) => {
+              handleStateChange(value, option);
+            }}
+          />
         </Form.Item>
 
-        <Form.Item name="district" label="District" rules={[{ required: true }]}>
-          <Input />
+        <Form.Item
+          name="district"
+          label="City / District"
+          rules={[{ required: true }]}
+        >
+          <Select options={cities} showSearch />
         </Form.Item>
 
         <div className="border-t pt-4 mt-4">
           <Form.Item
             name="password"
             label="New Password"
-            rules={
-              isEditMode ? [{ min: 8 }] : [{ required: true }, { min: 8 }]
-            }
+            rules={isEditMode ? [{ min: 8 }] : [{ required: true }, { min: 8 }]}
           >
             <Input.Password />
           </Form.Item>
@@ -353,7 +370,9 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Button
             type="primary"
             htmlType="submit"
-            loading={createMutation.isPending || updateMutation.isPending}
+            loading={
+              uploading || createMutation.isPending || updateMutation.isPending
+            }
           >
             {isEditMode ? "Update" : "Create"}
           </Button>

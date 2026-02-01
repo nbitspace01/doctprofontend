@@ -1,16 +1,15 @@
 import { EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
 import { Button, Form, Input, message } from "antd";
-import axios from "axios";
 import React, { useState } from "react";
 import loginIllustration from "../../assets/illustrationlogin.png";
 import { Logo } from "../Common/SVG/svg.functions";
+import { forgotPasswordResetApi } from "../../api/auth.api";
 
 const ChangePassword: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const URL = import.meta.env.VITE_API_BASE_URL_BACKEND;
   
   // Get userId from localStorage and validate it
   const getUserId = () => {
@@ -34,7 +33,6 @@ const ChangePassword: React.FC = () => {
     try {
       setLoading(true);
       
-      // Re-check userId to ensure it's available
       const currentUserId = getUserId();
       if (!currentUserId) {
         message.error("User ID is missing. Please try the forgot password process again.");
@@ -42,20 +40,10 @@ const ChangePassword: React.FC = () => {
         return;
       }
       
-      console.log("Calling API: /api/user/forgot-password/reset/" + currentUserId);
-      console.log("Payload:", { newPassword: values.newPassword });
-      
-      const response = await axios.post(
-        `${URL}/api/user/forgot-password/reset/${currentUserId}`,
-        {
-          newPassword: values.newPassword,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      console.log("Calling reset password API for:", currentUserId);
+      const response = await forgotPasswordResetApi(currentUserId, {
+        newPassword: values.newPassword,
+      });
 
       console.log("Password reset successful:", response.data);
       message.success("Password changed successfully!");
@@ -66,7 +54,6 @@ const ChangePassword: React.FC = () => {
       navigate({ to: "/auth/login", replace: true });
     } catch (error: any) {
       console.error("Password reset error:", error);
-      console.error("Error response:", error.response?.data);
       const errorMessage =
         error.response?.data?.message ?? "Failed to change password";
       message.error(errorMessage);
