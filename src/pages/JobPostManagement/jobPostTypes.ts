@@ -14,6 +14,7 @@ export interface JobPostBase {
   expires_at?: string;
   description?: string;
   hospital_bio?: string;
+  hospitalName: string;
   salary?: string;
   degree_required?: string;
   hospital_website?: string;

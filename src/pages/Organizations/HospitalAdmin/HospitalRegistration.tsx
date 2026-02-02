@@ -1,17 +1,14 @@
 import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
-import {
-  App,
-  Button,
-  Form,
-  Modal,
-  Upload,
-  UploadProps,
-} from "antd";
+import { App, Button, Form, Modal, Upload, UploadProps } from "antd";
 import React, { useEffect, useState } from "react";
 import { USER_ID } from "../../Common/constant.function";
 import { showError, showSuccess } from "../../Common/Notification";
-import { createHospitalAdminApi, updateHospitalAdminApi, uploadHospitalKycApi } from "../../../api/hospitalAdmin.api";
+import {
+  createHospitalAdminApi,
+  updateHospitalAdminApi,
+  uploadHospitalKycApi,
+} from "../../../api/hospitalAdmin.api";
 import { setUserPasswordApi } from "../../../api/auth.api";
 import { getCountries, getStates, getCities } from "../../../api/location.api";
 import { HospitalData } from "./ClinicViewDrawer";
@@ -76,7 +73,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     const fetchCountries = async () => {
       try {
         const data = await getCountries();
-        setCountries(data.map((c: any) => ({ label: c.name, value: c.name, key: c.id })));
+        setCountries(
+          data.map((c: any) => ({ label: c.name, value: c.name, key: c.id })),
+        );
       } catch (error) {
         console.error("Failed to fetch countries", error);
       }
@@ -108,9 +107,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         setPreRegistrationId(initialData.id);
         setUserId(
           (initialData as any).adminUser?.id ||
-          (initialData as any).adminUserId ||
-          USER_ID ||
-          ""
+            (initialData as any).adminUserId ||
+            USER_ID ||
+            "",
         );
         setImageUrl(initialData.logoUrl || "");
         setCurrentStep(1);
@@ -120,11 +119,15 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         const kycDocs = ((initialData as any).kycDocuments || []) as any[];
         const idProofDoc =
           kycDocs.find((d) =>
-            String(d.type || "").toLowerCase().includes("id")
+            String(d.type || "")
+              .toLowerCase()
+              .includes("id"),
           ) || kyc?.adminIdProof;
         const licenseDoc =
           kycDocs.find((d) =>
-            String(d.type || "").toLowerCase().includes("license")
+            String(d.type || "")
+              .toLowerCase()
+              .includes("license"),
           ) || kyc?.hospitalLicense;
 
         const adminIdProof = idProofDoc || kyc?.adminIdProof;
@@ -162,13 +165,19 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     try {
       setStates([]);
       setCities([]);
-      form.setFieldValue('state', undefined);
-      form.setFieldValue('city', undefined);
+      form.setFieldValue("state", undefined);
+      form.setFieldValue("city", undefined);
 
       const countryId = option.key;
       if (countryId) {
         const stateData = await getStates(countryId);
-        setStates(stateData.map((s: any) => ({ label: s.name, value: s.name, key: s.id })));
+        setStates(
+          stateData.map((s: any) => ({
+            label: s.name,
+            value: s.name,
+            key: s.id,
+          })),
+        );
       }
     } catch (error) {
       console.error("Failed to fetch states", error);
@@ -178,7 +187,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   const handleStateChange = async (stateName: string, option: any) => {
     try {
       setCities([]);
-      form.setFieldValue('city', undefined);
+      form.setFieldValue("city", undefined);
 
       const stateId = option.key;
       if (stateId) {
@@ -192,10 +201,12 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
   // Create
   const hospitalRegistrationMutation = useMutation({
-    mutationFn: (data: any) =>
-      createHospitalAdminApi(data),
+    mutationFn: (data: any) => createHospitalAdminApi(data),
+    onMutate: () => {
+      setUploading(true);
+    },
     onSuccess: (data: any) => {
-      console.log("Hospital Data", data)
+      console.log("Hospital Data", data);
       const { hospital_id, user_id } = data;
       setPreRegistrationId(hospital_id);
       setUserId(user_id);
@@ -205,8 +216,14 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       console.error("Registration failed:", error);
       showError(notification, {
         message: "Registration Failed",
-        description: (error as any).response?.data?.message || (error as any).message || "Unknown error"
+        description:
+          (error as any).response?.data?.message ||
+          (error as any).message ||
+          "Unknown error",
       });
+    },
+    onSettled: () => {
+      setUploading(false);
     },
   });
 
@@ -241,8 +258,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       setCurrentStep(currentStep + 1);
       showSuccess(notification, {
         message: "KYC submitted successfully",
-        description:
-          response?.message ?? "Operation completed successfully",
+        description: response?.message ?? "Operation completed successfully",
       });
     },
     onError: (error: any) => {
@@ -256,7 +272,11 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   });
 
   const updateHospitalMutation = useMutation({
-    mutationFn: (payload: any) => updateHospitalAdminApi(initialData!.id, payload),
+    mutationFn: (payload: any) =>
+      updateHospitalAdminApi(initialData!.id, payload),
+    onMutate: () => {
+      setUploading(true);
+    },
     onSuccess: () => {
       showSuccess(notification, {
         message: "Hospital admin updated",
@@ -266,8 +286,14 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     onError: (error: any) => {
       showError(notification, {
         message: "Update failed",
-        description: error?.response?.data?.message || error?.message || "Failed to update hospital admin",
+        description:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Failed to update hospital admin",
       });
+    },
+    onSettled: () => {
+      setUploading(false);
     },
   });
 
@@ -276,7 +302,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     onSuccess: async () => {
       if (preRegistrationId) {
         try {
-          await updateHospitalAdminApi(preRegistrationId, { status: "PENDING" });
+          await updateHospitalAdminApi(preRegistrationId, {
+            status: "PENDING",
+          });
         } catch (err) {
           console.error("Failed to set hospital status to PENDING", err);
         }
@@ -292,7 +320,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         message: "Password update failed",
         description: error?.response?.data?.message || error?.message,
       });
-    }
+    },
   });
 
   const uploadProps: UploadProps = {
@@ -391,7 +419,8 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         const formData = new FormData();
         formData.append("name", values.name);
         formData.append("type", values.type);
-        if (values.branchLocation) formData.append("branchLocation", values.branchLocation);
+        if (values.branchLocation)
+          formData.append("branchLocation", values.branchLocation);
         if (values.city) formData.append("city", values.city);
         formData.append("state", values.state);
         formData.append("country", values.country);
@@ -405,7 +434,12 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         formData.append("admin_email", values.hr_email || "");
         formData.append("admin_phone", values.hr_phone || "");
         formData.append("contact_person", values.hr_full_name || "");
-        formData.append("status", (isEditMode && initialData) ? initialData?.status || "ACTIVE" : "PENDING");
+        formData.append(
+          "status",
+          isEditMode && initialData
+            ? initialData?.status || "ACTIVE"
+            : "PENDING",
+        );
         const links = [{ type: "Website", url: values.website || "" }];
         formData.append("links", JSON.stringify(links));
         if (logoFile) {
@@ -422,17 +456,19 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         } else {
           hospitalRegistrationMutation.mutate(formData);
         }
-        setUploading(false);
+        // setUploading(false);
         return;
       }
 
       if (currentStep === 2) {
         if (!preRegistrationId) {
-          showError(notification, { message: "Missing required registration data." });
+          showError(notification, {
+            message: "Missing required registration data.",
+          });
           return;
         }
         if (!userId) setUserId(USER_ID || "");
-        
+
         const kycData = {
           user_id: userId,
           hospital_id: preRegistrationId,
@@ -442,15 +478,17 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           license_type: values.license_type,
           license_number: values.license_number,
           license_file: licenseFile,
-          id_proof_url: form.getFieldValue('id_proof_url'),
-          license_url: form.getFieldValue('license_url'),
+          id_proof_url: form.getFieldValue("id_proof_url"),
+          license_url: form.getFieldValue("license_url"),
         };
 
         kycVerificationMutation.mutate(kycData);
       }
     } catch (error) {
       console.error("Form validation failed:", error);
-      showError(notification, { message: "Please fill in all required fields" });
+      showError(notification, {
+        message: "Please fill in all required fields",
+      });
     }
   };
 
@@ -463,7 +501,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       const values = await form.validateFields();
       const passwordValue = values.password;
       if (isEditMode && !passwordValue) {
-        showSuccess(notification, { message: "Hospital updated", description: "No password changes applied" });
+        showSuccess(notification, {
+          message: "Hospital updated",
+          description: "No password changes applied",
+        });
         onClose();
         return;
       }
@@ -478,7 +519,13 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     }
   };
 
-  const modalTitle = isEditMode ? "Edit Hospital/Clinic" : currentStep === 1 ? "Registration" : currentStep === 2 ? "KYC" : "Password";
+  const modalTitle = isEditMode
+    ? "Edit Hospital/Clinic"
+    : currentStep === 1
+      ? "Registration"
+      : currentStep === 2
+        ? "KYC"
+        : "Password";
 
   useEffect(() => {
     if (currentStep === 2 && !preRegistrationId) {
@@ -494,17 +541,44 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         onCancel={onClose}
         footer={[
           currentStep > 1 && (
-            <Button key="back" onClick={handleBack} disabled={hospitalRegistrationMutation.isPending || kycVerificationMutation.isPending}>Back</Button>
+            <Button
+              key="back"
+              onClick={handleBack}
+              disabled={
+                uploading ||
+                hospitalRegistrationMutation.isPending ||
+                kycVerificationMutation.isPending ||
+                setPasswordMutation.isPending
+              }
+            >
+              Back
+            </Button>
           ),
-          <Button key="cancel" onClick={onClose}>Cancel</Button>,
+          <Button
+            key="cancel"
+            onClick={onClose}
+            disabled={
+              uploading ||
+              hospitalRegistrationMutation.isPending ||
+              kycVerificationMutation.isPending ||
+              setPasswordMutation.isPending
+            }
+          >
+            Cancel
+          </Button>,
           <Button
             key="next"
             type="primary"
             className="bg-button-primary"
             onClick={currentStep === 3 ? handleSubmit : handleNext}
-            loading={hospitalRegistrationMutation.isPending || kycVerificationMutation.isPending || setPasswordMutation.isPending || uploading}
+            loading={
+              hospitalRegistrationMutation.isPending ||
+              kycVerificationMutation.isPending ||
+              setPasswordMutation.isPending ||
+              uploading
+            }
           >
-            {currentStep === 3 ? "Submit" : "Next"}
+            {currentStep === 3 ? "Submit" : "Proceed"}
           </Button>,
         ]}
         width={720}

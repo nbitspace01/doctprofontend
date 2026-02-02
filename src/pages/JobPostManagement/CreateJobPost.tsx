@@ -10,12 +10,13 @@ import {
   UploadProps,
   App,
 } from "antd";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { getToken } from "../Common/authUtils";
 import dayjs from "dayjs";
 import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
 import { showError, showSuccess } from "../Common/Notification";
+import { fetchDegreesApi } from "../../api/degree.api";
 
 interface JobPostData {
   id: string;
@@ -68,6 +69,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
 
   const isEditMode = Boolean(initialData);
 
+  const { data: degreesResponse, isFetching: isFetchingDegrees } = useQuery({
+    queryKey: ["degrees"],
+    queryFn: () =>
+      fetchDegreesApi({ page: 1, limit: 1000 }).then((res) => res.data),
+    enabled: open,
+  });
+
+  const degrees = degreesResponse ?? [];
   useEffect(() => {
     if (!open) return;
 
@@ -151,7 +160,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
     form.validateFields().then((values) => {
       const payload = {
         ...values,
-        status: "pending",
+        status: "DRAFT",
       };
       createJobPostMutation.mutate(payload);
     });
@@ -163,9 +172,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
       open={open}
       onCancel={onCancel}
       footer={null}
-      width={800}
+      width={600}
     >
-      <div className="max-w-3xl mx-auto p-6">
+      <div className="max-w-3xl mx-auto p-4">
         <Form
           form={form}
           layout="vertical"
@@ -239,14 +248,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
             name="degree_required"
             rules={[{ required: true, message: "Please select degree" }]}
           >
-            <Select placeholder="Select degree">
-              <Select.Option value="MBBS">MBBS</Select.Option>
-              <Select.Option value="BDS">BDS</Select.Option>
-              <Select.Option value="BAMS">BAMS</Select.Option>
-              <Select.Option value="BHMS">BHMS</Select.Option>
-              <Select.Option value="BPT">BPT</Select.Option>
-              <Select.Option value="Other">Other</Select.Option>
-            </Select>
+            <Select
+              placeholder="Select degree"
+              loading={isFetchingDegrees}
+              options={degrees.map((d: any) => ({
+                value: d.name,
+                label: d.name,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item
@@ -256,16 +265,14 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
               { required: true, message: "Please select specialization" },
             ]}
           >
-            <Select placeholder="Select Specialization">
-              <Select.Option value="General Medicine">
-                General Medicine
-              </Select.Option>
-              <Select.Option value="Cardiology">Cardiology</Select.Option>
-              <Select.Option value="Dentistry">Dentistry</Select.Option>
-              <Select.Option value="Orthopedics">Orthopedics</Select.Option>
-              <Select.Option value="Pediatrics">Pediatrics</Select.Option>
-              <Select.Option value="Other">Other</Select.Option>
-            </Select>
+            <Select
+              placeholder="Select Specialization"
+              loading={isFetchingDegrees}
+              options={degrees.map((s: any) => ({
+                value: s.name,
+                label: s.name,
+              }))}
+            />
           </Form.Item>
 
           <Form.Item

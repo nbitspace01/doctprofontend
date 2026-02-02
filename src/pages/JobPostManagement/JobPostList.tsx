@@ -166,18 +166,19 @@ const JobPostList: React.FC = () => {
   const filterOptions = useMemo(
     () => [
       { label: "Job Title", key: "title", type: "text" as const },
+      { label: "Hospital Name", key: "hospitalName", type: "text" as const },
       { label: "Location", key: "location", type: "text" as const },
-      {
-        label: "Status",
-        key: "status",
-        type: "checkbox" as const,
-        options: ["Active", "Expired", "Expiring Soon", "Pending"],
-      },
       {
         label: "Employment Type",
         key: "workType",
         type: "checkbox" as const,
         options: ["Full Time", "Part Time", "Contract"],
+      },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["OPEN", "CLOSE", "Expired", "Pending"],
       },
     ],
     [],
@@ -188,6 +189,7 @@ const JobPostList: React.FC = () => {
     const headers = [
       "S No",
       "Job Title",
+      "Hospital Name",
       "Exp Required",
       "Location",
       "Specialization",
@@ -198,6 +200,7 @@ const JobPostList: React.FC = () => {
     const rows = allJobPost.map((j, i) => [
       i + 1,
       j.title,
+      j.hospitalName,
       j.experience_required,
       j.location,
       j.specialization,

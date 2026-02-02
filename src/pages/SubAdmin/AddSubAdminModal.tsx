@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { UserOutlined } from "@ant-design/icons";
+import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import { useMutation } from "@tanstack/react-query";
 import type { UploadProps } from "antd";
 import {
@@ -265,17 +265,37 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit}>
         <div className="flex justify-center mb-6">
-          <Upload {...uploadProps} key={initialData?.id || "new"}>
-            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden cursor-pointer">
-              {imageUrl ? (
-                <Image
-                  src={imageUrl}
-                  preview={false}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <UserOutlined className="text-3xl text-gray-400" />
-              )}
+          <Upload
+            {...uploadProps}
+            key={initialData?.id || "new"}
+            showUploadList={false}
+          >
+            <div className="relative group w-24 h-24 cursor-pointer">
+              {/* Avatar / Image */}
+              <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                {imageUrl ? (
+                  <Image
+                    src={imageUrl}
+                    preview={false}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UserOutlined className="text-3xl text-gray-400" />
+                )}
+              </div>
+
+              {/* Hover Overlay */}
+              <div
+                className="
+          absolute inset-0 rounded-full
+          bg-black/50 opacity-0
+          group-hover:opacity-100
+          flex items-center justify-center
+          transition-opacity
+        "
+              >
+                <UploadOutlined className="text-white text-xl" />
+              </div>
             </div>
           </Upload>
         </div>
@@ -285,7 +305,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           label="First Name"
           rules={[{ required: true }]}
         >
-          <Input />
+          <Input placeholder="Enter First Name" />
         </Form.Item>
 
         <Form.Item
@@ -293,7 +313,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           label="Last Name"
           rules={[{ required: true }]}
         >
-          <Input />
+          <Input placeholder="Enter Last Name" />
         </Form.Item>
 
         <Form.Item
@@ -301,14 +321,14 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           label="Email Address"
           rules={[{ required: true }, { type: "email" }]}
         >
-          <Input />
+          <Input placeholder="Enter Email Address" />
         </Form.Item>
 
         <PhoneNumberInput name="phone" label="Phone Number" />
 
         <div className="grid grid-cols-2 gap-4">
           <Form.Item name="role" label="Role" rules={[{ required: true }]}>
-            <Select options={ROLE_OPTIONS} />
+            <Select options={ROLE_OPTIONS} placeholder="Select Role" />
           </Form.Item>
 
           <Form.Item
@@ -316,12 +336,16 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
             label="Organization Type"
             rules={[{ required: true }]}
           >
-            <Select options={ORGANIZATION_OPTIONS} />
+            <Select
+              options={ORGANIZATION_OPTIONS}
+              placeholder="Select Organization Type"
+            />
           </Form.Item>
         </div>
 
         <Form.Item name="state" label="State" rules={[{ required: true }]}>
           <Select
+            placeholder="Select State"
             options={states}
             onChange={(value, option) => {
               handleStateChange(value, option);
@@ -334,7 +358,11 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           label="City / District"
           rules={[{ required: true }]}
         >
-          <Select options={cities} showSearch />
+          <Select
+            options={cities}
+            showSearch
+            placeholder="Select City / District"
+          />
         </Form.Item>
 
         <div className="border-t pt-4 mt-4">
@@ -343,7 +371,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
             label="New Password"
             rules={isEditMode ? [{ min: 8 }] : [{ required: true }, { min: 8 }]}
           >
-            <Input.Password />
+            <Input.Password placeholder="Enter New Password" />
           </Form.Item>
 
           <Form.Item
@@ -361,7 +389,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
               }),
             ]}
           >
-            <Input.Password />
+            <Input.Password placeholder="Confirm New Password" />
           </Form.Item>
         </div>
 

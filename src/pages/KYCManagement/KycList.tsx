@@ -62,7 +62,6 @@ const KycList: React.FC = () => {
   } = useListController();
 
   /* ---------- QUERY ---------- */
-  /* ---------- QUERY ---------- */
   const { data: KYCResponse, isFetching } = useQuery<KYCResponse, Error>({
     queryKey: ["KYC", currentPage, pageSize, searchValue, filterValues, role],
     queryFn: () => {
@@ -126,7 +125,7 @@ const KycList: React.FC = () => {
   //   });
   // };
 
-  const filterOptions = [
+  const filterOptions = useMemo(() => [
     { label: "Name", key: "name", type: "text" as const },
     { label: "Email", key: "email", type: "text" as const },
     { label: "Phone", key: "phone", type: "text" as const },
@@ -134,9 +133,10 @@ const KycList: React.FC = () => {
     {
       label: "KYC Status",
       key: "kyc_status",
-      options: ["pending", "approved", "rejected"],
+      type: "checkbox" as const,
+      options: ["APPROVED", "REJECTED", "PENDING"],
     },
-  ];
+  ], []);
 
   /* ---------- COLUMNS ---------- */
   const columns = useMemo(

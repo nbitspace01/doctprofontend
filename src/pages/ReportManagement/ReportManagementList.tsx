@@ -1,7 +1,4 @@
-import {
-  App,
-  Tag,
-} from "antd";
+import { App, Tag } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import CommonTable from "../../components/Common/CommonTable";
 import { useListController } from "../../hooks/useListController";
@@ -98,69 +95,80 @@ const ReportManagementList = () => {
     setViewId(record.id);
   };
 
-  const columns = [
-    {
-      title: "S No",
-      key: "index",
-      render: (_: any, __: any, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: "Post ID",
-      dataIndex: "postId",
-      key: "postId",
-    },
-    {
-      title: "Reason",
-      dataIndex: "reason",
-      key: "reason",
-    },
-    {
-      title: "Reported By",
-      dataIndex: "reportedBy",
-      key: "reportedBy",
-      render: (val: ReportRow["reportedBy"]) => {
-        if (!val) return "-";
-        if (typeof val === "string") return val;
-        return val.name || val.email || "-";
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        key: "index",
+        render: (_: any, __: any, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
       },
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status?: string) => (
-        <StatusBadge status={status ? status.toUpperCase() : "PENDING"} />
-      ),
-    },
-    {
-      title: "Created At",
-      dataIndex: "created_at",
-      key: "created_at",
-      render: (date?: string) =>
-        date ? new Date(date).toLocaleDateString() : "N/A",
-    },
-    {
-      title: "Actions",
-      width: 100,
-      render: (_: any, record: ReportRow) => (
-        <CommonDropdown
-          onView={() => handleView(record)}
-          onDelete={() => handleDelete(record)}
-        />
-      ),
-    },
-  ];
+      {
+        title: "Post ID",
+        dataIndex: "postId",
+        key: "postId",
+      },
+      {
+        title: "Reason",
+        dataIndex: "reason",
+        key: "reason",
+      },
+      {
+        title: "Reported By",
+        dataIndex: "reportedBy",
+        key: "reportedBy",
+        render: (val: ReportRow["reportedBy"]) => {
+          if (!val) return "-";
+          if (typeof val === "string") return val;
+          return val.name || val.email || "-";
+        },
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status?: string) => (
+          <StatusBadge status={status ? status.toUpperCase() : "PENDING"} />
+        ),
+      },
+      {
+        title: "Created At",
+        dataIndex: "created_at",
+        key: "created_at",
+        render: (date?: string) =>
+          date ? new Date(date).toLocaleDateString() : "N/A",
+      },
+      {
+        title: "Actions",
+        width: 100,
+        render: (_: any, record: ReportRow) => (
+          <CommonDropdown
+            onView={() => handleView(record)}
+            onDelete={() => handleDelete(record)}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
 
-  const filterOptions = [
-    { label: "Post ID", key: "postId", type: "text" as const },
-    { label: "Reason", key: "reason", type: "text" as const },
-    { label: "Status", key: "status", options: ["PENDING", "REVIEWED"] },
-  ];
+  const filterOptions = useMemo(
+    () => [
+      { label: "Post ID", key: "postId", type: "text" as const },
+      { label: "Reason", key: "reason", type: "text" as const },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["REVIEWED", "PENDING"],
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="px-6">
-        <h1 className="text-2xl font-bold pb-4">Report Management</h1>
+      <h1 className="text-2xl font-bold pb-4">Report Management</h1>
 
       <CommonTable
         rowKey="id"

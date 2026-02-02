@@ -1,7 +1,7 @@
 import { PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Avatar, Tag, App } from "antd";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import HospitalRegistration from "./HospitalRegistration";
 import ClinicViewDrawer, { HospitalData } from "./ClinicViewDrawer";
@@ -22,7 +22,7 @@ interface PaginatedResponse {
 
 const ClinicsList: React.FC = () => {
   const queryClient = useQueryClient();
-  const { modal } = App.useApp();
+  const { modal, notification } = App.useApp();
 
   const {
     currentPage,
@@ -64,10 +64,22 @@ const ClinicsList: React.FC = () => {
     queryClient.invalidateQueries({ queryKey: ["hospitals"] });
   };
 
+  //
   const deleteHospitalMutation = useMutation({
     mutationFn: (id: string) => deleteHospitalAdminApi(id),
     onSuccess: () => {
+      notification.success({
+        message: "Hospital deleted",
+        description: "The hospital has been deleted successfully",
+      });
+
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
+    },
+    onError: () => {
+      notification.error({
+        message: "Delete failed",
+        description: "Unable to delete hospital",
+      });
     },
   });
 
@@ -84,18 +96,21 @@ const ClinicsList: React.FC = () => {
     });
   };
 
-  const filterOptions = [
-    { label: "Name", key: "name", type: "text" as const },
-    { label: "Country", key: "country", type: "text" as const },
-    { label: "State", key: "state", type: "text" as const },
-    { label: "City", key: "city", type: "text" as const },
-    {
-      label: "Status",
-      key: "status",
-      type: "checkbox" as const,
-      options: ["ACTIVE", "INACTIVE", "PENDING"],
-    },
-  ];
+  const filterOptions = useMemo(
+    () => [
+      { label: "Hospital Name", key: "name", type: "text" as const },
+      { label: "City", key: "city", type: "text" as const },
+      { label: "State", key: "state", type: "text" as const },
+      { label: "Country", key: "country", type: "text" as const },
+      {
+        label: "Status",
+        key: "status",
+        type: "checkbox" as const,
+        options: ["ACTIVE", "INACTIVE", "PENDING"],
+      },
+    ],
+    [],
+  );
 
   const handleDownload = (format: "excel" | "csv") => {
     if (!hospitals.length) return;
@@ -123,81 +138,84 @@ const ClinicsList: React.FC = () => {
     document.body.removeChild(a);
   };
 
-  const columns = [
-    {
-      title: "S No",
-      width: 80,
-      render: (_: any, __: any, index: number) =>
-        (currentPage - 1) * pageSize + index + 1,
-    },
-    {
-      title: "ID",
-      dataIndex: "id",
-      key: "id",
-    },
-    {
-      title: "Hospital Name",
-      dataIndex: "name",
-      key: "name",
-      render: (text: string, record: HospitalData) => (
-        <div className="flex items-center gap-2">
-          {record.logoUrl ? (
-            <img
-              src={record.logoUrl}
-              alt={text}
-              className="w-8 h-8 rounded-full object-cover"
-            />
-          ) : (
-            <Avatar className="bg-button-primary text-white w-8 h-8">
-              {text.charAt(0)}
-            </Avatar>
-          )}
-          <span>{text}</span>
-        </div>
-      ),
-    },
-    {
-      title: "Branch Location",
-      dataIndex: "branchLocation",
-      key: "branchLocation",
-    },
-    {
-      title: "Address",
-      key: "address",
-      render: (_: unknown, record: HospitalData) => {
-        const parts = [
-          record.branchLocation,
-          record.city,
-          record.state,
-          record.country,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        return parts || "N/A";
+  const columns = useMemo(
+    () => [
+      {
+        title: "S No",
+        width: 80,
+        render: (_: any, __: any, index: number) =>
+          (currentPage - 1) * pageSize + index + 1,
       },
-    },
-    {
-      title: "Status",
-      dataIndex: "status",
-      key: "status",
-      render: (status: string) => <StatusBadge status={status} />,
-    },
-    {
-      title: "Actions",
-      key: "actions",
-      render: (_: any, record: HospitalData) => (
-        <CommonDropdown
-          onView={() => setSelectedHospital(record)}
-          onEdit={() => {
-            setEditHospital(record);
-            setIsModalVisible(true);
-          }}
-          onDelete={() => confirmDeleteHospital(record.id)}
-          showEdit={true}
-        />
-      ),
-    },
-  ];
+      {
+        title: "ID",
+        dataIndex: "id",
+        key: "id",
+      },
+      {
+        title: "Hospital Name",
+        dataIndex: "name",
+        key: "name",
+        render: (text: string, record: HospitalData) => (
+          <div className="flex items-center gap-2">
+            {record.logoUrl ? (
+              <img
+                src={record.logoUrl}
+                alt={text}
+                className="w-8 h-8 rounded-full object-cover"
+              />
+            ) : (
+              <Avatar className="bg-button-primary text-white w-8 h-8">
+                {text.charAt(0)}
+              </Avatar>
+            )}
+            <span>{text}</span>
+          </div>
+        ),
+      },
+      {
+        title: "Branch Location",
+        dataIndex: "branchLocation",
+        key: "branchLocation",
+      },
+      {
+        title: "Address",
+        key: "address",
+        render: (_: unknown, record: HospitalData) => {
+          const parts = [
+            record.branchLocation,
+            record.city,
+            record.state,
+            record.country,
+          ]
+            .filter(Boolean)
+            .join(", ");
+          return parts || "N/A";
+        },
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        key: "status",
+        render: (status: string) => <StatusBadge status={status} />,
+      },
+      {
+        title: "Actions",
+        key: "actions",
+        render: (_: any, record: HospitalData) => (
+          <CommonDropdown
+            onView={() => setSelectedHospital(record)}
+            onEdit={() => {
+              setEditHospital(record);
+              setIsModalVisible(true);
+            }}
+            onDelete={() => confirmDeleteHospital(record.id)}
+            showEdit={true}
+          />
+        ),
+      },
+    ],
+    [currentPage, pageSize],
+  );
 
   return (
     <div className="px-6">

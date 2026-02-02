@@ -16,7 +16,9 @@ interface AdsPostFormFieldsProps {
   form: any;
   countries: any[];
   states: any[];
+  districts: any[];
   onCountryChange: (value: string, option: any) => void;
+  onStateChange: (value: string, option: any) => void;
   fileList: any[];
   setFileList: (list: any[]) => void;
 }
@@ -25,7 +27,9 @@ export const AdsPostFormFields: React.FC<AdsPostFormFieldsProps> = ({
   form,
   countries,
   states,
+  districts,
   onCountryChange,
+  onStateChange,
   fileList,
   setFileList,
 }) => {
@@ -76,20 +80,9 @@ export const AdsPostFormFields: React.FC<AdsPostFormFieldsProps> = ({
         >
           <Select placeholder="Select Ad Type">
             <Select.Option value="Banner">Banner</Select.Option>
-            <Select.Option value="Popup">Popup</Select.Option>
           </Select>
         </Form.Item>
 
-        <Form.Item
-          label="Display Location"
-          name="displayLocation"
-          rules={[{ required: true, message: "Please enter display location" }]}
-        >
-          <Input placeholder="Home Page, Sidebar, etc." />
-        </Form.Item>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Form.Item
           label="Country"
           name="country"
@@ -103,7 +96,9 @@ export const AdsPostFormFields: React.FC<AdsPostFormFieldsProps> = ({
             onChange={onCountryChange}
           />
         </Form.Item>
+      </div>
 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Form.Item
           label="State"
           name="state"
@@ -112,6 +107,20 @@ export const AdsPostFormFields: React.FC<AdsPostFormFieldsProps> = ({
           <Select
             placeholder="Select State"
             options={states}
+            showSearch
+            optionFilterProp="label"
+            onChange={onStateChange}
+          />
+        </Form.Item>
+
+        <Form.Item
+          label="District"
+          name="district"
+          rules={[{ required: true, message: "Please select district" }]}
+        >
+          <Select
+            placeholder="Select District"
+            options={districts}
             showSearch
             optionFilterProp="label"
           />
@@ -184,16 +193,26 @@ export const AdsPostFormFields: React.FC<AdsPostFormFieldsProps> = ({
           {...uploadProps}
           listType="picture-card"
           fileList={fileList}
-          onChange={({ fileList: newFileList }) => {
-            setFileList(newFileList);
-            // Optional: clear or set validation hint
+          onChange={({ fileList: newFileList }) => setFileList(newFileList)}
+          showUploadList={{
+            showPreviewIcon: true,
+            showRemoveIcon: true,
+            removeIcon: (
+              <span className="text-red-500 text-lg cursor-pointer">
+                &times;
+              </span>
+            ),
           }}
-          showUploadList={{ showPreviewIcon: false, showRemoveIcon: true }}
+          className="flex justify-center m-2"
         >
           {fileList.length < 1 && (
-            <div>
-              <UploadOutlined />
-              <div className="mt-2">Upload</div>
+            <div className="relative w-40 h-28 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center absolute inset-0">
+                <UploadOutlined className="text-3xl text-gray-400" />
+                <span className="mt-2 text-sm text-gray-500">
+                  Click to Upload
+                </span>
+              </div>
             </div>
           )}
         </Upload>

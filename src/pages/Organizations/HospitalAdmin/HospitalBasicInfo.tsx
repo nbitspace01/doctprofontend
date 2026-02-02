@@ -28,48 +28,56 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
 }) => {
   return (
     <Form form={form} layout="vertical">
-      <div className="flex justify-center mb-6">
-        <Upload {...uploadProps}>
-          <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer overflow-hidden">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt="Profile"
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <UserOutlined className="text-3xl text-gray-400" />
-            )}
+      <div className="flex flex-col items-center mb-6">
+        <Upload {...uploadProps} showUploadList={false}>
+          <div className="relative group w-24 h-24 cursor-pointer">
+            {/* Avatar / Image */}
+            <div className="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt="Profile"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <UserOutlined className="text-3xl text-gray-400" />
+              )}
+            </div>
+
+            {/* Hover Overlay */}
+            <div
+              className="
+          absolute inset-0 rounded-full
+          bg-black/50 opacity-0
+          group-hover:opacity-100
+          flex items-center justify-center
+          transition-opacity
+        "
+            >
+              <UploadOutlined className="text-white text-xl" />
+            </div>
           </div>
         </Upload>
+
+        {/* Uploading state */}
         {uploading && (
-          <div className="text-center text-sm text-gray-500 mt-2">
-            Uploading...
-          </div>
+          <div className="mt-2 text-sm text-gray-500">Uploading...</div>
         )}
       </div>
 
       <Form.Item
         name="name"
-        label={
-          <span>
-            Hospital/Clinic Name <span className="text-red-500">*</span>
-          </span>
-        }
+        label={<span>Hospital Name</span>}
         rules={[
           { required: true, message: "Please enter hospital/clinic name" },
         ]}
       >
-        <Input placeholder="Enter Hospital/Clinic Name" />
+        <Input placeholder="Enter Hospital Name" />
       </Form.Item>
 
       <Form.Item
         name="type"
-        label={
-          <span>
-            Type <span className="text-red-500">*</span>
-          </span>
-        }
+        label={<span>Type</span>}
         rules={[{ required: true, message: "Please select type" }]}
       >
         <Select placeholder="Select Type">
@@ -80,11 +88,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
 
       <Form.Item
         name="country"
-        label={
-          <span>
-            Country <span className="text-red-500">*</span>
-          </span>
-        }
+        label={<span>Country</span>}
         rules={[{ required: true, message: "Please select country" }]}
       >
         <Select
@@ -93,7 +97,11 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
           showSearch
           optionFilterProp="label"
           onChange={(value, option) => {
-            form.setFieldsValue({ state: undefined, city: undefined, branchLocation: undefined });
+            form.setFieldsValue({
+              state: undefined,
+              city: undefined,
+              branchLocation: undefined,
+            });
             handleCountryChange(value, option);
           }}
         />
@@ -101,11 +109,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
 
       <Form.Item
         name="state"
-        label={
-          <span>
-            State <span className="text-red-500">*</span>
-          </span>
-        }
+        label={<span>State</span>}
         rules={[{ required: true, message: "Please select state" }]}
       >
         <Select
@@ -122,11 +126,8 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
 
       <Form.Item
         name="city"
-        label={
-          <span>
-            City / Town
-          </span>
-        }
+        label={<span>City / Town</span>}
+        rules={[{ required: true, message: "Please select city/town" }]}
       >
         <Select
           placeholder="Select City/Town"
@@ -137,15 +138,14 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
         />
       </Form.Item>
 
-      <Form.Item
-        name="branchLocation"
-        label={
-          <span>
-            Branch Location
-          </span>
-        }
-      >
-        <Input placeholder="Enter Branch / Locality (optional if city chosen)" />
+      <Form.Item name="branchLocation" label={<span>Branch Location</span>}>
+        <Select
+          placeholder="Select Branch Location"
+          options={cities}
+          showSearch
+          allowClear
+          optionFilterProp="label"
+        />
       </Form.Item>
 
       <Form.Item
@@ -153,7 +153,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
         label="Zip/Postal Code"
         rules={[{ required: true, message: "Please enter zip code" }]}
       >
-        <Input placeholder="Ex 567899" />
+        <Input placeholder="Enter Zip/Postal Code" />
       </Form.Item>
 
       <div className="grid grid-cols-2 gap-4">
@@ -165,7 +165,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
             { type: "email", message: "Please enter valid email" },
           ]}
         >
-          <Input placeholder="surya@xyz.com" />
+          <Input placeholder="Enter Email Address" />
         </Form.Item>
         <PhoneNumberInput name="phone" label="Phone Number" />
       </div>
@@ -177,7 +177,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
             label="Website URL"
             rules={[{ required: true, message: "Please enter website URL" }]}
           >
-            <Input placeholder="http://www.sample.com" />
+            <Input placeholder="https://www.example.com" />
           </Form.Item>
         </div>
       </div>
@@ -189,7 +189,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
           label="Full Name"
           rules={[{ required: true, message: "Please enter full name" }]}
         >
-          <Input placeholder="Surya" />
+          <Input placeholder="Enter HR Full Name" />
         </Form.Item>
         <div className="grid grid-cols-2 gap-4">
           <Form.Item
@@ -200,7 +200,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
               { type: "email", message: "Please enter valid email" },
             ]}
           >
-            <Input placeholder="surya@xyz.com" />
+            <Input placeholder="Enter HR Email Address" />
           </Form.Item>
           <PhoneNumberInput name="hr_phone" label="Phone Number" />
         </div>

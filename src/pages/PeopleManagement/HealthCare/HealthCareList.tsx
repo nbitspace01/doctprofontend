@@ -128,9 +128,6 @@ const HealthCareList: React.FC = () => {
   });
 
   /* -------------------- Handlers -------------------- */
-  // const getFullName = (p: HealthcareProfessionalData) =>
-  //   [p.firstName, p.lastName].filter(Boolean).join(" ") || "N/A";
-
   const handleView = (record: HealthcareProfessionalData) => {
     setSelectedProfessional(record);
     setIsViewDrawerOpen(true);
@@ -223,12 +220,12 @@ const HealthCareList: React.FC = () => {
       { label: "Name", key: "name", type: "text" as const },
       { label: "Email", key: "email", type: "text" as const },
       { label: "Phone", key: "phoneNumber", type: "text" as const },
-      { label: "Role", key: "role", type: "text" as const },
       { label: "City", key: "city", type: "text" as const },
       { label: "State", key: "state", type: "text" as const },
       { label: "Country", key: "country", type: "text" as const },
       { label: "Degree", key: "degree", type: "text" as const },
       { label: "Specialization", key: "specialization", type: "text" as const },
+      { label: "Role", key: "role", type: "text" as const },
       {
         label: "Gender",
         key: "gender",
