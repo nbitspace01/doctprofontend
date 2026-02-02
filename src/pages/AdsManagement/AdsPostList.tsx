@@ -226,17 +226,18 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
     () => [
       { label: "Ads Title", key: "title", type: "text" as const },
       { label: "Company Name", key: "companyName", type: "text" as const },
+      { label: "Display Location", key: "displayLocation", type: "text" as const },
+      {
+        label: "Ad Type",
+        key: "adType",
+        type: "checkbox" as const,
+        options: ["Banner"],
+      },
       {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
         options: ["ACTIVE", "PENDING", "DRAFT", "INACTIVE", "REJECTED"],
-      },
-      {
-        label: "Ad Type",
-        key: "adType",
-        type: "checkbox" as const,
-        options: ["Banner", "Popup"],
       },
     ],
     [],
@@ -255,6 +256,7 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
       "Created By",
       "Display Start",
       "End Date",
+      "Description",
       "Status",
     ];
 
@@ -271,6 +273,7 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
         `"${row.createdByName || "N/A"}"`,
         `"${row.startDate ? new Date(row.startDate).toLocaleDateString() : "N/A"}"`,
         `"${row.endDate ? new Date(row.endDate).toLocaleDateString() : "N/A"}"`,
+        `"${row.description || "N/A"}"`,
         `"${row.status || "N/A"}"`,
       ];
       rows.push(values.join(format === "csv" ? "," : "\t"));

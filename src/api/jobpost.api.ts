@@ -60,7 +60,7 @@ export const fetchOwnJobPostsApi = ({
   limit,
   searchValue = "",
   filterValues = {},
-}: FetchJobPostsParams): Promise<JobPostsResponse> => {
+}: FetchJobPostsParams): Promise<any> => {
   const queryParams = buildQueryParams(searchValue, filterValues);
   const url = `/api/job/own?page=${page}&limit=${limit}${
     queryParams ? `&${queryParams}` : ""

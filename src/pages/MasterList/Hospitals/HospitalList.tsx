@@ -158,14 +158,12 @@ const HospitalList: React.FC = () => {
   const filterOptions = useMemo(
     () => [
       { label: "Hospital Name", key: "name", type: "text" as const },
-      { label: "Country", key: "country", type: "text" as const },
-      { label: "State", key: "state", type: "text" as const },
-      { label: "City", key: "city", type: "text" as const },
+      { label: "Branch Location", key: "city", type: "text" as const },
       {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["ACTIVE", "INACTIVE"],
+        options: ["ACTIVE", "INACTIVE", "PENDING"],
       },
     ],
     [],
@@ -177,12 +175,7 @@ const HospitalList: React.FC = () => {
     const headers = [
       "S No",
       "Name",
-      "Email",
-      "Phone",
-      "Role",
-      "State",
-      "District",
-      "Organization Type",
+      "Branch Location",
       "Status",
     ];
     const rows = allHospitals.map((row, i) => [

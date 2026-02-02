@@ -188,26 +188,28 @@ const StudentList: React.FC = () => {
   const filterOptions = useMemo(
     () => [
       { label: "Student Name", key: "studentName", type: "text" as const },
-      { label: "Student ID", key: "studentId", type: "text" as const },
       { label: "Email", key: "email", type: "text" as const },
       { label: "Phone", key: "phone", type: "text" as const },
+      { label: "College", key: "college", type: "text" as const },
+      { label: "Degree", key: "degree", type: "text" as const },
+      { label: "Specialization", key: "specialization", type: "text" as const },
       {
         label: "Gender",
         key: "gender",
         type: "checkbox" as const,
-        options: ["Male", "Female"],
+        options: ["MALE", "FEMALE"],
       },
       {
         label: "KYC Status",
         key: "kycStatus",
         type: "checkbox" as const,
-        options: ["Verified", "Pending"],
+        options: ["APPROVED", "REJECTED", "PENDING"],
       },
       {
         label: "Account Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["Active", "Inactive"],
+        options: ["ACTIVE", "INACTIVE", "PENDING"],
       },
     ],
     [],
@@ -242,7 +244,7 @@ const StudentList: React.FC = () => {
       s.collegeName,
       s.degree,
       s.specialization,
-      s.kycStatus ? "Verified" : "Pending",
+      s.kycStatus,
       s.status,
     ]);
 

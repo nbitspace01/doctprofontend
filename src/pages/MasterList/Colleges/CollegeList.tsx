@@ -168,7 +168,9 @@ const CollegeList: React.FC = () => {
       {
         title: "Status",
         dataIndex: "status",
-        render: (status?: string) => <StatusBadge status={status?.toUpperCase() || ""} />,
+        render: (status?: string) => (
+          <StatusBadge status={status?.toUpperCase() || ""} />
+        ),
       },
 
       {
@@ -195,8 +197,8 @@ const CollegeList: React.FC = () => {
       "District",
       "State",
       "Associated Hospital",
-      "Status",
       "Created On",
+      "Status",
     ];
 
     const rows = allColleges.map((row, i) => [
@@ -205,8 +207,8 @@ const CollegeList: React.FC = () => {
       row.district || "N/A",
       row.state || "N/A",
       row.hospitals || "N/A",
-      row.status || "N/A",
       row.created_at || "N/A",
+      row.status || "N/A",
     ]);
 
     const content = [headers, ...rows]
@@ -229,14 +231,14 @@ const CollegeList: React.FC = () => {
   const filterOptions = useMemo(
     () => [
       { label: "College Name", key: "name", type: "text" as const },
-      { label: "State", key: "state", type: "text" as const },
       { label: "District", key: "district", type: "text" as const },
-      { label: "City", key: "city", type: "text" as const },
+      { label: "State", key: "state", type: "text" as const },
+      { label: "Associated Hospital", key: "hospitals", type: "text" as const },
       {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["active", "pending", "inactive"],
+        options: ["ACTIVE", "PENDING", "INACTIVE"],
       },
     ],
     [],
@@ -245,42 +247,34 @@ const CollegeList: React.FC = () => {
   /* ---------- RENDER ---------- */
   return (
     <div className="px-6">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-            <h1 className="text-2xl font-bold">College List</h1>
-            <Button
-              type="primary"
-              onClick={() => setIsModalOpen(true)}
-              className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-2xl font-bold">College List</h1>
+        <Button
+          type="primary"
+          onClick={() => setIsModalOpen(true)}
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
                    px-5 py-6 flex items-center gap-2 transition-colors duration-200"
-            >
-              <Plus className="relative -top-0" />
-              Add New College
-            </Button>
-          </div>
-
-      <div className="bg-white rounded-lg shadow-sm">
-        {isFetching ? (
-          <div className="py-20 flex justify-center">
-            <Loader size="large" />
-          </div>
-        ) : (
-          <CommonTable
-            rowKey="id"
-            columns={columns}
-            data={allColleges}
-            loading={isFetching}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            total={totalCount}
-            onPageChange={onPageChange}
-            filters={filterOptions}
-            onFilterChange={onFilterChange}
-            onSearch={onSearch}
-            searchValue={searchValue}
-            onDownload={handleDownload}
-          />
-        )}
+        >
+          <Plus className="relative -top-0" />
+          Add New College
+        </Button>
       </div>
+
+      <CommonTable
+        rowKey="id"
+        columns={columns}
+        data={allColleges}
+        loading={isFetching}
+        currentPage={currentPage}
+        pageSize={pageSize}
+        total={totalCount}
+        onPageChange={onPageChange}
+        filters={filterOptions}
+        onFilterChange={onFilterChange}
+        onSearch={onSearch}
+        searchValue={searchValue}
+        onDownload={handleDownload}
+      />
 
       {/* CREATE + EDIT MODAL */}
       <AddCollegeModal

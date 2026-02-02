@@ -1,5 +1,14 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { App, Avatar, Button, Drawer, Form, Input, Upload, message } from "antd";
+import {
+  App,
+  Avatar,
+  Button,
+  Drawer,
+  Form,
+  Input,
+  Upload,
+  message,
+} from "antd";
 import { UploadOutlined, UserOutlined } from "@ant-design/icons";
 import type { UploadProps } from "antd";
 import React, { useState } from "react";
@@ -33,7 +42,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-
   const USER_ID = localStorage.getItem("userId");
 
   React.useEffect(() => {
@@ -46,7 +54,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const updateProfileMutation = useMutation({
     mutationFn: async (values: any) => {
       const formData = new FormData();
-      
+
       const firstName = values.fullName.split(" ")[0] || values.fullName;
       const lastName = values.fullName.split(" ").slice(1).join(" ") || "";
 
@@ -62,15 +70,16 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       // Use centralized API
       // USER_ID captured from localStorage in component scope
       if (!USER_ID) throw new Error("User ID not found");
-      
+
       return updateUserProfileApi(USER_ID, formData);
     },
-    onSuccess: (response: any) => { // response is the AxiosResponse or data returned by apiClient?
+    onSuccess: (response: any) => {
+      // response is the AxiosResponse or data returned by apiClient?
       // apiClient.put returns request<T> which returns response.data (normalized or raw)
       // So 'response' here is likely the actual data object if normalized, or we should check.
       // Based on api.ts: return normalized as T.
-      
-      const data = response; 
+
+      const data = response;
 
       showSuccess(notification, {
         message: "Profile Updated Successfully",
@@ -78,13 +87,16 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       });
       // Invalidate and refetch userProfile query
       const currentUserId = localStorage.getItem("userId");
-      queryClient.invalidateQueries({ queryKey: ["userProfile", currentUserId] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["userProfile", currentUserId],
+      });
+
       // Update localStorage with new name if available
       if (data.id) {
-        const updatedName = data.name || 
-          (data.first_name && data.last_name 
-            ? `${data.first_name} ${data.last_name}` 
+        const updatedName =
+          data.name ||
+          (data.first_name && data.last_name
+            ? `${data.first_name} ${data.last_name}`
             : data.first_name || data.last_name || "");
         if (updatedName) {
           const nameParts = updatedName.trim().split(" ");
@@ -95,16 +107,18 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
           localStorage.setItem("userPhone", data.phone);
         }
       }
-      
+
       // Refetch the query immediately to update UI
       queryClient.refetchQueries({ queryKey: ["userProfile", currentUserId] });
-      
+
       onSave(data);
       onClose();
     },
     onError: (error: any) => {
       const errorMessage =
-        error.response?.data?.message ?? error.message ?? "Failed to update profile";
+        error.response?.data?.message ??
+        error.message ??
+        "Failed to update profile";
       showError(notification, {
         message: "Failed to update profile",
         description: errorMessage,
@@ -155,15 +169,32 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
     >
       <Form form={form} layout="vertical" initialValues={initialValues}>
         <div className="mb-6 flex flex-col items-center">
-          <div className="relative mb-4">
-             {previewUrl ? (
-                <Avatar src={previewUrl} size={100} />
-             ) : (
-                <Avatar size={100} icon={<UserOutlined />} />
-             )}
-          </div>
-          <Upload {...uploadProps}>
-            <Button icon={<UploadOutlined />}>Change Picture</Button>
+          <Upload
+            {...uploadProps}
+            showUploadList={false}
+            className="cursor-pointer"
+          >
+            <div className="relative group">
+              <Avatar
+                src={previewUrl}
+                size={100}
+                icon={!previewUrl && <UserOutlined />}
+                className="border border-gray-200"
+              />
+
+              {/* Hover Overlay */}
+              <div
+                className="
+        absolute inset-0 rounded-full 
+        bg-black/50 opacity-0 
+        group-hover:opacity-100 
+        flex items-center justify-center
+        transition-opacity
+      "
+              >
+                <UploadOutlined className="text-white text-xl" />
+              </div>
+            </div>
           </Upload>
         </div>
 
@@ -177,10 +208,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
           <Input placeholder="Enter full name" />
         </Form.Item>
 
-        <Form.Item
-          label="Note"
-          name="note"
-        >
+        <Form.Item label="Note" name="note">
           <Input placeholder="Enter note" />
         </Form.Item>
 

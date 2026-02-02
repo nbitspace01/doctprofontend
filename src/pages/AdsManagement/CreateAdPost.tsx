@@ -1,20 +1,12 @@
 import React, { useEffect, useState } from "react";
-import {
-  Form,
-  Button,
-  Modal,
-  App,
-} from "antd";
+import { Form, Button, Modal, App } from "antd";
 import type { UploadFile } from "antd/es/upload/interface";
 import { useMutation } from "@tanstack/react-query";
-import {
-  AdsPostPayload,
-  CreateAdPostProps,
-} from "./adsPostTypes";
+import { AdsPostPayload, CreateAdPostProps } from "./adsPostTypes";
 import { createAdsPostAPI, updateAdsPostAPI } from "../../api/adsPost.api";
 import { showError, showSuccess } from "../Common/Notification";
 import dayjs from "dayjs";
-import { getCountries, getStates } from "../../api/location.api";
+import { getCountries, getDistricts, getStates } from "../../api/location.api";
 import { AdsPostFormFields } from "./AdsPostFormFields";
 
 const CreateAdPost: React.FC<CreateAdPostProps> = ({
@@ -34,57 +26,117 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
   const [states, setStates] = useState<
     { label: string; value: string; key: string }[]
   >([]);
+  const [districts, setDistricts] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
 
   const isEditMode = Boolean(initialData);
 
   /* -------------------- Location Logic -------------------- */
   useEffect(() => {
-    const fetchLocations = async () => {
-      try {
-        const countryData = await getCountries();
-        const mapped = countryData.map((c: any) => ({
-          label: c.name,
-          value: c.name,
-          key: c.id,
-        }));
-        setCountries(mapped);
+    if (!open) return;
 
-        if (initialData?.country) {
-          const selectedCountry = mapped.find(
-            (c: any) => c.value === initialData.country,
-          );
-          if (selectedCountry) {
-            const stateData = await getStates(selectedCountry.key);
-            setStates(
-              stateData.map((s: any) => ({
-                label: s.name,
-                value: s.name,
-                key: s.id,
-              })),
-            );
+    const setupEditMode = async () => {
+      form.resetFields();
+      setFileList([]);
+      setStates([]);
+      setDistricts([]);
+
+      // 1️⃣ Fetch countries
+      const countryData = await getCountries();
+      const mappedCountries = countryData.map((c: any) => ({
+        label: c.name,
+        value: c.id,
+      }));
+      setCountries(mappedCountries);
+
+      if (initialData) {
+        const initialValues: any = {
+          ...initialData,
+          startDate: initialData.startDate
+            ? dayjs(initialData.startDate)
+            : null,
+          endDate: initialData.endDate ? dayjs(initialData.endDate) : null,
+          imageUrl: initialData.imageUrl || null,
+          country: initialData.country,
+        };
+
+        // 2️⃣ Fetch states for country
+        if (initialData.country) {
+          const stateData = await getStates(initialData.country);
+          const mappedStates = stateData.map((s: any) => ({
+            label: s.name,
+            value: s.id,
+          }));
+          setStates(mappedStates);
+          initialValues.state = initialData.state;
+
+          // 3️⃣ Fetch districts for state
+          if (initialData.state) {
+            const districtData = await getDistricts(initialData.state);
+            const mappedDistricts = districtData.map((d: any) => ({
+              label: d.name,
+              value: d.id,
+            }));
+            setDistricts(mappedDistricts);
+            initialValues.district = initialData.displayLocation;
           }
         }
-      } catch (err) {
-        console.error("Failed to fetch locations", err);
+
+        // 4️⃣ Set form values AFTER options loaded
+        form.setFieldsValue(initialValues);
+
+        // 5️⃣ Set file list if image exists
+        if (initialData.imageUrl) {
+          setFileList([
+            {
+              uid: "-1",
+              name: "image",
+              status: "done",
+              url: initialData.imageUrl,
+            },
+          ]);
+        }
       }
     };
-    if (open) fetchLocations();
-  }, [open, initialData]);
+
+    setupEditMode();
+  }, [open, initialData, form]);
 
   const handleCountryChange = async (value: string, option: any) => {
     try {
       const countryId = option.key;
       const stateData = await getStates(countryId);
-      setStates(
-        stateData.map((s: any) => ({
-          label: s.name,
-          value: s.name,
-          key: s.id,
-        })),
-      );
-      form.setFieldsValue({ state: undefined });
+      const mappedStates = stateData.map((s: any) => ({
+        label: s.name,
+        value: s.name,
+        key: s.id,
+      }));
+      setStates(mappedStates);
+
+      // reset state & district when country changes
+      form.setFieldsValue({ state: undefined, district: undefined });
+      setDistricts([]);
     } catch (err) {
       console.error("Failed to fetch states", err);
+    }
+  };
+  const handleStateChange = async (value: string, option: any) => {
+    try {
+      const stateId = option.key;
+      const districtData = await getDistricts(stateId);
+      setDistricts(
+        districtData.map((d: any) => ({
+          label: d.name,
+          value: d.name,
+          key: d.id,
+        })),
+      );
+
+      // reset district field
+      form.setFieldsValue({ district: undefined });
+    } catch (err) {
+      console.error("Failed to fetch districts", err);
     }
   };
 
@@ -95,6 +147,7 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
     if (initialData) {
       form.setFieldsValue({
         ...initialData,
+        district: initialData.displayLocation,
         startDate: dayjs(initialData.startDate),
         endDate: dayjs(initialData.endDate),
         imageUrl: initialData.imageUrl,
@@ -193,15 +246,15 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       formData.append("contentType", values.contentType);
       formData.append("redirectUrl", values.redirectUrl);
       formData.append("description", values.description);
-      formData.append("displayLocation", values.displayLocation);
+      formData.append("displayLocation", values.district);
       formData.append("startDate", values.startDate.toISOString());
       formData.append("endDate", values.endDate.toISOString());
-      
+
       const userId = localStorage.getItem("userId");
       if (userId) {
         formData.append("createdBy", userId);
       }
-      
+
       formData.append(
         "status",
         forcedStatus || (isEditMode ? initialData?.status! : "DRAFT"),
@@ -242,7 +295,7 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
         setFileList([]);
         onCancel();
       }}
-      width={800}
+      width={600}
       footer={null}
     >
       <div className="max-w-3xl mx-auto p-4">
@@ -263,6 +316,8 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
             form={form}
             countries={countries}
             states={states}
+            districts={districts}
+            onStateChange={handleStateChange}
             onCountryChange={handleCountryChange}
             fileList={fileList}
             setFileList={setFileList}

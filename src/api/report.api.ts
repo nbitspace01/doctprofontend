@@ -24,7 +24,6 @@ export const updateReportStatusApi = async (id: string, status: string) => {
 export const exportReportsApi = async (params: Record<string, any> = {}) => {
   const query = new URLSearchParams(params as any).toString();
   const url = `/api/report/export${query ? `?${query}` : ""}`;
-  // use underlying axios instance to get blob
   return apiClient.get(url, { responseType: "blob" });
 };
 

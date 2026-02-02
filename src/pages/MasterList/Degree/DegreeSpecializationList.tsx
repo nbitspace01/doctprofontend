@@ -115,16 +115,16 @@ const DegreeSpecializationList: React.FC = () => {
         dataIndex: "specialization",
       },
       {
-        title: "Status",
-        dataIndex: "status",
-        render: (status: string) => <StatusBadge status={status.toUpperCase()} />,
-      },
-      {
         title: "Created On",
         dataIndex: "created_at",
         render: (date: string) => (
           <FormattedDate dateString={date} format="long" />
         ),
+      },
+      {
+        title: "Status",
+        dataIndex: "status",
+        render: (status: string) => <StatusBadge status={status.toUpperCase()} />,
       },
       {
         title: "Actions",
@@ -164,16 +164,16 @@ const DegreeSpecializationList: React.FC = () => {
       "S No",
       "Degree Name",
       "Specialization",
-      "Status",
       "Created On",
+      "Status",
     ];
 
     const rows = allDegrees.map((row, i) => [
       i + 1,
       row.name,
       row.specialization,
-      row.status,
       row.created_at,
+      row.status,
     ]);
 
     const content = [headers, ...rows]

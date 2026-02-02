@@ -168,6 +168,7 @@ const Header: React.FC = () => {
         onClose={() => setEditProfileDrawerVisible(false)}
         onSave={() => {}}
         initialValues={{
+          profilePicture: userProfile?.profile_picture || "",
           fullName: displayName || "",
           email: displayEmail || "",
           note: userProfile?.note ?? "",
