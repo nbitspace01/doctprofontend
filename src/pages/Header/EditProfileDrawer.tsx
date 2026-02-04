@@ -61,7 +61,9 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       formData.append("first_name", firstName);
       formData.append("last_name", lastName);
       formData.append("note", values.note || "");
-      formData.append("phone", values.phoneNumber);
+      if (values.phoneNumber) {
+        formData.append("phone", values.phoneNumber);
+      }
 
       if (file) {
         formData.append("profile_picture", file);
@@ -74,11 +76,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       return updateUserProfileApi(USER_ID, formData);
     },
     onSuccess: (response: any) => {
-      // response is the AxiosResponse or data returned by apiClient?
-      // apiClient.put returns request<T> which returns response.data (normalized or raw)
-      // So 'response' here is likely the actual data object if normalized, or we should check.
-      // Based on api.ts: return normalized as T.
-
       const data = response;
 
       showSuccess(notification, {

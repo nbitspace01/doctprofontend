@@ -1,7 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input, Modal } from "antd";
+import { App, Button, Form, Input, Modal } from "antd";
 import React from "react";
-import { useResetPassword } from "../../api/user.api";
+import { resetPasswordApi } from "../../api/user.api";
+import { useMutation } from "@tanstack/react-query";
+import { showError, showSuccess } from "../Common/Notification";
 
 interface ChangePasswordModalProps {
   visible: boolean;
@@ -25,7 +27,28 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
 }) => {
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const resetPasswordMutation = useResetPassword();
+  const { notification } = App.useApp();
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: resetPasswordApi,
+
+    onSuccess: (data) => {
+      showSuccess(notification, {
+        message: "Password Reset Successful",
+        description: "Operation completed successfully",
+      });
+    },
+
+    onError: (error: any) => {
+      showError(notification, {
+        message: "Password Reset Failed",
+        description:
+          error?.response?.data?.message ??
+          error?.message ??
+          "Failed to reset password",
+      });
+    },
+  });
 
   const handleOk = async () => {
     try {

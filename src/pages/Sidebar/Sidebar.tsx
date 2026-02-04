@@ -61,6 +61,10 @@ const Sidebar: React.FC = () => {
 
   /* -------------------- Persist State -------------------- */
   React.useEffect(() => {
+    if (!selectedItem) {
+      setSelectedItem("dashboard");
+      setExpandedMenus([]);
+    }
     localStorage.setItem(STORAGE_KEYS.selectedItem, selectedItem);
     localStorage.setItem(
       STORAGE_KEYS.expandedMenus,
@@ -103,7 +107,7 @@ const Sidebar: React.FC = () => {
     {
       id: "sub-admin",
       label: "Sub-Admin List",
-      icon: <UserCheck  />,
+      icon: <UserCheck />,
       onClick: () => {
         setSelectedItem("sub-admin");
         setExpandedMenus([]);
@@ -117,6 +121,8 @@ const Sidebar: React.FC = () => {
       onClick: () => {
         setSelectedItem("masters");
         toggleSubmenu("masters");
+        setSelectedSubMenu("hospitals");
+        navigate({ to: "/app/hospitals" });
       },
       subMenu: [
         {
@@ -154,6 +160,8 @@ const Sidebar: React.FC = () => {
       onClick: () => {
         setSelectedItem("organizations");
         toggleSubmenu("organizations");
+        setSelectedSubMenu("clinics");
+        navigate({ to: "/app/clinics" });
       },
       subMenu: [
         {
@@ -175,6 +183,8 @@ const Sidebar: React.FC = () => {
       onClick: () => {
         setSelectedItem("people");
         toggleSubmenu("people");
+        setSelectedSubMenu("students");
+        navigate({ to: "/app/students" });
       },
       subMenu: [
         {
@@ -212,6 +222,8 @@ const Sidebar: React.FC = () => {
       onClick: () => {
         setSelectedItem("ad-management");
         toggleSubmenu("ad-management");
+        setSelectedSubMenu("adspostlist");
+        navigate({ to: "/app/ads" });
       },
       subMenu: [
         {
@@ -275,64 +287,68 @@ const Sidebar: React.FC = () => {
   /* -------------------- Render -------------------- */
   return (
     <Sider
-  width={200}
-  theme="light"
-  className="bg-white fixed top-20 left-0 flex flex-col"
-  style={{ height: 'calc(100vh - 80px)' }} // Sider height
->
-  {/* Scrollable Menu */}
-  <div
-    className="overflow-y-auto px-2 mt-4 scrollbar-hide"
-    style={{ height: 'calc(100% - 90px)' }} // subtract logout height
-  >
-    {menuItems.map((item) => (
-      <React.Fragment key={item.id}>
-        <div
-          className={`flex items-center h-[55px] mb-2 text-base px-4 cursor-pointer rounded-md transition-all duration-300 ${
-            selectedItem === item.id
-              ? 'bg-blue-900 text-white shadow-lg scale-105'
-              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-          }`}
-          onClick={item.onClick}
-        >
-          <span className={selectedItem === item.id ? 'text-white' : 'text-gray-500'}>
-            {item.icon}
-          </span>
-          <span className="ml-3">{item.label}</span>
-        </div>
-
-        {item.subMenu && expandedMenus.includes(item.id) && (
-          <div className="ml-8">
-            {item.subMenu.map((sub) => (
-              <div
-                key={sub.id}
-                className={`flex items-center h-[40px] mb-2 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
-                  selectedSubMenu === sub.id ? 'text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-100'
-                }`}
-                onClick={sub.onClick}
-              >
-                <span className="ml-3">{sub.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </React.Fragment>
-    ))}
-  </div>
-
-  {/* Sticky Logout */}
-  <div className="px-2 py-3">
-    <div
-      className="flex items-center bg-gray-100 h-[56px] text-base text-gray-500 hover:bg-gray-200 px-4 cursor-pointer rounded-md"
-      onClick={handleLogout}
+      width={200}
+      theme="light"
+      className="bg-white fixed top-20 left-0 flex flex-col"
+      style={{ height: "calc(100vh - 80px)" }} // Sider height
     >
-      <LogOut />
-      <span className="ml-3">Logout</span>
-    </div>
-  </div>
-</Sider>
+      {/* Scrollable Menu */}
+      <div
+        className="overflow-y-auto px-2 mt-4 scrollbar-hide"
+        style={{ height: "calc(100% - 90px)" }} // subtract logout height
+      >
+        {menuItems.map((item) => (
+          <React.Fragment key={item.id}>
+            <div
+              className={`flex items-center h-[55px] mb-2 text-base px-4 cursor-pointer rounded-md transition-all duration-300 ${
+                selectedItem === item.id
+                  ? "bg-blue-900 text-white shadow-lg scale-105"
+                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+              }`}
+              onClick={item.onClick}
+            >
+              <span
+                className={
+                  selectedItem === item.id ? "text-white" : "text-gray-500"
+                }
+              >
+                {item.icon}
+              </span>
+              <span className="ml-3">{item.label}</span>
+            </div>
 
+            {item.subMenu && expandedMenus.includes(item.id) && (
+              <div className="ml-8">
+                {item.subMenu.map((sub) => (
+                  <div
+                    key={sub.id}
+                    className={`flex items-center h-[40px] mb-2 text-base px-4 cursor-pointer rounded-md transition-colors duration-200 ${
+                      selectedSubMenu === sub.id
+                        ? "text-blue-600 font-medium"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                    onClick={sub.onClick}
+                  >
+                    <span className="ml-3">{sub.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
 
+      {/* Sticky Logout */}
+      <div className="px-2 py-3">
+        <div
+          className="flex items-center bg-gray-100 h-[56px] text-base text-gray-500 hover:bg-gray-200 px-4 cursor-pointer rounded-md"
+          onClick={handleLogout}
+        >
+          <LogOut />
+          <span className="ml-3">Logout</span>
+        </div>
+      </div>
+    </Sider>
   );
 };
 
