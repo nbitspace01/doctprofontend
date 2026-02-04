@@ -132,27 +132,35 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
               Cancel
             </Button>
 
-            {/* Reject */}
-            <Button
-              danger
-              size="large"
-              loading={rejectMutation.isPending}
-              onClick={handleReject}
-              className="px-6"
-            >
-              Reject
-            </Button>
+            <div className="flex gap-2">
+              {/* Reject */}
+              <Button
+                disabled={kycData.documents?.some(
+                  (doc) => doc.status === "REJECTED",
+                )}
+                danger
+                size="large"
+                loading={rejectMutation.isPending}
+                onClick={handleReject}
+                className="px-6"
+              >
+                Reject
+              </Button>
 
-            {/* Approve */}
-            <Button
-              type="primary"
-              size="large"
-              loading={approveMutation.isPending}
-              onClick={handleApprove}
-              className="px-6"
-            >
-              Approve
-            </Button>
+              {/* Approve */}
+              <Button
+                disabled={kycData.documents?.some(
+                  (doc) => doc.status === "APPROVED",
+                )}
+                type="primary"
+                size="large"
+                loading={approveMutation.isPending}
+                onClick={handleApprove}
+                className="px-6"
+              >
+                Approve
+              </Button>
+            </div>
           </div>
         }
       >
@@ -200,7 +208,7 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
                     <div className="flex justify-between items-center mb-3">
                       <span className="font-medium">{doc.type}</span>
 
-                     <StatusBadge status={doc.status.toUpperCase()} />
+                      <StatusBadge status={doc.status.toUpperCase()} />
                     </div>
 
                     <Image

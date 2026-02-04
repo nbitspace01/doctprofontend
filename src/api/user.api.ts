@@ -12,7 +12,10 @@ export interface UpdateUserProfilePayload {
   [key: string]: any;
 }
 
-export const updateUserProfileApi = (userId: string, data: FormData | UpdateUserProfilePayload) => {
+export const updateUserProfileApi = (
+  userId: string,
+  data: FormData | UpdateUserProfilePayload,
+) => {
   return apiClient.put<any>(`/api/user/profile/${userId}`, data);
 };
 
@@ -26,26 +29,11 @@ interface ResetPasswordPayload {
   newPassword: string;
 }
 
-export const useResetPassword = () => {
-  const { notification } = App.useApp();
-
-  return useMutation({
-    mutationFn: async (payload: ResetPasswordPayload) => {
-      return apiClient.post<any>("/api/user/reset-password/submit", payload);
-    },
-    onSuccess: (data) => {
-      showSuccess(notification, {
-        message: "Password Reset Successful",
-        description: data.message ?? "Operation completed successfully",
-      });
-      return data;
-    },
-    onError: (error: any) => {
-      showError(notification, {
-        message: "Password Reset Failed",
-        description: error.message ?? "Failed to reset password",
-      });
-      throw error;
-    },
-  });
+export const resetPasswordApi = async (
+  payload: ResetPasswordPayload,
+) => {
+  return await apiClient.post(
+    "/api/user/reset-password/submit",
+    payload,
+  );
 };
