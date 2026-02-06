@@ -7,7 +7,7 @@ interface HospitalBasicInfoProps {
   form: any;
   countries: any[];
   states: any[];
-  cities: any[];
+  districts: any[];
   uploadProps: UploadProps;
   imageUrl: string;
   uploading: boolean;
@@ -19,7 +19,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
   form,
   countries,
   states,
-  cities,
+  districts,
   uploadProps,
   imageUrl,
   uploading,
@@ -131,7 +131,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
       >
         <Select
           placeholder="Select City/Town"
-          options={cities}
+          options={districts}
           showSearch
           optionFilterProp="label"
           onChange={(value) => form.setFieldsValue({ branchLocation: value })}
@@ -141,7 +141,7 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
       <Form.Item name="branchLocation" label={<span>Branch Location</span>}>
         <Select
           placeholder="Select Branch Location"
-          options={cities}
+          options={districts}
           showSearch
           allowClear
           optionFilterProp="label"

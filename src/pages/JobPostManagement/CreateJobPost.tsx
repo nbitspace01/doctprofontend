@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Form,
   Input,
@@ -17,11 +17,18 @@ import dayjs from "dayjs";
 import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
 import { showError, showSuccess } from "../Common/Notification";
 import { fetchDegreesApi } from "../../api/degree.api";
+import { getCountries, getDistricts, getStates } from "../../api/location.api";
 
 interface JobPostData {
   id: string;
   title: string;
   specialization: string;
+  country: string;
+  countryId?: string;
+  state: string;
+  stateId?: string;
+  district: string;
+  districtId?: string;
   location: string;
   experience_required: string;
   workType: string;
@@ -46,6 +53,9 @@ interface CreateJobPostProps {
 interface JobPostFormValues {
   title: string;
   specialization: string;
+  country: string;
+  state: string;
+  district: string;
   location: string;
   experience_required: string;
   workType: string;
@@ -67,7 +77,39 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
   const [form] = Form.useForm();
   const { notification } = App.useApp();
 
+  const [countryId, setCountryId] = useState<string | null>(null);
+
+  const [states, setStates] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
+  const [districts, setDistricts] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
+
   const isEditMode = Boolean(initialData);
+  const toDayjs = (value?: string) =>
+    value
+      ? dayjs(value, "YYYY-MM-DD", true).isValid()
+        ? dayjs(value, "YYYY-MM-DD")
+        : dayjs(value)
+      : undefined;
+  const findOption = (options: any[], value?: string) => {
+    if (!value) return undefined;
+    const normalized = String(value).trim().toLowerCase();
+    return options.find((opt) => {
+      const optValue = String(opt.value ?? "").trim();
+      const optKey = String(opt.key ?? "").trim();
+      const optLabel = String(opt.label ?? "").trim();
+      return (
+        optValue === value ||
+        optKey === value ||
+        optLabel.toLowerCase() === normalized
+      );
+    });
+  };
+
+  const resolveOptionId = (options: any[], value?: string) =>
+    findOption(options, value)?.value ?? value;
 
   const { data: degreesResponse, isFetching: isFetchingDegrees } = useQuery({
     queryKey: ["degrees"],
@@ -75,6 +117,99 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
       fetchDegreesApi({ page: 1, limit: 1000 }).then((res) => res.data),
     enabled: open,
   });
+
+  /* -------------------- Location Logic -------------------- */
+  useEffect(() => {
+    if (!open) return;
+
+    const setupLocation = async () => {
+      form.resetFields();
+      setStates([]);
+      setDistricts([]);
+
+      // 1️⃣ Fetch countries
+      const countryData = await getCountries();
+
+      // 2️⃣ Decide default country
+      const resolvedCountryId =
+        initialData?.countryId ??
+        countryData.find(
+          (c: any) =>
+            c.id === initialData?.country ||
+            String(c.name || "")
+              .toLowerCase()
+              .trim() ===
+              String(initialData?.country || "")
+                .toLowerCase()
+                .trim(),
+        )?.id ??
+        countryData.find((c: any) => c.is_default)?.id ??
+        countryData[0]?.id;
+
+      if (!resolvedCountryId) return;
+
+      setCountryId(resolvedCountryId);
+
+      // 3️⃣ Fetch states for that country
+      const stateData = await getStates(resolvedCountryId);
+      const mappedStates = stateData.map((s: any) => ({
+        label: s.name,
+        value: s.id,
+      }));
+      setStates(mappedStates);
+
+      // 4️⃣ EDIT MODE: fetch districts also
+      const stateId =
+        initialData?.stateId ??
+        resolveOptionId(mappedStates, initialData?.state);
+
+      if (stateId) {
+        const districtData = await getDistricts(stateId);
+        const districtOptions = districtData.map((d: any) => ({
+          label: d.name,
+          value: d.id,
+        }));
+        setDistricts(districtOptions);
+        const districtId =
+          initialData?.districtId ??
+          resolveOptionId(districtOptions, initialData?.district);
+        if (initialData) {
+          form.setFieldsValue({
+            district: districtId ?? initialData.district,
+          });
+        }
+      }
+
+      // 5️⃣ Set form values LAST
+      if (initialData) {
+        form.setFieldsValue({
+          ...initialData,
+          state: stateId ?? initialData.state,
+          district: initialData.districtId ?? initialData.district,
+          valid_from: toDayjs(initialData.valid_from),
+          expires_at: toDayjs(initialData.expires_at),
+        });
+      }
+    };
+
+    setupLocation();
+  }, [open, initialData, form]);
+
+  const handleStateChange = async (stateId: string) => {
+    try {
+      const districtData = await getDistricts(stateId);
+      setDistricts(
+        districtData.map((d: any) => ({
+          label: d.name,
+          value: d.id,
+        })),
+      );
+
+      form.setFieldsValue({ district: undefined });
+    } catch (err) {
+      console.error("Failed to fetch districts", err);
+    }
+  };
 
   const degrees = degreesResponse ?? [];
   useEffect(() => {
@@ -85,19 +220,18 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
         title: initialData.title,
         experience_required: initialData.experience_required,
         salary: initialData.salary,
-        location: initialData.location || "chennai",
+        // location: initialData.location || "chennai",
+        country: initialData.countryId ?? initialData.country,
+        state: initialData.stateId ?? initialData.state,
+        district: initialData.districtId ?? initialData.district,
         workType: initialData.workType,
         degree_required: initialData.degree_required,
         specialization: initialData.specialization,
         description: initialData.description,
         hospital_website: initialData.hospital_website,
         hospital_bio: initialData.hospital_bio,
-        valid_from: initialData.valid_from
-          ? dayjs(initialData.valid_from, "YYYY-MM-DD")
-          : undefined,
-        expires_at: initialData.expires_at
-          ? dayjs(initialData.expires_at, "YYYY-MM-DD")
-          : undefined,
+        valid_from: toDayjs(initialData.valid_from),
+        expires_at: toDayjs(initialData.expires_at),
       });
     } else if (open) {
       form.resetFields();
@@ -138,7 +272,10 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
       title: values.title,
       experience_required: values.experience_required,
       salary: values.salary,
-      location: values.location,
+      // location: values.location,
+      countryId,
+      stateId: values.state,
+      districtId: values.district,
       workType: values.workType,
       degree_required: values.degree_required,
       specialization: values.specialization,
@@ -160,6 +297,9 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
     form.validateFields().then((values) => {
       const payload = {
         ...values,
+        countryId,
+        stateId: values.state,
+        districtId: values.district,
         status: "DRAFT",
       };
       createJobPostMutation.mutate(payload);
@@ -221,13 +361,42 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
             </Form.Item>
           </div>
 
-          <Form.Item
+          {/* <Form.Item
             label="Location"
             name="location"
             rules={[{ required: true, message: "Please enter location" }]}
           >
             <Input placeholder="Enter Location" />
-          </Form.Item>
+          </Form.Item> */}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Form.Item
+              label="State"
+              name="state"
+              rules={[{ required: true, message: "Please select state" }]}
+            >
+              <Select
+                placeholder="Select State"
+                options={states}
+                showSearch
+                optionFilterProp="label"
+                onChange={handleStateChange}
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="District"
+              name="district"
+              rules={[{ required: true, message: "Please select district" }]}
+            >
+              <Select
+                placeholder="Select District"
+                options={districts}
+                showSearch
+                optionFilterProp="label"
+              />
+            </Form.Item>
+          </div>
 
           <Form.Item
             label="Employment Type"
@@ -269,8 +438,8 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
               placeholder="Select Specialization"
               loading={isFetchingDegrees}
               options={degrees.map((s: any) => ({
-                value: s.name,
-                label: s.name,
+                value: s.specialization,
+                label: s.specialization,
               }))}
             />
           </Form.Item>

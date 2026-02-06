@@ -1,5 +1,6 @@
 import React from "react";
 import { Form, Input } from "antd";
+import { strongPasswordValidator } from "../../../utils/password.validator";
 
 interface HospitalPasswordProps {
   form: any;
@@ -16,9 +17,16 @@ const HospitalPassword: React.FC<HospitalPasswordProps> = ({
         name="password"
         label="New Password"
         rules={[
+          ...(isEditMode
+            ? []
+            : [
+                {
+                  required: true,
+                  message: "Please enter new password",
+                },
+              ]),
           {
-            required: !isEditMode,
-            message: "Please enter new password",
+            validator: strongPasswordValidator(),
           },
         ]}
       >

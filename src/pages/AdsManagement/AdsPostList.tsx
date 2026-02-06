@@ -93,7 +93,25 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
     staleTime: 0,
   });
 
-  const allAdsPost = adsPostResponse?.data ?? [];
+  const allAdsPost = (adsPostResponse?.data ?? []).map((ad: any) => {
+    const displayLocationName =
+      typeof ad.displayLocation === "string"
+        ? ad.displayLocation
+        : ad.displayLocation?.name ||
+          ad.district ||
+          ad.districtName ||
+          "";
+
+    return {
+      ...ad,
+      displayLocation: displayLocationName,
+      displayLocationId:
+        ad.displayLocationId ?? ad.districtId ?? ad.displayLocation?.id ?? null,
+      districtId: ad.districtId ?? ad.displayLocation?.id ?? null,
+      stateId: ad.stateId ?? ad.state?.id ?? null,
+      countryId: ad.countryId ?? ad.country?.id ?? null,
+    };
+  });
   const totalCount = adsPostResponse?.total ?? 0;
 
   /* -------------------- Mutation -------------------- */

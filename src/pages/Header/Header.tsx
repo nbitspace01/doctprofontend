@@ -35,6 +35,7 @@ interface UserProfile {
   type: string;
   note: string | null;
   profile_picture?: string;
+  logoUrl?: string | null;
 }
 
 const Header: React.FC = () => {
@@ -87,10 +88,18 @@ const Header: React.FC = () => {
     (roleName ? roleName.charAt(0).toUpperCase() + roleName.slice(1) : "");
   const displayEmail = userProfile?.email || userEmail || "";
   const displayPhone = userProfile?.phone || "";
+  const normalizedRole = (userProfile?.role || roleName || "")
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const isHospitalAdmin = normalizedRole === "hospitaladmin";
+  const profileImage = isHospitalAdmin
+    ? userProfile?.logoUrl || userProfile?.profile_picture
+    : userProfile?.profile_picture;
 
   const profileData = {
     name: displayName || "Loading...",
-    avatar: userProfile?.profile_picture || "https://i.pravatar.cc/150?img=3",
+    avatar: profileImage || "https://i.pravatar.cc/150?img=3",
     role: displayRole || "Loading...",
     title:
       userProfile?.type === "Doctor"
@@ -138,10 +147,10 @@ const Header: React.FC = () => {
               <div className="flex items-center space-x-2 cursor-pointer rounded-full bg-gray-200 px-2 py-2 hover:bg-gray-300 transition">
                 <Avatar
                   size={32}
-                  src={userProfile?.profile_picture}
+                  src={profileImage}
                   className="bg-button-primary"
                 >
-                  {!userProfile?.profile_picture &&
+                  {!profileImage &&
                     (userProfile?.name?.charAt(0) ||
                       firstName?.charAt(0)?.toUpperCase() ||
                       "U")}
@@ -168,7 +177,7 @@ const Header: React.FC = () => {
         onClose={() => setEditProfileDrawerVisible(false)}
         onSave={() => {}}
         initialValues={{
-          profilePicture: userProfile?.profile_picture || "",
+          profilePicture: profileImage || "",
           fullName: displayName || "",
           email: displayEmail || "",
           note: userProfile?.note ?? "",

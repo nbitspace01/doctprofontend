@@ -30,7 +30,7 @@ const CommonDropdown = ({
       key: "edit",
       onClick: onEdit,
     },
-    showDelete && {
+    onDelete && showDelete && {
       icon: <DeleteIcon />,
       label: <span className="ml-2">Delete</span>,
       key: "delete",

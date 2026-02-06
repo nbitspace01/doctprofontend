@@ -158,7 +158,9 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
           </div>
           <div>
             <div className="text-xs text-gray-500">Display Location</div>
-            <div className="text-sm font-medium mt-1">{adsData.displayLocation}</div>
+            <div className="text-sm font-medium mt-1">
+              {adsData.displayLocation || (adsData as any).district || "N/A"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Start Date</div>

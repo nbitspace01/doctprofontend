@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Button, App, Avatar } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { CrownFilled, PlusOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import CommonTable from "../../../components/Common/CommonTable";
@@ -21,8 +21,8 @@ interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
-  address: string | null;
-  status: "active" | "inactive" | "pending";
+  isHeadBranch: boolean;
+  status: "ACTIVE" | "INACTIVE" | "PENDING";
   logoUrl: string | null;
   created_at: string;
   updated_at: string;
@@ -124,10 +124,12 @@ const HospitalList: React.FC = () => {
         title: "Hospital Name",
         render: (_: any, record: HospitalData) => (
           <div className="flex items-center gap-2">
-            <Avatar size={40} className="bg-button-primary text-white">
-              {record.name.charAt(0)}
-            </Avatar>
-            {record.name}
+            <span className="flex items-center gap-1">
+              {record.name}
+              {record.isHeadBranch && (
+                <CrownFilled className="text-yellow-500" title="Head Branch" />
+              )}
+            </span>
           </div>
         ),
       },
@@ -138,7 +140,9 @@ const HospitalList: React.FC = () => {
       {
         title: "Status",
         dataIndex: "status",
-        render: (status: string) => <StatusBadge status={status.toUpperCase()} />,
+        render: (status: string) => (
+          <StatusBadge status={status.toUpperCase()} />
+        ),
       },
       {
         title: "Actions",
@@ -172,12 +176,7 @@ const HospitalList: React.FC = () => {
   /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {
     if (!allHospitals.length) return;
-    const headers = [
-      "S No",
-      "Name",
-      "Branch Location",
-      "Status",
-    ];
+    const headers = ["S No", "Name", "Branch Location", "Status"];
     const rows = allHospitals.map((row, i) => [
       i + 1,
       `${row.name}`,

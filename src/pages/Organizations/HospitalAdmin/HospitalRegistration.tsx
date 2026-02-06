@@ -10,7 +10,11 @@ import {
   uploadHospitalKycApi,
 } from "../../../api/hospitalAdmin.api";
 import { setUserPasswordApi } from "../../../api/auth.api";
-import { getCountries, getStates, getCities } from "../../../api/location.api";
+import {
+  getCountries,
+  getStates,
+  getDistricts,
+} from "../../../api/location.api";
 import { HospitalData } from "./ClinicViewDrawer";
 import HospitalBasicInfo from "./HospitalBasicInfo";
 import HospitalKYC from "./HospitalKYC";
@@ -21,9 +25,13 @@ interface HospitalRegistrationData {
   name: string;
   branchLocation: string;
   type: "hospital" | "clinic";
-  city: string;
-  state: string;
-  country: string;
+  city?: string;
+  district?: string;
+  districtId?: string;
+  state?: string;
+  stateId?: string;
+  country?: string;
+  countryId?: string;
   zipcode: string;
   email: string;
   phone: string;
@@ -66,7 +74,28 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   // Location State
   const [countries, setCountries] = useState<any[]>([]);
   const [states, setStates] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
+  const [districts, setdistricts] = useState<any[]>([]);
+
+  const findOption = (options: any[], value?: string) => {
+    if (!value) return undefined;
+    const normalized = String(value).trim().toLowerCase();
+    return options.find((opt) => {
+      const optValue = String(opt.value ?? "").trim();
+      const optKey = String(opt.key ?? "").trim();
+      const optLabel = String(opt.label ?? "").trim();
+      return (
+        optValue === value ||
+        optKey === value ||
+        optLabel.toLowerCase() === normalized
+      );
+    });
+  };
+
+  const resolveOptionId = (options: any[], value?: string) =>
+    findOption(options, value)?.value ?? value;
+
+  const resolveOptionLabel = (options: any[], value?: string) =>
+    findOption(options, value)?.label ?? value;
 
   // Fetch Countries on Mount
   useEffect(() => {
@@ -74,7 +103,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       try {
         const data = await getCountries();
         setCountries(
-          data.map((c: any) => ({ label: c.name, value: c.name, key: c.id })),
+          data.map((c: any) => ({ label: c.name, value: c.id, key: c.id })),
         );
       } catch (error) {
         console.error("Failed to fetch countries", error);
@@ -82,6 +111,66 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     };
     if (isOpen) fetchCountries();
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || !initialData || countries.length === 0) return;
+
+    const preloadLocationData = async () => {
+      try {
+        const countryId =
+          (initialData as any).countryId ??
+          resolveOptionId(countries, initialData.country);
+        if (!countryId) return;
+        form.setFieldValue("country", countryId);
+
+        const stateData = await getStates(countryId);
+        const stateOptions = stateData.map((s: any) => ({
+          label: s.name,
+          value: s.id,
+        }));
+        setStates(stateOptions);
+
+        const stateId =
+          (initialData as any).stateId ??
+          resolveOptionId(stateOptions, initialData.state);
+        if (stateId) {
+          form.setFieldValue("state", stateId);
+        }
+
+        if (stateId) {
+          const districtData = await getDistricts(stateId);
+          const districtOptions = districtData.map((d: any) => ({
+            label: d.name,
+            value: d.id,
+          }));
+          setdistricts(districtOptions);
+
+          const districtId =
+            (initialData as any).districtId ??
+            (initialData as any).cityId ??
+            resolveOptionId(
+              districtOptions,
+              (initialData as any).district ?? (initialData as any).city,
+            );
+          if (districtId) {
+            form.setFieldValue("city", districtId);
+          }
+
+          const branchId = resolveOptionId(
+            districtOptions,
+            initialData.branchLocation,
+          );
+          if (branchId) {
+            form.setFieldValue("branchLocation", branchId);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to preload location data", err);
+      }
+    };
+
+    preloadLocationData();
+  }, [isOpen, initialData, countries]);
 
   // Prefill when editing
   useEffect(() => {
@@ -91,9 +180,6 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         form.setFieldsValue({
           name: initialData.name,
           type: (initialData as any).type,
-          country: initialData.country,
-          state: initialData.state,
-          city: initialData.city,
           branchLocation: initialData.branchLocation,
           zipcode: initialData.zipcode,
           email: initialData.email,
@@ -161,41 +247,43 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, initialData]);
 
-  const handleCountryChange = async (countryName: string, option: any) => {
-    try {
-      setStates([]);
-      setCities([]);
-      form.setFieldValue("state", undefined);
-      form.setFieldValue("city", undefined);
+  const handleCountryChange = async (countryId: string) => {
+    if (!countryId) return;
 
-      const countryId = option.key;
-      if (countryId) {
-        const stateData = await getStates(countryId);
-        setStates(
-          stateData.map((s: any) => ({
-            label: s.name,
-            value: s.name,
-            key: s.id,
+    setStates([]);
+    setdistricts([]);
+
+    // ❌ don't reset if edit preload is running
+    form.setFieldValue("state", undefined);
+    form.setFieldValue("city", undefined);
+    form.setFieldValue("branchLocation", undefined);
+
+    const stateData = await getStates(countryId);
+    setStates(
+      stateData.map((s: any) => ({
+        label: s.name,
+        value: s.id,
+      })),
+    );
+  };
+
+  const handleStateChange = async (stateId: string) => {
+    try {
+      setdistricts([]);
+      form.setFieldValue("city", undefined);
+      form.setFieldValue("branchLocation", undefined);
+
+      if (stateId) {
+        const districtData = await getDistricts(stateId);
+        setdistricts(
+          districtData.map((c: any) => ({
+            label: c.name,
+            value: c.id,
           })),
         );
       }
     } catch (error) {
-      console.error("Failed to fetch states", error);
-    }
-  };
-
-  const handleStateChange = async (stateName: string, option: any) => {
-    try {
-      setCities([]);
-      form.setFieldValue("city", undefined);
-
-      const stateId = option.key;
-      if (stateId) {
-        const cityData = await getCities(stateId, false);
-        setCities(cityData.map((c: any) => ({ label: c.name, value: c.name })));
-      }
-    } catch (error) {
-      console.error("Failed to fetch cities", error);
+      console.error("Failed to fetch districts", error);
     }
   };
 
@@ -387,7 +475,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
       form={form}
       countries={countries}
       states={states}
-      cities={cities}
+      districts={districts}
       uploadProps={uploadProps}
       imageUrl={imageUrl}
       uploading={uploading}
@@ -419,11 +507,27 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         const formData = new FormData();
         formData.append("name", values.name);
         formData.append("type", values.type);
-        if (values.branchLocation)
-          formData.append("branchLocation", values.branchLocation);
-        if (values.city) formData.append("city", values.city);
-        formData.append("state", values.state);
-        formData.append("country", values.country);
+        const countryLabel = resolveOptionLabel(countries, values.country);
+        const stateLabel = resolveOptionLabel(states, values.state);
+        const cityLabel = resolveOptionLabel(districts, values.city);
+        const branchLabel = resolveOptionLabel(
+          districts,
+          values.branchLocation,
+        );
+
+        if (values.branchLocation) {
+          formData.append("branchLocation", branchLabel ?? values.branchLocation);
+        }
+        if (values.city) {
+          formData.append("districtId", values.city);
+          formData.append("district", cityLabel ?? values.city);
+        }
+        if (values.state || stateLabel) {
+          formData.append("state", stateLabel ?? values.state);
+        }
+        if (values.country || countryLabel) {
+          formData.append("country", countryLabel ?? values.country);
+        }
         formData.append("zipcode", values.zipcode);
         formData.append("email", values.email);
         formData.append("phone", values.phone);

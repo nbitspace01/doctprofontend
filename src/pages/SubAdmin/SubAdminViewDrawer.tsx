@@ -154,14 +154,14 @@ const SubAdminViewDrawer: React.FC<ViewSubAdminProps> = ({
           {profileImage ? (
             <Image
               src={profileImage}
-              width={40}
-              height={40}
+              width={70}
+              height={70}
               alt="Sub Admin"
               className="rounded-full"
             />
           ) : (
             <Avatar
-              size={40}
+              size={60}
               className="bg-button-primary text-white rounded-full"
             >
               {avatarInitial}

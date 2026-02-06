@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Avatar, Button, Image, App } from "antd";
 import { Plus } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import CommonTable from "../../components/Common/CommonTable";
 import { fetchSubAdmin, SubAdminDelete } from "../../api/admin.api";
 import { useListController } from "../../hooks/useListController";
 import SubAdminViewDrawer from "./SubAdminViewDrawer";
+import { getDistricts, getStates } from "../../api/location.api";
 
 interface SubAdminData {
   id: string;
@@ -45,6 +46,14 @@ const SubAdmin: React.FC = () => {
   const [selectedSubAdmin, setSelectedSubAdmin] = useState<SubAdminData | null>(
     null,
   );
+  const [stateOptions, setStateOptions] = useState<
+    { label: string; value: string; id?: string }[]
+  >([]);
+  const [districtOptions, setDistrictOptions] = useState<
+    { label: string; value: string; stateName?: string }[]
+  >([]);
+  const [allDistricts, setAllDistricts] = useState<any[]>([]);
+  const prevStateRef = useRef<string | undefined>(undefined);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -56,6 +65,59 @@ const SubAdmin: React.FC = () => {
     onSearch,
     onFilterChange,
   } = useListController();
+
+  useEffect(() => {
+    const loadLocations = async () => {
+      try {
+        const states = await getStates();
+        const stateOpts =
+          (states || []).map((s: any) => ({
+            label: s.name,
+            value: s.name,
+            id: s.id,
+          })) ?? [];
+        setStateOptions(stateOpts);
+
+        const districts = await getDistricts();
+        setAllDistricts(districts || []);
+      } catch (error) {
+        console.error("Failed to load locations", error);
+      }
+    };
+
+    loadLocations();
+  }, []);
+
+  useEffect(() => {
+    const selectedState = filterValues.state;
+    const filteredDistricts = selectedState
+      ? allDistricts.filter(
+          (d: any) =>
+            d?.state?.name === selectedState ||
+            d?.state?.code === selectedState,
+        )
+      : allDistricts;
+
+    const districtOpts =
+      (filteredDistricts || []).map((d: any) => ({
+        label: d.name,
+        value: d.name,
+        stateName: d?.state?.name,
+      })) ?? [];
+
+    setDistrictOptions(districtOpts);
+
+    const prevState = prevStateRef.current;
+    if (prevState !== selectedState) {
+      prevStateRef.current = selectedState;
+      if (
+        filterValues.district &&
+        !districtOpts.some((opt) => opt.value === filterValues.district)
+      ) {
+        onFilterChange({ ...filterValues, district: null });
+      }
+    }
+  }, [filterValues.state, allDistricts, filterValues, onFilterChange]);
 
   /* -------------------- Query -------------------- */
   const { data: subAdminResponse, isFetching } = useQuery<
@@ -195,13 +257,17 @@ const SubAdmin: React.FC = () => {
       { label: "Email", key: "email", type: "text" as const },
       { label: "Phone", key: "phone", type: "text" as const },
       {
-        label: "Role",
-        key: "role",
-        type: "checkbox" as const,
-        options: ["ADMIN", "SUB_ADMIN"],
+        label: "State",
+        key: "state",
+        type: "select" as const,
+        options: stateOptions,
       },
-      { label: "State", key: "state", type: "text" as const },
-      { label: "District", key: "district", type: "text" as const },
+      {
+        label: "District",
+        key: "district",
+        type: "select" as const,
+        options: districtOptions,
+      },
       {
         label: "Organization Type",
         key: "organization_type",
@@ -215,7 +281,7 @@ const SubAdmin: React.FC = () => {
         options: ["ACTIVE", "INACTIVE", "PENDING"],
       },
     ],
-    [],
+    [stateOptions, districtOptions],
   );
 
   /* -------------------- Download -------------------- */
@@ -287,6 +353,7 @@ const SubAdmin: React.FC = () => {
         total={totalCount}
         onPageChange={onPageChange}
         filters={filterOptions}
+        filterValues={filterValues}
         onFilterChange={onFilterChange}
         onSearch={onSearch}
         searchValue={searchValue}

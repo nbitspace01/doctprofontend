@@ -19,7 +19,8 @@ import { showError, showSuccess } from "../Common/Notification";
 import PhoneNumberInput from "../Common/PhoneNumberInput";
 import api from "../Common/axiosInstance";
 import { SubAdminRegister, SubAdminUpdate } from "../../api/admin.api";
-import { getCountries, getStates, getCities } from "../../api/location.api";
+import { getCountries, getStates, getDistricts } from "../../api/location.api";
+import { strongPasswordValidator } from "../../utils/password.validator";
 
 /* -------------------- Types -------------------- */
 interface SubAdminData {
@@ -64,11 +65,7 @@ interface SubAdminFormValues {
 const ROLE_OPTIONS = [{ value: "subadmin", label: "Sub Admin" }];
 
 const ORGANIZATION_OPTIONS = [
-  { value: "Hospital", label: "Hospital" },
-  { value: "College", label: "College" },
-  { value: "University", label: "University" },
-  { value: "Institute", label: "Institute" },
-  { value: "Training Center", label: "Training Center" },
+  { value: "Hospital", label: "Hospital" }
 ];
 
 /* -------------------- Component -------------------- */
@@ -89,7 +86,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
   /* -------------------- Location Logic -------------------- */
   const [states, setStates] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
+  const [districts, setdistricts] = useState<any[]>([]);
 
   // Fetch Initial Data (India -> States)
   useEffect(() => {
@@ -123,11 +120,11 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
       const stateId = option.key;
       if (!stateId) return;
 
-      const cityData = await getCities(stateId, false);
-      setCities(cityData.map((c: any) => ({ label: c.name, value: c.name })));
+      const cityData = await getDistricts(stateId);
+      setdistricts(cityData.map((c: any) => ({ label: c.name, value: c.name })));
       form.setFieldValue("district", undefined);
     } catch (error) {
-      console.error("Failed to load cities", error);
+      console.error("Failed to load districts", error);
     }
   };
 
@@ -359,7 +356,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           rules={[{ required: true }]}
         >
           <Select
-            options={cities}
+            options={districts}
             showSearch
             placeholder="Select City / District"
           />
@@ -369,7 +366,15 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Form.Item
             name="password"
             label="New Password"
-            rules={isEditMode ? [{ min: 8 }] : [{ required: true }, { min: 8 }]}
+            rules={
+              isEditMode
+                ? [{ min: 8 }]
+                : [
+                    { required: true },
+                    { min: 8 },
+                    { validator: strongPasswordValidator() },
+                  ]
+            }
           >
             <Input.Password placeholder="Enter New Password" />
           </Form.Item>

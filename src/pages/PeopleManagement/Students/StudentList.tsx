@@ -197,7 +197,7 @@ const StudentList: React.FC = () => {
         label: "Gender",
         key: "gender",
         type: "checkbox" as const,
-        options: ["MALE", "FEMALE"],
+        options: ["Male", "Female", "Other"],
       },
       {
         label: "KYC Status",
@@ -280,6 +280,7 @@ const StudentList: React.FC = () => {
         total={totalCount}
         onPageChange={onPageChange}
         filters={filterOptions}
+        filterValues={filterValues}
         onFilterChange={onFilterChange}
         onSearch={onSearch}
         searchValue={searchValue}

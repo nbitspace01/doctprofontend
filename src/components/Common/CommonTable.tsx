@@ -32,6 +32,7 @@ const CommonTable = <T extends { [key: string]: any }>({
   pageSize,
   total,
   filters,
+  filterValues,
   onFilterChange,
   onSearch,
   searchValue,
@@ -46,6 +47,7 @@ const CommonTable = <T extends { [key: string]: any }>({
           searchValue={searchValue}
           filterOptions={filters}
           onFilterChange={onFilterChange}
+          filterValues={filterValues}
           onDownload={onDownload}
         />
       </div>

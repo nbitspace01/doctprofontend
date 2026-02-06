@@ -5,16 +5,18 @@ import {
   FileExcelOutlined,
   FileTextOutlined,
 } from "@ant-design/icons";
-import { Button, Checkbox, Dropdown, Input, Space, DatePicker } from "antd";
-import { useEffect, useState } from "react";
+import { Button, Checkbox, Dropdown, Input, Space, DatePicker, Select } from "antd";
+import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
+
+type CheckboxOption = string | { label: string; value: string };
 
 interface FilterOption {
   label: string;
   key: string;
-  type: "text" | "checkbox" | "date";
-  options?: string[];
+  type: "text" | "checkbox" | "date" | "select";
+  options?: CheckboxOption[];
 }
 
 interface SearchFilterDownloadButtonProps {
@@ -23,6 +25,7 @@ interface SearchFilterDownloadButtonProps {
   searchValue?: string;
   filterOptions?: FilterOption[];
   onFilterChange?: (filters: Record<string, any>) => void;
+  filterValues?: Record<string, any>;
 }
 
 const SearchFilterDownloadButton = ({
@@ -31,19 +34,40 @@ const SearchFilterDownloadButton = ({
   searchValue = "",
   filterOptions = [],
   onFilterChange,
+  filterValues: controlledFilterValues = {},
 }: SearchFilterDownloadButtonProps) => {
   const [localSearch, setLocalSearch] = useState<Record<string, string>>({});
-  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [filterValues, setFilterValues] = useState<Record<string, any>>(
+    controlledFilterValues || {}
+  );
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>(null);
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const ignoreCloseRef = useRef(false);
 
-  // Reset active filter when options change
+  // Keep current active filter if it still exists; otherwise fall back to first option.
   useEffect(() => {
-    if (filterOptions.length > 0) {
-      setActiveFilterKey(filterOptions[0].key);
-    } else {
+    if (filterOptions.length === 0) {
       setActiveFilterKey(null);
+      return;
     }
+
+    setActiveFilterKey((prev) => {
+      if (prev && filterOptions.some((option) => option.key === prev)) {
+        return prev;
+      }
+      return filterOptions[0].key;
+    });
   }, [filterOptions]);
+
+  useEffect(() => {
+    setFilterValues(controlledFilterValues || {});
+  }, [controlledFilterValues]);
+
+  const normalizeOptions = (options: CheckboxOption[] = []) => {
+    return options.map((opt) =>
+      typeof opt === "string" ? { label: opt, value: opt } : opt,
+    );
+  };
 
   const handleFilterChange = (key: string, value: any) => {
     const newFilterValues = { ...filterValues, [key]: value };
@@ -115,10 +139,11 @@ const SearchFilterDownloadButton = ({
         );
       case "checkbox":
         const searchTerm = localSearch[activeFilterKey] || "";
-        const filteredOptions =
-          activeFilter.options?.filter((opt) =>
-            opt.toLowerCase().includes(searchTerm.toLowerCase()),
-          ) || [];
+        const normalizedOptions = normalizeOptions(activeFilter.options);
+
+        const filteredOptions = normalizedOptions.filter((opt) =>
+          opt.label.toLowerCase().includes(searchTerm.toLowerCase()),
+        );
 
         return (
           <div>
@@ -141,19 +166,19 @@ const SearchFilterDownloadButton = ({
                   filteredOptions.map((option) => (
                     <Checkbox
                       className="custom-checkbox w-full"
-                      key={option}
+                      key={option.value}
                       checked={(filterValues[activeFilterKey] || []).includes(
-                        option,
+                        option.value,
                       )}
                       onChange={(e) =>
                         handleCheckboxChange(
                           activeFilterKey,
-                          option,
+                          option.value,
                           e.target.checked,
                         )
                       }
                     >
-                      {option}
+                      {option.label}
                     </Checkbox>
                   ))
                 ) : (
@@ -165,6 +190,23 @@ const SearchFilterDownloadButton = ({
             </div>
           </div>
         );
+      case "select":
+        return (
+          <div>
+            <Select
+              placeholder={`Select ${activeFilter.label}`}
+              className="w-full"
+              options={normalizeOptions(activeFilter.options)}
+              value={filterValues[activeFilterKey] || undefined}
+              showSearch
+              optionFilterProp="label"
+              allowClear
+              onChange={(value) =>
+                handleFilterChange(activeFilterKey, value || null)
+              }
+            />
+          </div>
+        );
       default:
         return <div className="w-48" />;
     }
@@ -174,6 +216,11 @@ const SearchFilterDownloadButton = ({
     <div
       className="flex gap-1 bg-white p-2 shadow-lg rounded-md border"
       style={{ minWidth: "400px" }}
+      onMouseDown={(e) => {
+        e.stopPropagation();
+        ignoreCloseRef.current = true;
+      }}
+      onClick={(e) => e.stopPropagation()}
     >
       <div className="w-48 border-r">
         <ul className="m-0 p-0 list-none">
@@ -244,7 +291,18 @@ const SearchFilterDownloadButton = ({
         )}
 
         {filterOptions.length > 0 && (
-          <Dropdown dropdownRender={() => filterMenu} trigger={["click"]}>
+          <Dropdown
+            dropdownRender={() => filterMenu}
+            trigger={["click"]}
+            open={isFilterOpen}
+            onOpenChange={(open) => {
+              if (!open && ignoreCloseRef.current) {
+                ignoreCloseRef.current = false;
+                return;
+              }
+              setIsFilterOpen(open);
+            }}
+          >
             <Button
               type="default"
               icon={<FilterFilled />}

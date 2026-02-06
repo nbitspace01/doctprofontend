@@ -202,7 +202,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       <div>
         <p className="text-xs text-gray-500 mb-1">Location</p>
         <p className="text-sm font-medium">
-          {jobPostData?.location || "N/A"}
+          {jobPostData?.location || jobPostData?.district || "N/A"}
         </p>
       </div>
 

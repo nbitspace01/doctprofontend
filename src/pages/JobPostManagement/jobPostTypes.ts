@@ -6,6 +6,12 @@ export interface JobPostBase {
   title: string;
   specialization: string;
   location: string;
+  district?: string | null;
+  districtId?: string | null;
+  state?: string | null;
+  stateId?: string | null;
+  country?: string | null;
+  countryId?: string | null;
   experience_required: string;
   workType: string;
   status: string;
@@ -75,6 +81,8 @@ export interface JobPostFormValues {
   title: string;
   specialization: string;
   location: string;
+  state?: string;
+  district?: string;
   experience_required: string;
   workType: string;
   valid_from?: Date;
