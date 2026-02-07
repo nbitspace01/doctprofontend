@@ -506,7 +506,10 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         setUploading(true);
         const formData = new FormData();
         formData.append("name", values.name);
-        formData.append("type", values.type);
+        formData.append(
+          "type",
+          values.type ? String(values.type).toUpperCase() : "",
+        );
         const countryLabel = resolveOptionLabel(countries, values.country);
         const stateLabel = resolveOptionLabel(states, values.state);
         const cityLabel = resolveOptionLabel(districts, values.city);
@@ -532,12 +535,15 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
         formData.append("email", values.email);
         formData.append("phone", values.phone);
         if (values.website) formData.append("website", values.website);
+        const adminEmail = values.hr_email || values.email || "";
+        const adminPhone = values.hr_phone || values.phone || "";
+        const contactPerson = values.hr_full_name || values.name || "";
         formData.append("hr_full_name", values.hr_full_name);
         formData.append("hr_email", values.hr_email || "");
         formData.append("hr_phone", values.hr_phone || "");
-        formData.append("admin_email", values.hr_email || "");
-        formData.append("admin_phone", values.hr_phone || "");
-        formData.append("contact_person", values.hr_full_name || "");
+        formData.append("admin_email", adminEmail);
+        formData.append("admin_phone", adminPhone);
+        formData.append("contact_person", contactPerson);
         formData.append(
           "status",
           isEditMode && initialData

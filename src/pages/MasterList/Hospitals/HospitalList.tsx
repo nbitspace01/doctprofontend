@@ -28,6 +28,11 @@ interface HospitalData {
   updated_at: string;
   updatedAt?: string;
   hospital_id: string | null;
+  districtId?: string | null;
+  stateId?: string | null;
+  stateName?: string | null;
+  countryId?: string | null;
+  countryName?: string | null;
 }
 
 interface HospitalResponse {

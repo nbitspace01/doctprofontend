@@ -21,7 +21,9 @@ interface HospitalData {
   branchLocation: string;
   city?: { id: string; name: string }; // Relation
   cityId?: string;
+  districtId?: string;
   stateId?: string;
+  stateName?: string;
   status: string;
   updated_at: string;
 }
@@ -56,6 +58,15 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   // Helper state for filtering (not submitted)
   const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
+
+  const resolveStateIdFromName = (stateValue?: string) => {
+    if (!stateValue) return null;
+    const normalized = stateValue.toLowerCase();
+    const match = states.find(
+      (s) => String(s.label || "").toLowerCase() === normalized,
+    );
+    return match?.value ?? null;
+  };
 
   /* -------------------- Effects -------------------- */
   useEffect(() => {
@@ -94,29 +105,39 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     if (!open) return;
 
     if (initialData) {
+      const resolvedStateId =
+        initialData.stateId || resolveStateIdFromName(initialData.stateName);
+      const resolvedCityId = initialData.cityId || initialData.districtId;
+
       form.setFieldsValue({
         name: initialData.name,
         isHeadBranch: false,
-        cityId: initialData.cityId,
+        cityId: resolvedCityId,
       });
 
-      if (initialData.stateId) {
-        setSelectedStateId(initialData.stateId);
-        // Fetch districts for the existing state so the city dropdown works
-        getDistricts(initialData.stateId)
+      if (resolvedStateId) {
+        setSelectedStateId(resolvedStateId);
+        getDistricts(resolvedStateId)
           .then((cityData) => {
-            setdistricts(
-              cityData.map((c: any) => ({ label: c.name, value: c.id })),
-            );
+            const options = cityData.map((c: any) => ({
+              label: c.name,
+              value: c.id,
+            }));
+            setdistricts(options);
+            if (resolvedCityId) {
+              form.setFieldValue("cityId", resolvedCityId);
+            }
           })
           .catch((err) => console.error(err));
+      } else {
+        setdistricts([]);
       }
     } else {
       form.resetFields();
       setSelectedStateId(null);
       setdistricts([]);
     }
-  }, [open, initialData, form]);
+  }, [open, initialData, form, states]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
