@@ -37,6 +37,8 @@ interface SubAdminData {
   associated_location?: string;
   state?: string;
   district?: string;
+  state_id?: string;
+  district_id?: string;
   profile_image?: string;
 }
 
@@ -103,8 +105,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           setStates(
             stateData.map((s: any) => ({
               label: s.name,
-              value: s.name,
-              key: s.id,
+              value: s.id,
+              name: s.name,
             })),
           );
         }
@@ -115,13 +117,12 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     if (open) initLocations();
   }, [open]);
 
-  const handleStateChange = async (stateName: string, option: any) => {
+  const handleStateChange = async (stateId: string) => {
     try {
-      const stateId = option.key;
       if (!stateId) return;
 
       const cityData = await getDistricts(stateId);
-      setdistricts(cityData.map((c: any) => ({ label: c.name, value: c.name })));
+      setdistricts(cityData.map((c: any) => ({ label: c.name, value: c.id })));
       form.setFieldValue("district", undefined);
     } catch (error) {
       console.error("Failed to load districts", error);
@@ -155,11 +156,25 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
     if (initialData) {
       setImageUrl(initialData.profile_image || "");
       setPendingFile(null);
+      const initialStateId = initialData.state_id || initialData.state || "";
+      const initialDistrictId =
+        initialData.district_id || initialData.district || "";
       form.setFieldsValue({
         ...initialData,
-        state: initialData.state || initialData.location,
-        district: initialData.district || initialData.associated_location || "",
+        state: initialStateId,
+        district: initialDistrictId,
       });
+      if (initialStateId) {
+        getDistricts(initialStateId)
+          .then((cityData) => {
+            setdistricts(
+              cityData.map((c: any) => ({ label: c.name, value: c.id })),
+            );
+          })
+          .catch((error) => {
+            console.error("Failed to load districts", error);
+          });
+      }
     } else {
       setImageUrl("");
       setPendingFile(null);
@@ -225,6 +240,7 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
     // Text fields
     Object.entries(values).forEach(([key, value]) => {
+      if (key === "state" || key === "district") return;
       if (value) {
         formData.append(key, value as string);
       }
@@ -237,8 +253,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
 
     // Normalize
     formData.set("organization_type", values.organization_type.toLowerCase());
-    formData.set("state", values.state.toLowerCase());
-    formData.set("district", values.district.toLowerCase());
+    if (values.state) formData.set("stateId", values.state);
+    if (values.district) formData.set("districtId", values.district);
 
     // Password handling (edit)
     if (!values.password) {

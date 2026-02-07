@@ -46,11 +46,12 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const roleFromStorage = localStorage.getItem("roleName");
 
   React.useEffect(() => {
+    if (!visible) return;
     if (initialValues) {
       form.setFieldsValue(initialValues);
       setPreviewUrl(initialValues.profilePicture || null);
     }
-  }, [form, initialValues]);
+  }, [form, initialValues, visible]);
 
   const normalizedRole = (
     initialValues?.role ||

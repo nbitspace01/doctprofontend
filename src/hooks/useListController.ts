@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 export const useListController = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -6,20 +6,20 @@ export const useListController = () => {
   const [searchValue, setSearchValue] = useState("");
   const [filterValues, setFilterValues] = useState<Record<string, any>>({});
 
-  const onPageChange = (page: number, size?: number) => {
+  const onPageChange = useCallback((page: number, size?: number) => {
     setCurrentPage(page);
     if (size) setPageSize(size);
-  };
+  }, []);
 
-  const onSearch = (value: string) => {
+  const onSearch = useCallback((value: string) => {
     setSearchValue(value);
     setCurrentPage(1);
-  };
+  }, []);
 
-  const onFilterChange = (filters: Record<string, any>) => {
+  const onFilterChange = useCallback((filters: Record<string, any>) => {
     setFilterValues(filters);
     setCurrentPage(1);
-  };
+  }, []);
 
   return {
     currentPage,

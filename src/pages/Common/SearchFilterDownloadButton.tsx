@@ -6,7 +6,7 @@ import {
   FileTextOutlined,
 } from "@ant-design/icons";
 import { Button, Checkbox, Dropdown, Input, Space, DatePicker, Select } from "antd";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import type { Dayjs } from "dayjs";
 
@@ -43,11 +43,19 @@ const SearchFilterDownloadButton = ({
   const [activeFilterKey, setActiveFilterKey] = useState<string | null>(null);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const ignoreCloseRef = useRef(false);
+  const filterKeysSignature = useMemo(
+    () => filterOptions.map((option) => option.key).join("|"),
+    [filterOptions],
+  );
+  const controlledFilterSignature = useMemo(
+    () => JSON.stringify(controlledFilterValues || {}),
+    [controlledFilterValues],
+  );
 
   // Keep current active filter if it still exists; otherwise fall back to first option.
   useEffect(() => {
     if (filterOptions.length === 0) {
-      setActiveFilterKey(null);
+      setActiveFilterKey((prev) => (prev === null ? prev : null));
       return;
     }
 
@@ -55,13 +63,17 @@ const SearchFilterDownloadButton = ({
       if (prev && filterOptions.some((option) => option.key === prev)) {
         return prev;
       }
-      return filterOptions[0].key;
+      const nextKey = filterOptions[0]?.key ?? null;
+      return prev === nextKey ? prev : nextKey;
     });
-  }, [filterOptions]);
+  }, [filterKeysSignature]);
 
   useEffect(() => {
-    setFilterValues(controlledFilterValues || {});
-  }, [controlledFilterValues]);
+    const currentSignature = JSON.stringify(filterValues || {});
+    if (currentSignature !== controlledFilterSignature) {
+      setFilterValues(controlledFilterValues || {});
+    }
+  }, [controlledFilterSignature]);
 
   const normalizeOptions = (options: CheckboxOption[] = []) => {
     return options.map((opt) =>

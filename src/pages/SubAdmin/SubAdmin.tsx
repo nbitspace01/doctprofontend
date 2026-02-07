@@ -24,6 +24,8 @@ interface SubAdminData {
   role: string;
   district?: string;
   state?: string;
+  district_id?: string;
+  state_id?: string;
   organization_type: string;
   status: string;
   profile_image?: string;
@@ -73,7 +75,7 @@ const SubAdmin: React.FC = () => {
         const stateOpts =
           (states || []).map((s: any) => ({
             label: s.name,
-            value: s.name,
+            value: s.id,
             id: s.id,
           })) ?? [];
         setStateOptions(stateOpts);
@@ -88,12 +90,14 @@ const SubAdmin: React.FC = () => {
     loadLocations();
   }, []);
 
+  const selectedState = filterValues.state;
+  const selectedDistrict = filterValues.district;
+
   useEffect(() => {
-    const selectedState = filterValues.state;
     const filteredDistricts = selectedState
       ? allDistricts.filter(
           (d: any) =>
-            d?.state?.name === selectedState ||
+            d?.state?.id === selectedState ||
             d?.state?.code === selectedState,
         )
       : allDistricts;
@@ -101,7 +105,7 @@ const SubAdmin: React.FC = () => {
     const districtOpts =
       (filteredDistricts || []).map((d: any) => ({
         label: d.name,
-        value: d.name,
+        value: d.id,
         stateName: d?.state?.name,
       })) ?? [];
 
@@ -111,13 +115,13 @@ const SubAdmin: React.FC = () => {
     if (prevState !== selectedState) {
       prevStateRef.current = selectedState;
       if (
-        filterValues.district &&
-        !districtOpts.some((opt) => opt.value === filterValues.district)
+        selectedDistrict &&
+        !districtOpts.some((opt) => opt.value === selectedDistrict)
       ) {
         onFilterChange({ ...filterValues, district: null });
       }
     }
-  }, [filterValues.state, allDistricts, filterValues, onFilterChange]);
+  }, [selectedState, selectedDistrict, allDistricts, onFilterChange, filterValues]);
 
   /* -------------------- Query -------------------- */
   const { data: subAdminResponse, isFetching } = useQuery<
