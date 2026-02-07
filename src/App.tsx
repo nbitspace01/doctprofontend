@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { ConfigProvider, theme, App as AntdApp } from "antd";
 import LoginPage from "./pages/Auth/LoginPage";
-import SignUp from "./pages/Auth/Signup/Signup";
+// import SignUp from "./pages/Auth/Signup/Signup";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Verification from "./pages/Auth/Verification/Verification";
 import MainLayout from "./pages/MainLayout";
@@ -81,11 +81,11 @@ const loginRoute = createRoute({
   component: LoginPage,
 });
 
-const signupRoute = createRoute({
-  getParentRoute: () => authLayoutRoute,
-  path: "signup",
-  component: SignUp,
-});
+// const signupRoute = createRoute({
+//   getParentRoute: () => authLayoutRoute,
+//   path: "signup",
+//   component: SignUp,
+// });
 
 const verificationRoute = createRoute({
   getParentRoute: () => authLayoutRoute,
@@ -229,7 +229,7 @@ const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   authLayoutRoute.addChildren([
     loginRoute,
-    signupRoute,
+    // signupRoute,
     verificationRoute,
     forgotPasswordRoute,
     changePasswordRoute,

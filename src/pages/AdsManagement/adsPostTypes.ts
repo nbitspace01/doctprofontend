@@ -14,13 +14,19 @@ export interface AdsPostData {
   hospitalName: string;
   adType: string;
   displayLocation: string;
+  displayLocationId?: string | null;
+  districtId?: string | null;
+  district?: string | null;
+  districtName?: string | null;
   startDate: string; // ISO string
   endDate: string; // ISO string
   description: string;
   status: string;
   imageUrl?: string;
   country?: string;
+  countryId?: string | null;
   state?: string;
+  stateId?: string | null;
   redirectUrl?: string;
   contentType?: string;
   createdByName?: string;
@@ -46,6 +52,7 @@ export interface AdsPostFormValues {
   adType: string;
   country: string;
   state: string;
+  district?: string;
   contentType: string;
   imageUrl: string;
   startDate: string;
@@ -65,8 +72,11 @@ export interface AdsPostPayload {
   title: string;
   companyName: string;
   adType: string;
-  country: string;
-  state: string;
+  country?: string;
+  countryId?: string;
+  state?: string;
+  stateId?: string;
+  districtId?: string;
   contentType: string;
   imageUrl: string;
   startDate: string; // ISO string

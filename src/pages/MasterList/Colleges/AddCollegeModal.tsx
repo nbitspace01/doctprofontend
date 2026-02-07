@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  Select,
-  Form,
-  Input,
-  Button,
-  App,
-} from "antd";
+import { Modal, Select, Form, Input, Button, App } from "antd";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { fetchHospitalListApi } from "../../../api/hospital.api";
 import { createCollegeApi, updateCollegeApi } from "../../../api/college.api";
-import { getCountries, getStates, getCities, getDistricts } from "../../../api/location.api";
+import {
+  getStates,
+  getDistricts,
+} from "../../../api/location.api";
 import { showError, showSuccess } from "../../Common/Notification";
 
 /* ---------- TYPES ---------- */
@@ -61,16 +57,24 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
   const isEditMode = Boolean(initialData);
 
   /* -------------------- Location Logic -------------------- */
-  const [states, setStates] = useState<{ label: string; value: string; key: string }[]>([]);
-  const [districts, setDistricts] = useState<{ label: string; value: string; key?: string }[]>([]);
-  const [cities, setCities] = useState<{ label: string; value: string; key?: string }[]>([]);
-
+  const [states, setStates] = useState<
+    { label: string; value: string; key: string }[]
+  >([]);
+  const [districts, setDistricts] = useState<
+    { label: string; value: string; key?: string }[]
+  >([]);
   useEffect(() => {
     const initLocations = async () => {
       try {
         // Load all states (no country filter) so edit modal works for any country.
         const stateData = await getStates();
-        setStates(stateData.map((s: any) => ({ label: s.name, value: s.name, key: s.id })));
+        setStates(
+          stateData.map((s: any) => ({
+            label: s.name,
+            value: s.name,
+            key: s.id,
+          })),
+        );
       } catch (error) {
         console.error("Failed to load locations", error);
       }
@@ -82,35 +86,21 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
     try {
       const stateId = option.key;
       if (!stateId) return;
+
       const districtData = await getDistricts(stateId);
       const mappedDistricts = districtData.map((d: any) => ({
         label: d.name,
         value: d.name,
         key: d.id,
       }));
+
       setDistricts(mappedDistricts);
-      setCities([]);
+
+      // reset dependent fields
       form.setFieldValue("district", undefined);
       form.setFieldValue("city", undefined);
     } catch (error) {
       console.error("Failed to load districts", error);
-    }
-  };
-
-  const handleDistrictChange = async (_districtName: string, option: any) => {
-    try {
-      const districtId = option.key;
-      if (!districtId) return;
-      const cityData = await getCities(districtId, true);
-      const mapped = cityData.map((c: any) => ({
-        label: c.name,
-        value: c.name,
-        key: c.id,
-      }));
-      setCities(mapped);
-      form.setFieldValue("city", undefined);
-    } catch (error) {
-      console.error("Failed to load cities", error);
     }
   };
 
@@ -147,7 +137,8 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
 
       // Find matching state option (case-insensitive)
       const stateOpt = states.find(
-        (s) => s.value.toLowerCase() === (initialData.state || "").toLowerCase()
+        (s) =>
+          s.value.toLowerCase() === (initialData.state || "").toLowerCase(),
       );
 
       if (stateOpt) {
@@ -163,18 +154,9 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
         // Pick district option
         const districtOpt = mappedDistricts.find(
           (d: { value: string }) =>
-            d.value.toLowerCase() === (initialData.district || "").toLowerCase()
+            d.value.toLowerCase() ===
+            (initialData.district || "").toLowerCase(),
         );
-
-        if (districtOpt) {
-          const cityData = await getCities(districtOpt.key, true);
-          const mappedCities = cityData.map((c: any) => ({
-            label: c.name,
-            value: c.name,
-            key: c.id,
-          }));
-          setCities(mappedCities);
-        }
 
         // Finally set all location fields
         form.setFieldsValue({
@@ -290,7 +272,6 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
           <Input />
         </Form.Item>
 
-
         <Form.Item
           label="State"
           name="state"
@@ -315,7 +296,6 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
             showSearch
             optionFilterProp="label"
             placeholder="Select district"
-            onChange={(value, option) => handleDistrictChange(value, option)}
           />
         </Form.Item>
 
@@ -325,10 +305,10 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
           rules={[{ required: true, message: "Please select city/town" }]}
         >
           <Select
-            options={cities.length ? cities : districts}
+            options={districts}
             showSearch
             optionFilterProp="label"
-            placeholder="Select city/town"
+            placeholder="Select district"
           />
         </Form.Item>
 

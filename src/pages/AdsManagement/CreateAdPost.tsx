@@ -31,6 +31,25 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
   >([]);
 
   const isEditMode = Boolean(initialData);
+  const findOption = (options: any[], value?: string) => {
+    if (!value) return undefined;
+    const normalized = String(value).trim().toLowerCase();
+    return options.find((opt) => {
+      const optValue = String(opt.value ?? "").trim();
+      const optKey = String(opt.key ?? "").trim();
+      const optLabel = String(opt.label ?? "").trim();
+      return (
+        optValue === value ||
+        optKey === value ||
+        optLabel.toLowerCase() === normalized
+      );
+    });
+  };
+
+  const resolveOptionId = (options: any[], value?: string) =>
+    findOption(options, value)?.value ?? value;
+  const resolveOptionLabel = (options: any[], value?: string) =>
+    findOption(options, value)?.label ?? value;
 
   /* -------------------- Location Logic -------------------- */
   useEffect(() => {
@@ -51,6 +70,9 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       setCountries(mappedCountries);
 
       if (initialData) {
+        const countryId =
+          initialData.countryId ??
+          resolveOptionId(mappedCountries, initialData.country);
         const initialValues: any = {
           ...initialData,
           startDate: initialData.startDate
@@ -58,28 +80,40 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
             : null,
           endDate: initialData.endDate ? dayjs(initialData.endDate) : null,
           imageUrl: initialData.imageUrl || null,
-          country: initialData.country,
+          country: countryId,
         };
 
         // 2️⃣ Fetch states for country
-        if (initialData.country) {
-          const stateData = await getStates(initialData.country);
+        if (countryId) {
+          const stateData = await getStates(countryId);
           const mappedStates = stateData.map((s: any) => ({
             label: s.name,
             value: s.id,
           }));
           setStates(mappedStates);
-          initialValues.state = initialData.state;
+          const stateId =
+            initialData.stateId ??
+            resolveOptionId(mappedStates, initialData.state);
+          initialValues.state = stateId;
 
           // 3️⃣ Fetch districts for state
-          if (initialData.state) {
-            const districtData = await getDistricts(initialData.state);
+          if (stateId) {
+            const districtData = await getDistricts(stateId);
             const mappedDistricts = districtData.map((d: any) => ({
               label: d.name,
               value: d.id,
             }));
             setDistricts(mappedDistricts);
-            initialValues.district = initialData.displayLocation;
+            const districtId =
+              initialData.districtId ??
+              initialData.displayLocationId ??
+              resolveOptionId(
+                mappedDistricts,
+                (initialData.displayLocation as any) ??
+                  initialData.district ??
+                  initialData.districtName,
+              );
+            initialValues.district = districtId;
           }
         }
 
@@ -105,11 +139,11 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
 
   const handleCountryChange = async (value: string, option: any) => {
     try {
-      const countryId = option.key;
+      const countryId = value;
       const stateData = await getStates(countryId);
       const mappedStates = stateData.map((s: any) => ({
         label: s.name,
-        value: s.name,
+        value: s.id,
         key: s.id,
       }));
       setStates(mappedStates);
@@ -123,12 +157,12 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
   };
   const handleStateChange = async (value: string, option: any) => {
     try {
-      const stateId = option.key;
+      const stateId = value;
       const districtData = await getDistricts(stateId);
       setDistricts(
         districtData.map((d: any) => ({
           label: d.name,
-          value: d.name,
+          value: d.id,
           key: d.id,
         })),
       );
@@ -139,35 +173,6 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       console.error("Failed to fetch districts", err);
     }
   };
-
-  /* -------------------- Effects -------------------- */
-  useEffect(() => {
-    if (!open) return;
-
-    if (initialData) {
-      form.setFieldsValue({
-        ...initialData,
-        district: initialData.displayLocation,
-        startDate: dayjs(initialData.startDate),
-        endDate: dayjs(initialData.endDate),
-        imageUrl: initialData.imageUrl,
-      });
-
-      if (initialData.imageUrl) {
-        setFileList([
-          {
-            uid: "-1",
-            name: "image",
-            status: "done",
-            url: initialData.imageUrl,
-          },
-        ]);
-      }
-    } else {
-      form.resetFields();
-      setFileList([]);
-    }
-  }, [open, initialData, form]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
@@ -241,12 +246,18 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
       formData.append("title", values.title);
       formData.append("companyName", values.companyName);
       formData.append("adType", values.adType);
-      formData.append("country", values.country);
-      formData.append("state", values.state);
+      if (values.country) formData.append("countryId", values.country);
+      if (values.state) formData.append("stateId", values.state);
       formData.append("contentType", values.contentType);
       formData.append("redirectUrl", values.redirectUrl);
       formData.append("description", values.description);
-      formData.append("displayLocation", values.district);
+      if (values.district) {
+        formData.append("districtId", values.district);
+        const districtLabel = resolveOptionLabel(districts, values.district);
+        if (districtLabel) {
+          formData.append("displayLocation", districtLabel);
+        }
+      }
       formData.append("startDate", values.startDate.toISOString());
       formData.append("endDate", values.endDate.toISOString());
 
@@ -308,8 +319,8 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
           className="space-y-2"
           initialValues={{
             status: "DRAFT",
-            contentType: "image",
-            adType: "Banner",
+            contentType: "IMAGE",
+            adType: "BANNER",
           }}
         >
           <AdsPostFormFields
@@ -346,7 +357,7 @@ const CreateAdPost: React.FC<CreateAdPostProps> = ({
             </Button>
             <Button
               type="primary"
-              onClick={() => handleSubmit("PUBLISH")}
+              onClick={() => handleSubmit("PENDING")}
               loading={
                 uploading ||
                 createMutation.isPending ||

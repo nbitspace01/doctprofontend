@@ -43,6 +43,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   const USER_ID = localStorage.getItem("userId");
+  const roleFromStorage = localStorage.getItem("roleName");
 
   React.useEffect(() => {
     if (initialValues) {
@@ -50,6 +51,16 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
       setPreviewUrl(initialValues.profilePicture || null);
     }
   }, [form, initialValues]);
+
+  const normalizedRole = (
+    initialValues?.role ||
+    roleFromStorage ||
+    ""
+  )
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const isHospitalAdmin = normalizedRole === "hospitaladmin";
 
   const updateProfileMutation = useMutation({
     mutationFn: async (values: any) => {
@@ -60,6 +71,9 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
 
       formData.append("first_name", firstName);
       formData.append("last_name", lastName);
+      if (isHospitalAdmin) {
+        formData.append("name", values.fullName || "");
+      }
       formData.append("note", values.note || "");
       if (values.phoneNumber) {
         formData.append("phone", values.phoneNumber);
@@ -67,6 +81,9 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
 
       if (file) {
         formData.append("profile_picture", file);
+        if (isHospitalAdmin) {
+          formData.append("logo", file);
+        }
       }
 
       // Use centralized API

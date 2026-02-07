@@ -1,4 +1,4 @@
-import { App, Avatar, Button, Drawer, message, Tag } from "antd";
+import { App, Avatar, Button, Drawer, Image, message, Tag } from "antd";
 import { MailOutlined, PhoneOutlined } from "@ant-design/icons";
 import FormattedDate from "../../Common/FormattedDate";
 import StatusBadge from "../../Common/StatusBadge";
@@ -11,9 +11,13 @@ export interface HospitalData {
   name: string;
   branchLocation: string;
   address?: string;
-  city: string;
-  state: string;
-  country: string;
+  city?: string;
+  district?: string;
+  districtId?: string;
+  state?: string;
+  stateId?: string;
+  country?: string;
+  countryId?: string;
   type?: string;
   zipcode?: string;
   email: string;
@@ -131,14 +135,22 @@ const ClinicViewDrawer = ({
       <div className="px-2">
         {/* Header */}
         <div className="flex items-center gap-4 mb-6">
-          <Avatar
-            size={64}
-            src={hospitalData.logoUrl} // image URL
-            className="bg-button-primary text-white font-semibold"
-            onError={() => false} // prevents broken image icon
-          >
-            {hospitalData.name?.charAt(0)?.toUpperCase()}
-          </Avatar>
+          {hospitalData.logoUrl ? (
+            <Image
+              src={hospitalData.logoUrl}
+              width={70}
+              height={70}
+              alt="Hospital Logo"
+              className="rounded-full"
+            />
+          ) : (
+            <Avatar
+              size={60}
+              className="bg-button-primary text-white rounded-full"
+            >
+              {hospitalData.name?.charAt(0)?.toUpperCase()}
+            </Avatar>
+          )}
 
           <div>
             <h2 className="text-xl font-semibold">{hospitalData.name}</h2>
@@ -151,7 +163,7 @@ const ClinicViewDrawer = ({
           <div>
             <p className="text-gray-600">Address</p>
             <p className="font-medium">
-              {hospitalData.city}, {hospitalData.state}, {hospitalData.country}
+              {hospitalData.branchLocation}, {hospitalData.state}, {hospitalData.country}
             </p>
           </div>
 

@@ -54,7 +54,14 @@ const ClinicsList: React.FC = () => {
     staleTime: 0,
   });
 
-  const hospitals = data?.data ?? [];
+  const hospitals = (data?.data ?? []).map((h: any) => ({
+    ...h,
+    city: h.city ?? h.district ?? h.branchLocation,
+    district: h.district ?? h.city,
+    districtId: h.districtId ?? h.cityId,
+    stateId: h.stateId,
+    countryId: h.countryId,
+  }));
   const totalCount = data?.total ?? 0;
 
   const handleOpenModal = () => setIsModalVisible(true);
@@ -182,7 +189,6 @@ const ClinicsList: React.FC = () => {
         key: "address",
         render: (_: unknown, record: HospitalData) => {
           const parts = [
-            record.branchLocation,
             record.city,
             record.state,
             record.country,

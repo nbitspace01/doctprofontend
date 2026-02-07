@@ -125,18 +125,32 @@ const KycList: React.FC = () => {
   //   });
   // };
 
-  const filterOptions = useMemo(() => [
-    { label: "Name", key: "name", type: "text" as const },
-    { label: "Email", key: "email", type: "text" as const },
-    { label: "Phone", key: "phone", type: "text" as const },
-    { label: "Role", key: "role", type: "text" as const },
-    {
-      label: "KYC Status",
-      key: "kyc_status",
-      type: "checkbox" as const,
-      options: ["APPROVED", "REJECTED", "PENDING"],
-    },
-  ], []);
+  const filterOptions = useMemo(
+    () => [
+      { label: "Name", key: "name", type: "text" as const },
+      { label: "Email", key: "email", type: "text" as const },
+      { label: "Phone", key: "phone", type: "text" as const },
+      {
+        label: "Role",
+        key: "role",
+        type: "checkbox" as const,
+        options: [
+          { label: "Admin", value: "admin" },
+          { label: "Sub Admin", value: "subadmin" },
+          { label: "Hospital Admin", value: "hospitaladmin" },
+          { label: "Students", value: "students" },
+          { label: "Health Professional", value: "healthcareProfessional" },
+        ],
+      },
+      {
+        label: "KYC Status",
+        key: "kyc_status",
+        type: "checkbox" as const,
+        options: ["APPROVED", "REJECTED", "PENDING"],
+      },
+    ],
+    [],
+  );
 
   /* ---------- COLUMNS ---------- */
   const columns = useMemo(
@@ -162,15 +176,15 @@ const KycList: React.FC = () => {
         key: "phone",
       },
       {
+        title: "ID Proof No.",
+        dataIndex: "kycId",
+        key: "kycId",
+      },
+      {
         title: "Role",
         dataIndex: "role",
         key: "role",
         render: (role: string) => <span className="capitalize">{role}</span>,
-      },
-      {
-        title: "ID Proof No.",
-        dataIndex: "kycId",
-        key: "kycId",
       },
       {
         title: "Created On",

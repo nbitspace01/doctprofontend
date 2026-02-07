@@ -34,7 +34,7 @@ const HospitalKYC: React.FC<HospitalKYCProps> = ({
       <Form.Item
         name="id_proof_number"
         label="ID Proof Number"
-        rules={[{ required: true, message: "Please enter ID proof number" }]}
+        rules={[{ required: true, message: "Please enter ID proof number", min: 6 }]}
       >
         <Input placeholder="Enter ID Proof Number" />
       </Form.Item>
@@ -90,7 +90,7 @@ const HospitalKYC: React.FC<HospitalKYCProps> = ({
       <Form.Item
         name="license_number"
         label="License Number"
-        rules={[{ required: true, message: "Please enter license number" }]}
+        rules={[{ required: true, message: "Please enter license number", min: 6 }]}
       >
         <Input placeholder="Enter License Number" />
       </Form.Item>

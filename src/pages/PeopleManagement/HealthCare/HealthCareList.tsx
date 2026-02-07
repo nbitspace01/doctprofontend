@@ -309,6 +309,7 @@ const HealthCareList: React.FC = () => {
         onPageChange={onPageChange}
         onSearch={onSearch}
         onFilterChange={onFilterChange}
+        filterValues={filterValues}
         onDownload={handleDownload}
       />
 

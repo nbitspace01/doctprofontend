@@ -4,13 +4,14 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import StatusBadge from "../../Common/StatusBadge";
 import { updateHospitalApi } from "../../../api/hospital.api";
+import { CrownFilled } from "@ant-design/icons";
 
 interface HospitalData {
   id: string;
   name: string;
   branchLocation: string;
-  address: string | null;
-  status: "active" | "inactive" | "pending";
+  isHeadBranch: boolean;
+  status: "ACTIVE" | "INACTIVE" | "PENDING";
   logoUrl: string | null;
   created_at: string;
   updated_at: string;
@@ -147,7 +148,15 @@ const HospitalViewDrawer: React.FC<HospitalViewDrawerProps> = ({
                 {avatarInitial}
               </Avatar>
               <div>
-                <h3 className="text-xl font-semibold">{displayName}</h3>
+                <h3 className="text-xl font-semibold flex items-center gap-1">
+                  {displayName}
+                  {hospitalData.isHeadBranch && (
+                    <CrownFilled
+                      className="text-yellow-500"
+                      title="Head Branch"
+                    />
+                  )}
+                </h3>
               </div>
             </div>
 

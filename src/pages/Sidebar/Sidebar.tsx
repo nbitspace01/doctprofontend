@@ -278,7 +278,7 @@ const Sidebar: React.FC = () => {
                 "people",
                 "ad-management",
                 "job-post",
-                "report-management",
+                // "report-management",
                 "kyc",
               ].includes(i.id),
             )

@@ -47,6 +47,14 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
   const displayEmail = userProfile?.email || initialProfileData.email;
   const displayPhone = userProfile?.phone || initialProfileData.phone;
   const displayNote = userProfile?.note ?? initialProfileData.note;
+  const normalizedRole = (displayRole || "")
+    .toString()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+  const isHospitalAdmin = normalizedRole === "hospitaladmin";
+  const profileImage = isHospitalAdmin
+    ? userProfile?.logoUrl || userProfile?.profile_picture
+    : userProfile?.profile_picture;
 
   const profileData = {
     name: displayName,
@@ -90,8 +98,8 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
         <div className="flex flex-col space-y-6 h-full">
           <div className="flex-1">
             <div className="flex items-center space-x-4">
-              <Avatar size={64} src={userProfile?.profile_picture} className="bg-button-primary">
-                {!userProfile?.profile_picture && profileData.name.charAt(0)}
+              <Avatar size={64} src={profileImage} className="bg-button-primary">
+                {!profileImage && profileData.name.charAt(0)}
               </Avatar>
               <div>
                 <h2 className="text-lg font-medium mt-1">{profileData.name}</h2>
@@ -154,7 +162,7 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
           note: profileData.note,
           phoneNumber: profileData.phone,
           role: profileData.role,
-          profilePicture: userProfile?.profile_picture,
+          profilePicture: profileImage,
         }}
       />
       <ResetPasswordModal

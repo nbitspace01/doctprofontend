@@ -1,26 +1,15 @@
-# Logs
-logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+node_modules/
+build/
+dist/
+.env
 
-node_modules
-dist
-dist-ssr
-*.local
-*.env
-build
+# Dev scripts and test files
+# _dev_scripts/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Old docs folder (now in _dev_scripts/docs)
+Docs/
+Doc/
+
+# Docker (uncomment if needed)
+# Dockerfile
+# docker-compose.yml

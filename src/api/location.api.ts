@@ -12,15 +12,8 @@ export const getStates = async (countryId?: string) => {
   return apiClient.get<any>(`/api/location/states${query}`);
 };
 
-// Fetch Districts by State ID
-export const getDistricts = async (stateId: string) => {
-  return apiClient.get<any>(`/api/location/districts?stateId=${stateId}`);
-};
-
-// Fetch Cities by District ID (preferred) or State ID fallback
-export const getCities = async (stateOrDistrictId: string, useDistrict = false) => {
-  if (useDistrict) {
-    return apiClient.get<any>(`/api/location/cities?districtId=${stateOrDistrictId}`);
-  }
-  return apiClient.get<any>(`/api/location/cities?stateId=${stateOrDistrictId}`);
+// Fetch Districts by State ID (stateId optional)
+export const getDistricts = async (stateId?: string) => {
+  const query = stateId ? `?stateId=${stateId}` : "";
+  return apiClient.get<any>(`/api/location/districts${query}`);
 };

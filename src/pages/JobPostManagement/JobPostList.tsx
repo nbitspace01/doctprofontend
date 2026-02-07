@@ -82,7 +82,13 @@ const JobPostList: React.FC = () => {
     staleTime: 0,
   });
 
-  const allJobPost = jobPostData?.data ?? [];
+  const allJobPost = (jobPostData?.data ?? []).map((job: any) => ({
+    ...job,
+    location: job.location ?? job.district ?? job.state ?? "",
+    districtId: job.districtId ?? null,
+    stateId: job.stateId ?? null,
+    countryId: job.countryId ?? null,
+  }));
   const totalCount = jobPostData?.total ?? 0;
 
   /* -------------------- Mutation -------------------- */
@@ -172,13 +178,13 @@ const JobPostList: React.FC = () => {
         label: "Employment Type",
         key: "workType",
         type: "checkbox" as const,
-        options: ["Full Time", "Part Time", "Contract"],
+        options: ["Full Time", "Full-time", "Part Time", "Part-time", "Contract"],
       },
       {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["OPEN", "CLOSE", "Expired", "Pending"],
+        options: ["OPEN", "CLOSED", "EXPIRED", "PENDING", "DRAFT"],
       },
     ],
     [],
@@ -250,6 +256,7 @@ const JobPostList: React.FC = () => {
         pageSize={pageSize}
         total={totalCount}
         filters={filterOptions}
+        filterValues={filterValues}
         searchValue={searchValue}
         onPageChange={onPageChange}
         onSearch={onSearch}

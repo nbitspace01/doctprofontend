@@ -1,20 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import {
-  App,
-  Button,
-  Form,
-  Input,
-  Modal,
-  Select,
-  Switch,
-} from "antd";
+import { App, Button, Form, Input, Modal, Select, Switch } from "antd";
 
 import {
   createHospitalApi,
   updateHospitalApi,
 } from "../../../api/hospital.api";
-import { getCountries, getStates, getCities } from "../../../api/location.api";
+import {
+  getCountries,
+  getStates,
+  getDistricts,
+} from "../../../api/location.api";
 import { showError, showSuccess } from "../../Common/Notification";
 
 /* -------------------- Types -------------------- */
@@ -23,7 +19,7 @@ interface HospitalData {
   name: string;
   logoUrl: string | null;
   branchLocation: string;
-  city?: { id: string, name: string }; // Relation
+  city?: { id: string; name: string }; // Relation
   cityId?: string;
   stateId?: string;
   status: string;
@@ -56,8 +52,8 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   const isEditMode = Boolean(initialData);
   const [states, setStates] = useState<any[]>([]);
-  const [cities, setCities] = useState<any[]>([]);
-  
+  const [districts, setdistricts] = useState<any[]>([]);
+
   // Helper state for filtering (not submitted)
   const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
 
@@ -66,10 +62,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     const initLocations = async () => {
       try {
         const countries = await getCountries();
-        const india = countries.find((c: any) => c.code === "IN" || c.name === "India");
+        const india = countries.find(
+          (c: any) => c.code === "IN" || c.name === "India",
+        );
         if (india) {
           const stateData = await getStates(india.id);
-          setStates(stateData.map((s: any) => ({ label: s.name, value: s.id }))); // value is ID for fetching cities
+          setStates(
+            stateData.map((s: any) => ({ label: s.name, value: s.id })),
+          ); // value is ID for fetching districts
         }
       } catch (error) {
         console.error("Failed to load locations", error);
@@ -82,11 +82,11 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   const handleStateChange = async (stateId: string) => {
     try {
       setSelectedStateId(stateId);
-      form.setFieldValue('cityId', undefined); // Reset city
-      const cityData = await getCities(stateId, false); // fetch by state
-      setCities(cityData.map((c: any) => ({ label: c.name, value: c.id })));
+      form.setFieldValue("cityId", undefined); // Reset city
+      const cityData = await getDistricts(stateId); // fetch by state
+      setdistricts(cityData.map((c: any) => ({ label: c.name, value: c.id })));
     } catch (error) {
-      console.error("Failed to load cities", error);
+      console.error("Failed to load districts", error);
     }
   };
 
@@ -97,20 +97,24 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       form.setFieldsValue({
         name: initialData.name,
         isHeadBranch: false,
-        cityId: initialData.cityId
+        cityId: initialData.cityId,
       });
-      
+
       if (initialData.stateId) {
         setSelectedStateId(initialData.stateId);
-        // Fetch cities for the existing state so the city dropdown works
-        getCities(initialData.stateId, false).then((cityData) => {
-          setCities(cityData.map((c: any) => ({ label: c.name, value: c.id })));
-        }).catch(err => console.error(err));
+        // Fetch districts for the existing state so the city dropdown works
+        getDistricts(initialData.stateId)
+          .then((cityData) => {
+            setdistricts(
+              cityData.map((c: any) => ({ label: c.name, value: c.id })),
+            );
+          })
+          .catch((err) => console.error(err));
       }
     } else {
       form.resetFields();
       setSelectedStateId(null);
-      setCities([]);
+      setdistricts([]);
     }
   }, [open, initialData, form]);
 
@@ -121,7 +125,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         ...values,
         // branchLocation: values.branchLocation?.toLowerCase(), // Deprecated
       }),
-      // ... same success/error handlers
+    // ... same success/error handlers
     onSuccess: (data: any) => {
       showSuccess(notification, {
         message: "Hospital Created Successfully",
@@ -150,7 +154,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       return updateHospitalApi(initialData!.id, values);
     },
     onSuccess: (data: any) => {
-       showSuccess(notification, {
+      showSuccess(notification, {
         message: "Hospital Updated Successfully",
         description: data.message,
       });
@@ -186,26 +190,29 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     >
       <Form form={form} onFinish={handleSubmit}>
         <div className="space-y-6 py-4">
-          {/* Hospital/Clinic Name */}
+          {/* Hospital Name */}
           <Form.Item
+            
             name="name"
-            label="Hospital/Clinic Name"
+            label="Hospital Name"
             rules={[{ required: true }]}
           >
-            <Input />
+            <Input placeholder="Enter Hospital Name" />
           </Form.Item>
 
           {/* Branch Location */}
           {/* Branch Location (State Filter + City Selection) */}
           <Form.Item label="Filter by State" style={{ marginBottom: 12 }}>
-            <Select 
+            <Select
               placeholder="Select State first"
-              options={states} 
+              options={states}
               value={selectedStateId}
               onChange={handleStateChange}
               showSearch
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             />
           </Form.Item>
@@ -215,12 +222,14 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
             label="Branch Location (City)"
             rules={[{ required: true, message: "Please select city" }]}
           >
-            <Select 
+            <Select
               placeholder="Select City"
-              options={cities} 
+              options={districts}
               showSearch
               filterOption={(input, option) =>
-                (option?.label ?? "").toLowerCase().includes(input.toLowerCase())
+                (option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
               }
             />
           </Form.Item>
