@@ -36,6 +36,9 @@ interface UserProfile {
   note: string | null;
   profile_picture?: string;
   logoUrl?: string | null;
+  hr_full_name?: string | null;
+  hr_phone?: string | null;
+  website?: string | null;
 }
 
 const Header: React.FC = () => {
@@ -108,6 +111,9 @@ const Header: React.FC = () => {
     note: userProfile?.note ?? "",
     email: displayEmail,
     phone: displayPhone,
+    hr_full_name: userProfile?.hr_full_name || "",
+    hr_phone: userProfile?.hr_phone || "",
+    website: userProfile?.website || "",
   };
 
   const searchMutation = useMutation({
@@ -183,6 +189,9 @@ const Header: React.FC = () => {
           note: userProfile?.note ?? "",
           phoneNumber: displayPhone || "",
           role: displayRole || "",
+          hr_full_name: profileData.hr_full_name || "",
+          hr_phone: profileData.hr_phone || "",
+          website: userProfile?.website || "",
         }}
       />
     </>

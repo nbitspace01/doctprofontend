@@ -230,8 +230,8 @@ const AdsPostList: React.FC<roleProps> = ({ role }) => {
         render: (_: any, record: AdsPostData) => (
           <CommonDropdown
             onView={() => handleView(record)}
-            onEdit={() => handleEdit(record)}
-            onDelete={() => handleDelete(record)}
+            onEdit={currentRole !== "admin" ? () => handleEdit(record) : undefined}
+            onDelete={currentRole !== "admin" ? () => handleDelete(record) : undefined}
           />
         ),
       },

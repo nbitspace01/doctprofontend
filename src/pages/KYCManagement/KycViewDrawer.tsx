@@ -205,11 +205,11 @@ const KycViewDrawer: React.FC<KycViewDrawerProps> = ({
               <div className="space-y-4">
                 {kycData.documents?.map((doc, index) => (
                   <div key={index} className="border rounded-lg p-4 bg-white">
-                    <div className="flex justify-between items-center mb-3">
+                    <div className="flex justify-between items-center mb-1">
                       <span className="font-medium">{doc.type}</span>
-
                       <StatusBadge status={doc.status.toUpperCase()} />
                     </div>
+                    <p className="font-small mb-5">Document No: {doc.document_number}</p>
 
                     <Image
                       src={doc.url}

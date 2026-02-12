@@ -191,7 +191,7 @@ const ClinicViewDrawer = ({
         </div>
 
         {/* Contact Info */}
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-2 gap-6 mb-6">
           <div>
             <p className="text-gray-600 flex items-center gap-2">
               <MailOutlined /> Email
@@ -204,6 +204,23 @@ const ClinicViewDrawer = ({
               <PhoneOutlined /> Phone
             </p>
             <p className="font-medium">{hospitalData.phone}</p>
+          </div>
+        </div>
+
+        {/* HR Contact Info */}
+        <div className="grid grid-cols-2 gap-6">
+          <div>
+            <p className="text-gray-600 flex items-center gap-2">
+              <MailOutlined /> HR Name
+            </p>
+            <p className="font-medium">{hospitalData.hr_full_name}</p>
+          </div>
+
+          <div>
+            <p className="text-gray-600 flex items-center gap-2">
+              <PhoneOutlined /> Phone
+            </p>
+            <p className="font-medium">{hospitalData.hr_phone}</p>
           </div>
         </div>
       </div>

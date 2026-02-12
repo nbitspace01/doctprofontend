@@ -28,6 +28,7 @@ const HospitalKYC: React.FC<HospitalKYCProps> = ({
           <Select.Option value="Aadhaar Card">Aadhaar Card</Select.Option>
           <Select.Option value="PAN Card">PAN Card</Select.Option>
           <Select.Option value="Voter ID">Voter ID</Select.Option>
+          <Select.Option value="ID Card">ID Card</Select.Option>
         </Select>
       </Form.Item>
 

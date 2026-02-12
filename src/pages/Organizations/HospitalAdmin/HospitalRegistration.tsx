@@ -218,15 +218,19 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
         const adminIdProof = idProofDoc || kyc?.adminIdProof;
         const hospitalLicense = licenseDoc || kyc?.hospitalLicense;
+        const resolveDocNumber = (doc: any) =>
+          doc?.number ?? doc?.document_number;
 
-        if (adminIdProof?.number) {
-          form.setFieldsValue({ id_proof_number: adminIdProof.number });
+        const adminIdProofNumber = resolveDocNumber(adminIdProof);
+        if (adminIdProofNumber) {
+          form.setFieldsValue({ id_proof_number: adminIdProofNumber });
         }
         if (adminIdProof?.type) {
           form.setFieldsValue({ id_proof_type: adminIdProof.type });
         }
-        if (hospitalLicense?.number) {
-          form.setFieldsValue({ license_number: hospitalLicense.number });
+        const hospitalLicenseNumber = resolveDocNumber(hospitalLicense);
+        if (hospitalLicenseNumber) {
+          form.setFieldsValue({ license_number: hospitalLicenseNumber });
         }
         if (hospitalLicense?.type) {
           form.setFieldsValue({ license_type: hospitalLicense.type });
@@ -630,7 +634,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
   };
 
   const modalTitle = isEditMode
-    ? "Edit Hospital/Clinic"
+    ? "Edit Hospital"
     : currentStep === 1
       ? "Registration"
       : currentStep === 2

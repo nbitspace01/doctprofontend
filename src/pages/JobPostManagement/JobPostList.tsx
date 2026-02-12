@@ -9,13 +9,13 @@ import CommonTable from "../../components/Common/CommonTable";
 import { App, Button } from "antd";
 import {
   deleteJobPostApi,
-  fetchJobPostsApi,
   fetchOwnJobPostsApi,
 } from "../../api/jobpost.api";
 import StatusBadge from "../Common/StatusBadge";
 import { roleProps, UserRole } from "../../App";
 import { JobPostBase, JobPostResponse } from "./jobPostTypes";
 import { Plus } from "lucide-react";
+import { userRole } from "../Common/constant.function";
 
 const JobPostList: React.FC = () => {
   const { modal, message } = App.useApp();
@@ -159,8 +159,8 @@ const JobPostList: React.FC = () => {
         render: (_: any, record: JobPostBase) => (
           <CommonDropdown
             onView={() => handleView(record)}
-            onEdit={() => handleEdit(record)}
-            onDelete={() => handleDelete(record)}
+            onEdit={currentRole !== "admin" ? () => handleEdit(record) : undefined}
+            onDelete={currentRole !== "admin" ? () => handleDelete(record) : undefined}
           />
         ),
       },
@@ -178,7 +178,7 @@ const JobPostList: React.FC = () => {
         label: "Employment Type",
         key: "workType",
         type: "checkbox" as const,
-        options: ["Full Time", "Full-time", "Part Time", "Part-time", "Contract"],
+        options: ["Full Time", "Part Time", "Contract"],
       },
       {
         label: "Status",
