@@ -11,62 +11,12 @@ import {
   App,
 } from "antd";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import axios from "axios";
-import { getToken } from "../Common/authUtils";
 import dayjs from "dayjs";
 import { createJobPostApi, updateJobPostApi } from "../../api/jobpost.api";
 import { showError, showSuccess } from "../Common/Notification";
 import { fetchDegreesApi } from "../../api/degree.api";
 import { getCountries, getDistricts, getStates } from "../../api/location.api";
-
-interface JobPostData {
-  id: string;
-  title: string;
-  specialization: string;
-  country: string;
-  countryId?: string;
-  state: string;
-  stateId?: string;
-  district: string;
-  districtId?: string;
-  location: string;
-  experience_required: string;
-  workType: string;
-  status: string;
-  noOfApplications?: number;
-  valid_from?: string;
-  expires_at?: string;
-  description?: string;
-  hospital_bio?: string;
-  salary?: string;
-  degree_required?: string;
-  hospital_website?: string;
-}
-
-interface CreateJobPostProps {
-  open: boolean;
-  onCancel: () => void;
-  onSubmit: (values: any) => void;
-  initialData?: JobPostData | null;
-}
-
-interface JobPostFormValues {
-  title: string;
-  specialization: string;
-  country: string;
-  state: string;
-  district: string;
-  location: string;
-  experience_required: string;
-  workType: string;
-  valid_from?: Date;
-  expires_at?: Date;
-  description?: string;
-  hospital_bio?: string;
-  salary?: string;
-  degree_required?: string;
-  hospital_website?: string;
-}
+import { CreateJobPostProps, JobPostBase, JobPostFormValues } from "./jobPostTypes";
 
 const CreateJobPost: React.FC<CreateJobPostProps> = ({
   open,

@@ -51,6 +51,32 @@ export const totalCollege = () => {
   );
 };
 
+export const subAdminIcon = () => {
+  return (
+    <svg
+      width="54"
+      height="54"
+      viewBox="0 0 54 54"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer Circle */}
+      <rect width="54" height="54" rx="27" fill="#FCECEF" />
+
+      {/* Inner Circle (Lighter Maroon) */}
+      <rect x="5" y="5" width="44" height="44" rx="22" fill="#A83250" />
+
+      {/* New Icon - User with Badge */}
+      <path
+        d="M27 26C29.7614 26 32 23.7614 32 21C32 18.2386 29.7614 16 27 16C24.2386 16 22 18.2386 22 21C22 23.7614 24.2386 26 27 26ZM27 28C22.5817 28 19 30.6863 19 34V36H35V34C35 30.6863 31.4183 28 27 28ZM36 30L38 31L40 30L39 32L40 34L38 33L36 34L37 32L36 30Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+};
+
+
+
 export const AdsPostIcon = () => {
   return (
     <svg
@@ -168,6 +194,48 @@ export const totalHealthCare = () => {
     </svg>
   );
 };
+
+export const kycPending = () => {
+  return (
+    <svg
+      width="54"
+      height="54"
+      viewBox="0 0 54 54"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Outer Light Yellow Circle */}
+      <rect width="54" height="54" rx="27" fill="#FFF4CC" />
+
+      {/* Inner Dark Yellow Circle */}
+      <rect x="5" y="5" width="44" height="44" rx="22" fill="#D4A017" />
+
+      {/* Document Icon */}
+      <path
+        d="M23 18H31L35 22V34C35 35.1 34.1 36 33 36H23C21.9 36 21 35.1 21 34V20C21 18.9 21.9 18 23 18Z"
+        fill="white"
+      />
+
+      {/* Folded Corner */}
+      <path
+        d="M31 18V22H35"
+        stroke="#D4A017"
+        strokeWidth="2"
+      />
+
+      {/* Clock Icon (Pending) */}
+      <circle cx="27" cy="29" r="4" fill="#D4A017" />
+      <path
+        d="M27 27V29L29 30"
+        stroke="white"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+};
+
+
 export const ViewIcon = () => {
   return (
     <svg

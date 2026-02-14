@@ -24,6 +24,8 @@ interface HospitalData {
   districtId?: string;
   stateId?: string;
   stateName?: string;
+  isHeadBranch: boolean;
+  created_at: string;
   status: string;
   updated_at: string;
 }
@@ -111,7 +113,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
       form.setFieldsValue({
         name: initialData.name,
-        isHeadBranch: false,
+        isHeadBranch: initialData.isHeadBranch || false,
         cityId: resolvedCityId,
       });
 
@@ -261,7 +263,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
             label="Head Branch"
             valuePropName="checked"
           >
-            <Switch />
+            <Switch defaultChecked={initialData?.isHeadBranch || false} />
           </Form.Item>
 
           {/* Footer Buttons */}

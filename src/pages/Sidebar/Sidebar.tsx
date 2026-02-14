@@ -300,21 +300,15 @@ const Sidebar: React.FC = () => {
         {menuItems.map((item) => (
           <React.Fragment key={item.id}>
             <div
-              className={`flex items-center h-[55px] mb-2 text-base px-4 cursor-pointer rounded-md transition-all duration-300 ${
+              className={`flex items-center gap-3 h-[55px] mb-2 text-base px-4 cursor-pointer rounded-md transition-all duration-300 ${
                 selectedItem === item.id
                   ? "bg-blue-900 text-white shadow-lg scale-105"
                   : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
               }`}
               onClick={item.onClick}
             >
-              <span
-                className={
-                  selectedItem === item.id ? "text-white" : "text-gray-500"
-                }
-              >
-                {item.icon}
-              </span>
-              <span className="ml-3">{item.label}</span>
+              {item.icon}
+              <span className="leading-normal">{item.label}</span>
             </div>
 
             {item.subMenu && expandedMenus.includes(item.id) && (

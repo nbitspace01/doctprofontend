@@ -2,10 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, Spin, Alert } from "antd";
 import React, { useEffect, useState } from "react";
 import {
+  kycPending,
+  subAdminIcon,
   totalCollege,
   totalHealthCare,
   totalHospital,
   totalJobPost,
+  totalStudents,
 } from "../../pages/Common/SVG/svg.functions";
 import { Briefcase } from "lucide-react";
 import {
@@ -16,36 +19,33 @@ import {
 import { roleProps } from "../../App";
 
 // ---------------- Reusable Card ----------------
-  export const DashboardStatCard: React.FC<{
-    title: string;
-    value: number | string;
-    icon?: React.ReactNode;
-    gradientFrom?: string;
-    gradientTo?: string;
-  }> = ({
-    title,
-    value,
-    icon,
-    gradientFrom = "blue-500",
-    gradientTo = "blue-400",
-  }) => (
-    <Card className="shadow-lg rounded-xl p-5 hover:shadow-2xl transition-shadow duration-300">
-      <div className="flex items-center gap-4">
-        <div
-          className={`flex items-center justify-center w-18 h-18 rounded-full bg-gradient-to-tr from-${gradientFrom} to-${gradientTo} text-white text-xl font-semibold shadow-md`}
-        >
-          {icon || value}
-        </div>
-        <div>
-          <p className="text-gray-500 uppercase text-xs tracking-wide">
-            {title}
-          </p>
-          <p className="text-3xl font-extrabold text-gray-900 mt-1">{value}</p>
-        </div>
+export const DashboardStatCard: React.FC<{
+  title: string;
+  value: number | string;
+  icon?: React.ReactNode;
+  gradientFrom?: string;
+  gradientTo?: string;
+}> = ({
+  title,
+  value,
+  icon,
+  gradientFrom = "blue-500",
+  gradientTo = "blue-400",
+}) => (
+  <Card className="shadow-lg rounded-xl p-5 hover:shadow-2xl transition-shadow duration-300">
+    <div className="flex items-center gap-4">
+      <div
+        className={`flex items-center justify-center w-18 h-18 rounded-full bg-gradient-to-tr from-${gradientFrom} to-${gradientTo} text-white text-xl font-semibold shadow-md`}
+      >
+        {icon || value}
       </div>
-    </Card>
-  );
-
+      <div>
+        <p className="text-gray-500 uppercase text-xs tracking-wide">{title}</p>
+        <p className="text-3xl font-extrabold text-gray-900 mt-1">{value}</p>
+      </div>
+    </div>
+  </Card>
+);
 
 const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
   /* -------------------- Local State -------------------- */
@@ -119,7 +119,6 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
           ? "Hospital Admin Dashboard"
           : "Loading...";
 
-  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -128,7 +127,7 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
 
       {/* ---------------- ADMIN STATS CARDS ---------------- */}
       {currentRole === "admin" && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
           <DashboardStatCard
             title="Hospital Admin Count"
             value={dashboardCounts?.users?.hospital_admins ?? 0}
@@ -139,7 +138,35 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
           <DashboardStatCard
             title="Sub Admin Count"
             value={dashboardCounts?.sub_admins ?? 0}
-            icon={totalCollege()}
+            icon={subAdminIcon()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
+          <DashboardStatCard
+            title="Job Posts Count"
+            value={dashboardCounts?.jobs?.total ?? 0}
+            icon={totalJobPost()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
+          <DashboardStatCard
+            title="Student Count"
+            value={dashboardCounts?.users?.students ?? 0}
+            icon={totalStudents()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
+          <DashboardStatCard
+            title="Healthcare Professional Count"
+            value={dashboardCounts?.users?.healthcare_professionals ?? 0}
+            icon={totalHealthCare()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
+          <DashboardStatCard
+            title="KYC Pending"
+            value={dashboardCounts?.kyc?.pending ?? 0}
+            icon={kycPending()}
             gradientFrom="purple-500"
             gradientTo="pink-400"
           />
@@ -159,7 +186,7 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
           <DashboardStatCard
             title="KYC Pending"
             value={dashboardCounts?.pendingKyc ?? 0}
-            icon={totalHealthCare()}
+            icon={kycPending()}
             gradientFrom="orange-500"
             gradientTo="yellow-400"
           />

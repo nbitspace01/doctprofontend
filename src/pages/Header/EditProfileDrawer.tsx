@@ -27,6 +27,9 @@ interface EditProfileDrawerProps {
     phoneNumber: string;
     role: string;
     profilePicture?: string;
+    hr_full_name?: string;
+    hr_phone?: string;
+    website?: string;
   };
 }
 
@@ -48,16 +51,17 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
   React.useEffect(() => {
     if (!visible) return;
     if (initialValues) {
-      form.setFieldsValue(initialValues);
+      form.setFieldsValue({
+        ...initialValues,
+        hrName: initialValues.hr_full_name,
+        hrPhone: initialValues.hr_phone,
+        website: initialValues.website,
+      });
       setPreviewUrl(initialValues.profilePicture || null);
     }
   }, [form, initialValues, visible]);
 
-  const normalizedRole = (
-    initialValues?.role ||
-    roleFromStorage ||
-    ""
-  )
+  const normalizedRole = (initialValues?.role || roleFromStorage || "")
     .toString()
     .toLowerCase()
     .replace(/\s+/g, "");
@@ -67,18 +71,31 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
     mutationFn: async (values: any) => {
       const formData = new FormData();
 
-      const firstName = values.fullName.split(" ")[0] || values.fullName;
-      const lastName = values.fullName.split(" ").slice(1).join(" ") || "";
-
-      formData.append("first_name", firstName);
-      formData.append("last_name", lastName);
       if (isHospitalAdmin) {
         formData.append("name", values.fullName || "");
+
+        // Hospital main phone
+        if (values.phoneNumber) {
+          formData.append("phone", values.phoneNumber);
+        }
+
+        // ✅ NEW HR fields
+        formData.append("hr_full_name", values.hrName || "");
+        formData.append("hr_phone", values.hrPhone || "");
+        formData.append("website", values.website || "");
+      } else {
+        const firstName = values.fullName.split(" ")[0] || values.fullName;
+        const lastName = values.fullName.split(" ").slice(1).join(" ") || "";
+
+        formData.append("first_name", firstName);
+        formData.append("last_name", lastName);
+
+        if (values.phoneNumber) {
+          formData.append("phone", values.phoneNumber);
+        }
       }
+
       formData.append("note", values.note || "");
-      if (values.phoneNumber) {
-        formData.append("phone", values.phoneNumber);
-      }
 
       if (file) {
         formData.append("profile_picture", file);
@@ -87,8 +104,6 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         }
       }
 
-      // Use centralized API
-      // USER_ID captured from localStorage in component scope
       if (!USER_ID) throw new Error("User ID not found");
 
       return updateUserProfileApi(USER_ID, formData);
@@ -182,7 +197,7 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         </div>
       }
     >
-      <Form form={form} layout="vertical" initialValues={initialValues}>
+      <Form form={form} layout="vertical">
         <div className="mb-6 flex flex-col items-center">
           <Upload
             {...uploadProps}
@@ -236,6 +251,27 @@ const EditProfileDrawer: React.FC<EditProfileDrawerProps> = ({
         <Form.Item label="Role" name="role">
           <Input disabled className="bg-gray-50" />
         </Form.Item>
+
+        {isHospitalAdmin && (
+          <>
+            <Form.Item
+              label="HR Name"
+              name="hrName"
+              rules={[{ required: true, message: "HR Name is required" }]}
+            >
+              <Input placeholder="Enter HR Name" />
+            </Form.Item>
+
+            <PhoneNumberInput name="hrPhone" label="HR Phone Number" />
+            <Form.Item
+              label="Website"
+              name="website"
+              rules={[{ required: true, message: "Website is required" }]}
+            >
+              <Input placeholder="Enter Website URL" />
+            </Form.Item>
+          </>
+        )}
       </Form>
     </Drawer>
   );

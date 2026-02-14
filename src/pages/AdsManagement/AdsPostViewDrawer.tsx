@@ -46,7 +46,7 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       statusAdsPostAPI(id, { status: status }),
     onSuccess: (data: any) => {
-      console.log("satatus", data)
+      console.log("satatus", data);
       message.success(`Ad Status Updated Successfully`);
       queryClient.invalidateQueries({ queryKey: ["adspost"] });
       onClose();
@@ -70,6 +70,18 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
       id: adsData.id,
       status,
     };
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+
+    const date = new Date(dateString);
+
+    return date.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
 
   if (!adsData) {
@@ -146,7 +158,9 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
         <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
           <div>
             <div className="text-xs text-gray-500">Company Name</div>
-            <div className="text-sm font-medium mt-1">{adsData.companyName || "N/A"}</div>
+            <div className="text-sm font-medium mt-1">
+              {adsData.companyName || "N/A"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Ad Type</div>
@@ -154,7 +168,9 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
           </div>
           <div>
             <div className="text-xs text-gray-500">Created By</div>
-            <div className="text-sm font-medium mt-1">{adsData.createdByName || "N/A"}</div>
+            <div className="text-sm font-medium mt-1">
+              {adsData.createdByName || "N/A"}
+            </div>
           </div>
           <div>
             <div className="text-xs text-gray-500">Display Location</div>
@@ -164,11 +180,11 @@ const AdsPostViewDrawer: React.FC<AdsPostViewDrawerProps> = ({
           </div>
           <div>
             <div className="text-xs text-gray-500">Start Date</div>
-            <div className="text-sm font-medium mt-1">{adsData.startDate}</div>
+            <div className="text-sm font-medium mt-1">{formatDate(adsData.startDate)}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500">End Date</div>
-            <div className="text-sm font-medium mt-1">{adsData.endDate}</div>
+            <div className="text-sm font-medium mt-1">{formatDate(adsData.endDate)}</div>
           </div>
           <div>
             <div className="text-xs text-gray-500 mb-2">Status</div>
