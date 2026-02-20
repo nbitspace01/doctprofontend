@@ -43,7 +43,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
         ? dayjs(value, "YYYY-MM-DD")
         : dayjs(value)
       : undefined;
-  const findOption = (options: any[], value?: string) => {
+  const findOption = (options: any[], value?: string | null) => {
     if (!value) return undefined;
     const normalized = String(value).trim().toLowerCase();
     return options.find((opt) => {
@@ -58,7 +58,7 @@ const CreateJobPost: React.FC<CreateJobPostProps> = ({
     });
   };
 
-  const resolveOptionId = (options: any[], value?: string) =>
+  const resolveOptionId = (options: any[], value?: string | null) =>
     findOption(options, value)?.value ?? value;
 
   const { data: degreesResponse, isFetching: isFetchingDegrees } = useQuery({
