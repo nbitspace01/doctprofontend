@@ -360,8 +360,8 @@ const AddSubAdminModal: React.FC<AddSubAdminModalProps> = ({
           <Select
             placeholder="Select State"
             options={states}
-            onChange={(value, option) => {
-              handleStateChange(value, option);
+            onChange={(value) => {
+              handleStateChange(value);
             }}
           />
         </Form.Item>

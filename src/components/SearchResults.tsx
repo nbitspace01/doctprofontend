@@ -1,10 +1,10 @@
 import React from "react";
 import { Card, Avatar, Tag, Space, Typography, Spin, Empty } from "antd";
-import { SearchEntity } from "../api/searchentities";
+import { SearchEntity } from "../api/searchentities.api";
 import {
   getEntityTypeDisplayName,
   getEntityAvatar,
-} from "../api/searchentities";
+} from "../api/searchentities.api";
 
 const { Text, Title } = Typography;
 

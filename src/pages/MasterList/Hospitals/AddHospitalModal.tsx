@@ -20,10 +20,10 @@ interface HospitalData {
   logoUrl: string | null;
   branchLocation: string;
   city?: { id: string; name: string }; // Relation
-  cityId?: string;
-  districtId?: string;
-  stateId?: string;
-  stateName?: string;
+  cityId?: string | null;
+  districtId?: string | null;
+  stateId?: string | null;
+  stateName?: string | null;
   isHeadBranch: boolean;
   created_at: string;
   status: string;
@@ -61,7 +61,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   // Helper state for filtering (not submitted)
   const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
 
-  const resolveStateIdFromName = (stateValue?: string) => {
+  const resolveStateIdFromName = (stateValue?: string | null) => {
     if (!stateValue) return null;
     const normalized = stateValue.toLowerCase();
     const match = states.find(
