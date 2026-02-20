@@ -6,12 +6,10 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy source code
 COPY . .
-# Copy environment variables (if needed for build)
-COPY ../.env .env
 
 # Build the app
 RUN npm run build
