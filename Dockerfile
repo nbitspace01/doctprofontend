@@ -4,10 +4,16 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
 
+# Install dependencies
+RUN npm ci --omit=dev
+
+# Copy source code
 COPY . .
+# Copy environment variables (if needed for build)
+COPY ../.env .env
 
+# Build the app
 RUN npm run build
 
 # Stage 2: Production
