@@ -109,8 +109,8 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
         closeIcon={<CloseOutlined className="text-gray-600" />}
       >
         <div className="flex flex-col space-y-6 h-full">
-          <div className="flex-1">
-            <div className="flex items-center space-x-4">
+          <div className="flex-2">
+            <div className="flex items-center space-x-6">
               <Avatar
                 size={64}
                 src={profileImage}
@@ -140,8 +140,16 @@ const ViewProfileDrawer: React.FC<ViewProfileDrawerProps> = ({
 
                 <div>
                   <p className="text-gray-600 mb-1">Email Address</p>
-                  <p className="font-semibold">
-                    {profileData.email || "No email provided"}
+                  <p className="font-semibold break-words">
+                    {profileData.email ? (
+                      <>
+                        {profileData.email.slice(0, 20)}
+                        {/* <br /> */}
+                        {profileData.email.slice(20)}
+                      </>
+                    ) : (
+                      "No email provided"
+                    )}
                   </p>
                 </div>
 
