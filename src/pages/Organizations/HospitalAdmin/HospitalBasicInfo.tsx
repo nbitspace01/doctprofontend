@@ -175,7 +175,15 @@ const HospitalBasicInfo: React.FC<HospitalBasicInfoProps> = ({
           <Form.Item
             name="website"
             label="Website URL"
-            rules={[{ required: true, message: "Please enter website URL" }]}
+            rules={[
+              { required: true, message: "Please enter website URL" },
+              {
+                pattern:
+                  /^(https?:\/\/)?(www\.)?[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?(\/.*)?$/,
+                message: "Enter valid website (eg: www.example.com)",
+              },
+            ]}
+            // rules={[{ required: true, message: "Please enter website URL" }]}
           >
             <Input placeholder="https://www.example.com" />
           </Form.Item>
