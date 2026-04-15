@@ -1,29 +1,48 @@
 import React, { useState } from "react";
-import { Form, Input, Button, message } from "antd";
+import { App, Form, Input, Button } from "antd";
 import { MailOutlined } from "@ant-design/icons";
 import loginIllustration from "../../assets/illustrationlogin.png";
 import { Logo } from "../Common/SVG/svg.functions";
 import { useNavigate } from "@tanstack/react-router";
 import { forgotPasswordSendOtpApi } from "../../api/auth.api";
+import { showError, showSuccess } from "../Common/Notification";
 
 const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const onFinish = async (values: { email: string }) => {
+  const { notification } = App.useApp();
+  const onFinish = async (values: { identifier: string }) => {
     setLoading(true);
     try {
+      const trimmed = values.identifier.trim();
+      const isEmail = trimmed.includes("@");
       await forgotPasswordSendOtpApi({
-        email: values.email,
+        ...(isEmail ? { email: trimmed } : { phone: trimmed }),
       });
 
-      // Save email to localStorage so it's available in the verify OTP page
-      localStorage.setItem("userEmail", values.email);
+      // Save identifier to localStorage so it's available in the verify OTP page
+      localStorage.setItem("forgotPasswordIdentifier", trimmed);
+      localStorage.setItem("forgotPasswordMethod", isEmail ? "email" : "phone");
+      if (isEmail) {
+        localStorage.setItem("userEmail", trimmed);
+      } else {
+        localStorage.setItem("userPhone", trimmed);
+      }
       
-      message.success("Password reset link has been sent to your email");
+      showSuccess(notification, {
+        message: "OTP Sent",
+        description: isEmail
+          ? "OTP has been sent to your email"
+          : "OTP has been sent to your phone",
+      });
       navigate({ to: "/auth/forgot-password/verify-otp", replace: true });
     } catch (error: any) {
       console.error("Forgot password error:", error);
-      message.error(error.response?.data?.message ?? "Failed to send reset link");
+      showError(notification, {
+        message: "Request Failed",
+        description:
+          error.response?.data?.message ?? "Failed to send OTP",
+      });
     } finally {
       setLoading(false);
     }
@@ -49,25 +68,33 @@ const ForgotPassword: React.FC = () => {
             onFinish={onFinish}
             layout="vertical"
           >
-            <label htmlFor="email" className="text-lg font-medium">
+            <label htmlFor="identifier" className="text-lg font-medium">
               Forgot Password
             </label>
             <Form.Item
-              name="email"
+              name="identifier"
               rules={[
                 {
                   required: true,
-                  message: "Please input your email!",
+                  message: "Please input your email or phone!",
                 },
                 {
-                  type: "email",
-                  message: "Please enter a valid email!",
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+                    const trimmed = String(value).trim();
+                    const isEmail = trimmed.includes("@");
+                    const isPhone = /^\+?\d{8,15}$/.test(trimmed);
+                    if (isEmail || isPhone) return Promise.resolve();
+                    return Promise.reject(
+                      new Error("Please enter a valid email or phone"),
+                    );
+                  },
                 },
               ]}
             >
               <Input
                 prefix={<MailOutlined className="text-gray-400" />}
-                placeholder="Email address"
+                placeholder="Email or phone number"
                 size="large"
                 className="rounded-lg"
               />

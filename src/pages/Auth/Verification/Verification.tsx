@@ -24,7 +24,12 @@ const Verification = () => {
   const inputRefs = useRef<(InputRef | null)[]>([]);
   const { setToken } = useAuth();
 
-  const email = localStorage.getItem("userEmail");
+  const loginMethod = localStorage.getItem("userLoginMethod");
+  const loginIdentifier =
+    localStorage.getItem("userLoginIdentifier") ||
+    (loginMethod === "phone"
+      ? localStorage.getItem("userPhone")
+      : localStorage.getItem("userEmail"));
 
   /* -------------------- TIMER -------------------- */
   useEffect(() => {
@@ -78,7 +83,7 @@ const Verification = () => {
 
   /* -------------------- VERIFY OTP -------------------- */
   const verifyMutation = useMutation({
-    mutationFn: async (payload: { email: string; otp: string }) => {
+    mutationFn: async (payload: { email?: string; phone?: string; otp: string }) => {
       return verifyOtpApi(payload);
     },
     onSuccess: (data) => {  
@@ -111,8 +116,11 @@ const Verification = () => {
   };
 
   const handleVerify = () => {
-    if (!email) {
-      showError(notification, { message: "Email not found", description: "Please login again." });
+    if (!loginIdentifier) {
+      showError(notification, {
+        message: "Login info not found",
+        description: "Please login again.",
+      });
       navigate({ to: "/auth/login" });
       return;
     }
@@ -124,7 +132,12 @@ const Verification = () => {
       return;
     }
 
-    verifyMutation.mutate({ email, otp: otpString });
+    const payload =
+      loginMethod === "phone" || /^\+?\d{8,15}$/.test(loginIdentifier)
+        ? { phone: loginIdentifier, otp: otpString }
+        : { email: loginIdentifier, otp: otpString };
+
+    verifyMutation.mutate(payload);
   };
 
   const handleResend = () => {

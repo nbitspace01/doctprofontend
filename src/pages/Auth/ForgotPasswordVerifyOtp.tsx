@@ -4,7 +4,7 @@ import { App, Button, Card, Input, Typography } from "antd";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../Common/SVG/svg.functions";
 import { showError, showSuccess } from "../Common/Notification";
-import { verifyOtpApi } from "../../api/auth.api";
+import { forgotPasswordVerifyOtpApi } from "../../api/auth.api";
 
 const { Link } = Typography;
 
@@ -15,7 +15,12 @@ const ForgotPasswordVerifyOtp = () => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const { notification } = App.useApp();
 
-  const email = localStorage.getItem("userEmail");
+  const method = localStorage.getItem("forgotPasswordMethod");
+  const identifier =
+    localStorage.getItem("forgotPasswordIdentifier") ||
+    (method === "phone"
+      ? localStorage.getItem("userPhone")
+      : localStorage.getItem("userEmail"));
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -91,19 +96,21 @@ const ForgotPasswordVerifyOtp = () => {
   };
 
   const mutation = useMutation({
-    mutationFn: async (payload: { email: string; otp: string }) => {
-      console.log("Calling verifyOtpApi with payload:", payload);
-      const response = await verifyOtpApi(payload);
-      return response.data;
+    mutationFn: async (payload: { email?: string; phone?: string; otp: string }) => {
+      console.log("Calling forgotPasswordVerifyOtpApi with payload:", payload);
+      const response = await forgotPasswordVerifyOtpApi(payload);
+      return response;
     },
     onSuccess: async (data: any) => {
       console.log("OTP verification response:", data);
       // Store userId - check different possible response structures
-      const userId = data.userId || data.user?.id || data.id || data.data?.userId || data.data?.user?.id;
+      const userId =
+        data?.userId || data?.user?.id || data?.id || data?.data?.userId || data?.data?.user?.id;
       console.log("Extracted userId:", userId);
       
       if (userId) {
         localStorage.setItem("userIdForgotPassword", String(userId));
+        localStorage.setItem("forgotPasswordOtp", otp.join(""));
         console.log("userId saved to localStorage:", localStorage.getItem("userIdForgotPassword"));
       } else {
         console.error("No userId found in response:", data);
@@ -127,12 +134,15 @@ const ForgotPasswordVerifyOtp = () => {
 
   const handleVerify = () => {
     console.log("Verify Now button clicked");
-    console.log("Email from localStorage:", email);
+    console.log("Identifier from localStorage:", identifier);
     console.log("OTP values:", otp);
     
-    if (!email) {
-      console.error("Email is missing from localStorage");
-      showError(notification, { message: "Error", description: "Email is required" });
+    if (!identifier) {
+      console.error("Identifier is missing from localStorage");
+      showError(notification, {
+        message: "Error",
+        description: "Email or phone is required",
+      });
       return;
     }
 
@@ -145,13 +155,13 @@ const ForgotPasswordVerifyOtp = () => {
       return;
     }
 
-    const payload = {
-      email,
-      otp: otpString,
-    };
+    const payload =
+      method === "phone" || /^\+?\d{8,15}$/.test(identifier)
+        ? { phone: identifier, otp: otpString }
+        : { email: identifier, otp: otpString };
 
-    console.log("Calling API /api/user/verify-otp with payload:", payload);
-    console.log("Full API URL:", `${URL}/api/user/verify-otp`);
+    console.log("Calling API /api/user/forgot-password/verify-otp with payload:", payload);
+    console.log("Full API URL:", `${URL}/api/user/forgot-password/verify-otp`);
     
     mutation.mutate(payload);
   };

@@ -13,7 +13,7 @@ import { userLoginApi } from "../../api/auth.api";
 
 /* ---------- TYPES ---------- */
 interface LoginFormValues {
-  email: string;
+  identifier: string;
   password: string;
   remember?: boolean;
 }
@@ -26,7 +26,13 @@ const LoginPage = () => {
   /* ---------- LOGIN MUTATION ---------- */
   const loginMutation = useMutation({
     mutationFn: async (values: LoginFormValues) => {
-      return userLoginApi(values);
+      const trimmed = values.identifier.trim();
+      const isEmail = trimmed.includes("@");
+      return userLoginApi(
+        isEmail
+          ? { email: trimmed, password: values.password }
+          : { phone: trimmed, password: values.password },
+      );
     },
     onSuccess: (data) => {
       console.log("Login response: ", data)
@@ -49,15 +55,25 @@ const LoginPage = () => {
 
   /* ---------- SUBMIT ---------- */
   const handleSubmit = (values: LoginFormValues) => {
-    const { remember, email, password } = values;
+    const { remember, identifier, password } = values;
+    const trimmed = identifier.trim();
+    const isEmail = trimmed.includes("@");
 
+    // Always store login identifier for OTP verification
+    localStorage.setItem("userLoginIdentifier", trimmed);
+    localStorage.setItem("userLoginMethod", isEmail ? "email" : "phone");
     if (remember) {
-      localStorage.setItem("userEmail", email);
+      if (isEmail) {
+        localStorage.setItem("userEmail", trimmed);
+      } else {
+        localStorage.setItem("userPhone", trimmed);
+      }
     } else {
       localStorage.removeItem("userEmail");
+      localStorage.removeItem("userPhone");
     }
 
-    loginMutation.mutate({ email, password });
+    loginMutation.mutate({ identifier: trimmed, password });
   };
 
   return (
@@ -89,15 +105,26 @@ const LoginPage = () => {
           >
             {/* Email */}
             <Form.Item
-              label="Email Address"
-              name="email"
+              label="Email or Phone"
+              name="identifier"
               rules={[
-                { required: true, message: "Please enter your email" },
-                { type: "email", message: "Enter a valid email" },
+                { required: true, message: "Please enter your email or phone" },
+                {
+                  validator: (_, value) => {
+                    if (!value) return Promise.resolve();
+                    const trimmed = String(value).trim();
+                    const isEmail = trimmed.includes("@");
+                    const isPhone = /^\+?\d{8,15}$/.test(trimmed);
+                    if (isEmail || isPhone) return Promise.resolve();
+                    return Promise.reject(
+                      new Error("Enter a valid email or phone number"),
+                    );
+                  },
+                },
               ]}
             >
               <Input
-                placeholder="mail@xyz.com"
+                placeholder="Enter your email or phone number"
                 suffix={<MailOutlined className="text-gray-400" />}
               />
             </Form.Item>

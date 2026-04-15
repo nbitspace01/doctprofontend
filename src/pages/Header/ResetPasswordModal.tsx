@@ -11,21 +11,21 @@ interface ChangePasswordModalProps {
   onConfirm: (values: any) => void;
 }
 
-const passwordRules = [
-  { required: true, message: "Please input your password!" },
-  { min: 12, message: "Password must be at least 12 characters." },
-  { pattern: /[A-Z]/, message: "At least one uppercase letter." },
-  { pattern: /[a-z]/, message: "At least one lowercase letter." },
-  { pattern: /[0-9]/, message: "At least one number." },
-  { pattern: /[^A-Za-z0-9]/, message: "At least one special character." },
-];
-
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   visible,
   onCancel,
   onConfirm,
 }) => {
   const [form] = Form.useForm();
+  const passwordValue = Form.useWatch("newPassword", form) || "";
+  const hasPasswordInput = passwordValue.length > 0;
+  const passwordChecks = {
+    minLength: hasPasswordInput && passwordValue.length >= 8,
+    uppercase: hasPasswordInput && /[A-Z]/.test(passwordValue),
+    lowercase: hasPasswordInput && /[a-z]/.test(passwordValue),
+    number: hasPasswordInput && /\d/.test(passwordValue),
+    special: hasPasswordInput && /[^A-Za-z0-9]/.test(passwordValue),
+  };
   const navigate = useNavigate();
   const { notification } = App.useApp();
 
@@ -102,7 +102,28 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           <Form.Item
             label="New Password"
             name="newPassword"
-            rules={passwordRules}
+            validateTrigger="onSubmit"
+            rules={[
+              { required: true, message: "Please input your password!" },
+              () => ({
+                validator(_, value) {
+                  const password = String(value || "");
+                  if (!password) return Promise.resolve();
+                  const meetsRules =
+                    password.length >= 8 &&
+                    /[A-Z]/.test(password) &&
+                    /[a-z]/.test(password) &&
+                    /\d/.test(password) &&
+                    /[^A-Za-z0-9]/.test(password);
+                  if (meetsRules) return Promise.resolve();
+                  return Promise.reject(
+                    new Error(
+                      "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+                    ),
+                  );
+                },
+              }),
+            ]}
             hasFeedback
           >
             <Input.Password />
@@ -110,12 +131,22 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           <div className="mb-2 text-blue-500">
             Please add all necessary characters to create safe password
           </div>
-          <ul className="mb-4 text-sm list-disc pl-5">
-            <li>Minimum Characters 12</li>
-            <li className="text-green-600">One Uppercase Letter</li>
-            <li>One Lowercase Letter</li>
-            <li>One Special Character</li>
-            <li>One Number</li>
+          <ul className="mb-4 text-sm list-disc pl-5 text-gray-600 space-y-1">
+            <li className={passwordChecks.minLength ? "text-green-600" : "text-gray-600"}>
+              Minimum Characters 8
+            </li>
+            <li className={passwordChecks.uppercase ? "text-green-600" : "text-gray-600"}>
+              One Uppercase Letter
+            </li>
+            <li className={passwordChecks.lowercase ? "text-green-600" : "text-gray-600"}>
+              One Lowercase Letter
+            </li>
+            <li className={passwordChecks.special ? "text-green-600" : "text-gray-600"}>
+              One Special Character
+            </li>
+            <li className={passwordChecks.number ? "text-green-600" : "text-gray-600"}>
+              One Number
+            </li>
           </ul>
           <Form.Item
             label="Confirm Password"

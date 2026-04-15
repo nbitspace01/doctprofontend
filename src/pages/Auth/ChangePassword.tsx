@@ -1,15 +1,26 @@
 import { EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
 import { useNavigate } from "@tanstack/react-router";
-import { Button, Form, Input, message } from "antd";
+import { App, Button, Form, Input, Typography } from "antd";
 import React, { useState } from "react";
 import loginIllustration from "../../assets/illustrationlogin.png";
 import { Logo } from "../Common/SVG/svg.functions";
 import { forgotPasswordResetApi } from "../../api/auth.api";
+import { showError, showSuccess } from "../Common/Notification";
 
 const ChangePassword: React.FC = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { notification } = App.useApp();
+  const passwordValue = Form.useWatch("newPassword", form) || "";
+  const hasPasswordInput = passwordValue.length > 0;
+  const passwordChecks = {
+    minLength: hasPasswordInput && passwordValue.length >= 8,
+    uppercase: hasPasswordInput && /[A-Z]/.test(passwordValue),
+    lowercase: hasPasswordInput && /[a-z]/.test(passwordValue),
+    number: hasPasswordInput && /\d/.test(passwordValue),
+    special: hasPasswordInput && /[^A-Za-z0-9]/.test(passwordValue),
+  };
   
   // Get userId from localStorage and validate it
   const getUserId = () => {
@@ -22,10 +33,22 @@ const ChangePassword: React.FC = () => {
   };
   
   const userId = getUserId();
+  const getOtp = () => {
+    const otp = localStorage.getItem("forgotPasswordOtp");
+    if (!otp || otp === "undefined" || otp === "null") {
+      return null;
+    }
+    return otp;
+  };
+  const otp = getOtp();
 
   const onFinish = async (values: any) => {
-    if (!userId) {
-      message.error("User ID is missing. Please try the forgot password process again.");
+    if (!userId || !otp) {
+      showError(notification, {
+        message: "Missing Info",
+        description:
+          "User ID or OTP is missing. Please try the forgot password process again.",
+      });
       navigate({ to: "/auth/forgot-password", replace: true });
       return;
     }
@@ -34,29 +57,41 @@ const ChangePassword: React.FC = () => {
       setLoading(true);
       
       const currentUserId = getUserId();
-      if (!currentUserId) {
-        message.error("User ID is missing. Please try the forgot password process again.");
+      if (!currentUserId || !otp) {
+        showError(notification, {
+          message: "Missing Info",
+          description:
+            "User ID or OTP is missing. Please try the forgot password process again.",
+        });
         navigate({ to: "/auth/forgot-password", replace: true });
         return;
       }
       
       console.log("Calling reset password API for:", currentUserId);
       const response = await forgotPasswordResetApi(currentUserId, {
+        otp,
         newPassword: values.newPassword,
       });
 
-      console.log("Password reset successful:", response.data);
-      message.success("Password changed successfully!");
+      console.log("Password reset successful:", response);
+      showSuccess(notification, {
+        message: "Password Updated",
+        description: "Password changed successfully!",
+      });
       form.resetFields();
       // Clear the userId from localStorage after successful password change
       localStorage.removeItem("userIdForgotPassword");
+      localStorage.removeItem("forgotPasswordOtp");
       // Redirect to login page after successful password change
       navigate({ to: "/auth/login", replace: true });
     } catch (error: any) {
       console.error("Password reset error:", error);
       const errorMessage =
         error.response?.data?.message ?? "Failed to change password";
-      message.error(errorMessage);
+      showError(notification, {
+        message: "Reset Failed",
+        description: errorMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -92,9 +127,27 @@ const ChangePassword: React.FC = () => {
             <Form.Item
               name="newPassword"
               label="New Password"
+              validateTrigger="onSubmit"
               rules={[
                 { required: true, message: "Please input your new password!" },
-                { min: 8, message: "Password must be at least 8 characters!" },
+                () => ({
+                  validator(_, value) {
+                    const password = String(value || "");
+                    if (!password) return Promise.resolve();
+                    const meetsRules =
+                      password.length >= 8 &&
+                      /[A-Z]/.test(password) &&
+                      /[a-z]/.test(password) &&
+                      /\d/.test(password) &&
+                      /[^A-Za-z0-9]/.test(password);
+                    if (meetsRules) return Promise.resolve();
+                    return Promise.reject(
+                      new Error(
+                        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character.",
+                      ),
+                    );
+                  },
+                }),
               ]}
             >
               <Input.Password
@@ -105,6 +158,28 @@ const ChangePassword: React.FC = () => {
                 }
               />
             </Form.Item>
+            <div className="mb-4 rounded-lg border border-gray-200 bg-gray-50 p-3">
+              <Typography.Text className="block text-sm font-medium text-gray-700 mb-2">
+                Please add all necessary characters to create safe password
+              </Typography.Text>
+              <ul className="list-disc pl-5 text-sm text-gray-600 space-y-1">
+                <li className={passwordChecks.minLength ? "text-green-600" : "text-gray-600"}>
+                  Minimum Characters 8
+                </li>
+                <li className={passwordChecks.uppercase ? "text-green-600" : "text-gray-600"}>
+                  One Uppercase Letter
+                </li>
+                <li className={passwordChecks.lowercase ? "text-green-600" : "text-gray-600"}>
+                  One Lowercase Letter
+                </li>
+                <li className={passwordChecks.special ? "text-green-600" : "text-gray-600"}>
+                  One Special Character
+                </li>
+                <li className={passwordChecks.number ? "text-green-600" : "text-gray-600"}>
+                  One Number
+                </li>
+              </ul>
+            </div>
 
             <Form.Item
               name="confirmPassword"
