@@ -4,7 +4,7 @@ import { App, Button, Card, Input, Typography } from "antd";
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "../Common/SVG/svg.functions";
 import { showError, showSuccess } from "../Common/Notification";
-import { forgotPasswordVerifyOtpApi } from "../../api/auth.api";
+import { forgotPasswordSendOtpApi, forgotPasswordVerifyOtpApi } from "../../api/auth.api";
 
 const { Link } = Typography;
 
@@ -132,6 +132,25 @@ const ForgotPasswordVerifyOtp = () => {
     },
   });
 
+  const resendMutation = useMutation({
+    mutationFn: async (payload: { email?: string; phone?: string }) => {
+      return forgotPasswordSendOtpApi(payload);
+    },
+    onSuccess: (data: any) => {
+      setTimeLeft(50);
+      setOtp(["", "", "", "", "", ""]);
+      showSuccess(notification, {
+        message: "Success",
+        description: data?.message || "OTP has been resent",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to resend OTP";
+      showError(notification, { message: "Resend Failed", description: errorMessage });
+    },
+  });
+
   const handleVerify = () => {
     console.log("Verify Now button clicked");
     console.log("Identifier from localStorage:", identifier);
@@ -167,9 +186,22 @@ const ForgotPasswordVerifyOtp = () => {
   };
 
   const handleResend = () => {
-    setTimeLeft(50);
-    setOtp(["", "", "", "", "", ""]);
-    showSuccess(notification, { message: "Success", description: "OTP has been resent" });
+    if (timeLeft > 0 || resendMutation.isPending) return;
+
+    if (!identifier) {
+      showError(notification, {
+        message: "Error",
+        description: "Email or phone is required",
+      });
+      return;
+    }
+
+    const payload =
+      method === "phone" || /^\+?\d{8,15}$/.test(identifier)
+        ? { phone: identifier }
+        : { email: identifier };
+
+    resendMutation.mutate(payload);
   };
 
   return (
@@ -214,7 +246,7 @@ const ForgotPasswordVerifyOtp = () => {
             <Link
               onClick={handleResend}
               className="text-blue-600 cursor-pointer"
-              disabled={timeLeft > 0}
+              disabled={timeLeft > 0 || resendMutation.isPending}
             >
               Resend
             </Link>

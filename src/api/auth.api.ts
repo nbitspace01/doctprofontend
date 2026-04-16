@@ -42,6 +42,11 @@ export const forgotPasswordVerifyOtpApi = (data: { email?: string; phone?: strin
   return apiClient.post<any>("/api/user/forgot-password/verify-otp", data);
 };
 
+// Resend OTP (Login/Registration verification)
+export const resendOtpApi = (data: { email?: string; phone?: string }) => {
+  return apiClient.post<any>("/api/user/resend-otp", data);
+};
+
 // Forgot Password - Reset Password (OTP required)
 export const forgotPasswordResetApi = (
   userId: string,
