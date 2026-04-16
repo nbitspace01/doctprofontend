@@ -6,7 +6,7 @@ import { Logo } from "../../Common/SVG/svg.functions";
 import { useAuth } from "../../Common/Context/AuthContext";
 import { showError, showSuccess } from "../../Common/Notification";
 import type { InputRef } from "antd";
-import { verifyOtpApi } from "../../../api/auth.api";
+import { resendOtpApi, verifyOtpApi } from "../../../api/auth.api";
 
 
 const { Title, Link } = Typography;
@@ -103,6 +103,25 @@ const Verification = () => {
     },
   });
 
+  const resendMutation = useMutation({
+    mutationFn: async (payload: { email?: string; phone?: string }) => {
+      return resendOtpApi(payload);
+    },
+    onSuccess: (data: any) => {
+      setOtp(Array(OTP_LENGTH).fill(""));
+      setTimeLeft(RESEND_TIME);
+      showSuccess(notification, {
+        message: "Success",
+        description: data?.message || "OTP resent successfully",
+      });
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.message || error.message || "Failed to resend OTP";
+      showError(notification, { message: "Resend Failed", description: errorMessage });
+    },
+  });
+
   const persistUser = (data: any) => {
     localStorage.setItem("userToken", data.token);
     localStorage.setItem("userId", data.user.id);
@@ -141,9 +160,23 @@ const Verification = () => {
   };
 
   const handleResend = () => {
-    setOtp(Array(OTP_LENGTH).fill(""));
-    setTimeLeft(RESEND_TIME);
-    showSuccess(notification, { message: "Success", description: "OTP resent successfully" });
+    if (timeLeft > 0 || resendMutation.isPending) return;
+
+    if (!loginIdentifier) {
+      showError(notification, {
+        message: "Login info not found",
+        description: "Please login again.",
+      });
+      navigate({ to: "/auth/login" });
+      return;
+    }
+
+    const payload =
+      loginMethod === "phone" || /^\+?\d{8,15}$/.test(loginIdentifier)
+        ? { phone: loginIdentifier }
+        : { email: loginIdentifier };
+
+    resendMutation.mutate(payload);
   };
 
   /* -------------------- UI -------------------- */
@@ -178,7 +211,15 @@ const Verification = () => {
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-2">
             <span className="text-gray-600">Did not receive OTP?</span>
-            <Link onClick={handleResend} disabled={timeLeft > 0}>
+            <Link
+              onClick={handleResend}
+              className={
+                timeLeft > 0 || resendMutation.isPending
+                  ? "pointer-events-none opacity-50"
+                  : ""
+              }
+              disabled={timeLeft > 0 || resendMutation.isPending}
+            >
               Resend
             </Link>
           </div>
