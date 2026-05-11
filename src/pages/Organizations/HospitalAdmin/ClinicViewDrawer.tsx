@@ -1,4 +1,4 @@
-import { App, Avatar, Button, Drawer, Image, message, Tag } from "antd";
+import { App, Avatar, Button, Drawer, Image } from "antd";
 import { MailOutlined, PhoneOutlined } from "@ant-design/icons";
 import FormattedDate from "../../Common/FormattedDate";
 import StatusBadge from "../../Common/StatusBadge";
@@ -58,7 +58,7 @@ const ClinicViewDrawer = ({
   onClose,
   hospitalData,
 }: ClinicViewDrawerProps) => {
-  const { modal } = App.useApp();
+  const { modal, message } = App.useApp();
 
   const queryClient = useQueryClient();
 
@@ -66,12 +66,12 @@ const ClinicViewDrawer = ({
     mutationFn: ({ id, status }: { id: string; status: string }) =>
       updateHospitalAdminStatusApi(id, status),
     onSuccess: () => {
-      message.success("Hospital status updated successfully");
+      message.success("Hospital admin status updated successfully");
       queryClient.invalidateQueries({ queryKey: ["hospitals"] });
       onClose();
     },
     onError: () => {
-      message.error("Failed to update hospital status");
+      message.error("Failed to update hospital admin status");
     },
   });
 
