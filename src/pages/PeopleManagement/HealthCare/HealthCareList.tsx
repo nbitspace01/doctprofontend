@@ -236,7 +236,11 @@ const HealthCareList: React.FC = () => {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["Active", "Inactive"],
+        options: [
+          { label: "Active", value: "ACTIVE" },
+          { label: "Inactive", value: "INACTIVE" },
+          { label: "Pending", value: "PENDING" },
+        ],
       },
     ],
     [],
