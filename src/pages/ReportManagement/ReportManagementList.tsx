@@ -9,7 +9,6 @@ import {
   fetchReportByIdApi,
   exportReportsApi,
 } from "../../api/report.api";
-import { saveAs } from "file-saver";
 import { useMemo, useState } from "react";
 import ReportViewDrawer from "./ReportViewDrawer";
 import StatusBadge from "../Common/StatusBadge";
@@ -84,8 +83,19 @@ const ReportManagementList = () => {
   const handleDownload = async (format: "csv" | "excel") => {
     try {
       const res = await exportReportsApi({ format });
-      const blob = new Blob([res as any], { type: "text/csv;charset=utf-8;" });
-      saveAs(blob, `reports.${format === "excel" ? "xlsx" : "csv"}`);
+      const blob = new Blob([res as any], {
+        type:
+          format === "excel"
+            ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            : "text/csv;charset=utf-8;",
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `reports.${format === "excel" ? "xlsx" : "csv"}`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
     } catch (err: any) {
       message.error(err?.message || "Failed to download report");
     }

@@ -7,6 +7,7 @@ import {
   updateStudentStatusApi,
 } from "../../../api/student.api";
 import StatusBadge from "../../Common/StatusBadge";
+import FormattedDate from "../../Common/FormattedDate";
 
 interface StudentData {
   studentId: string;
@@ -165,7 +166,13 @@ const StudentView: React.FC<StudentViewProps> = ({
             <InfoField label="Gender" value={studentData.gender} />
             <InfoField
               label="DOB"
-              value={new Date(studentData.dob).toLocaleDateString()}
+              value={
+                studentData.dob ? (
+                  <FormattedDate dateString={studentData.dob} format="long" />
+                ) : (
+                  "N/A"
+                )
+              }
             />
             <InfoField label="Email Address" value={studentData.email} />
             <InfoField label="Phone Number" value={studentData.phone} />
