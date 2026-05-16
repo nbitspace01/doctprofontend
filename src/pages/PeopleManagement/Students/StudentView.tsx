@@ -22,6 +22,13 @@ interface StudentData {
   specialization: string;
   startYear: number;
   endYear: number;
+  isFresher?: boolean;
+  currentlyWorking?: boolean;
+  experienceOrganizationName?: string | null;
+  experienceSpecialization?: string | null;
+  experienceLocation?: string | null;
+  experienceStartDate?: string | null;
+  experienceEndDate?: string | null;
   kycStatus: string;
   status: string;
 }
@@ -192,11 +199,43 @@ const StudentView: React.FC<StudentViewProps> = ({
             />
             <InfoField label="End Year" value={studentData.endYear || "NA"} />
             <InfoField
+              label="Experience Type"
+              value={studentData.isFresher ? "Fresher" : "Experienced"}
+            />
+            <InfoField
+              label="Working Status"
+              value={studentData.currentlyWorking ? "Currently Working" : "Not Working"}
+            />
+            <InfoField
+              label="Experience Organization"
+              value={studentData.experienceOrganizationName || "NA"}
+            />
+            <InfoField
+              label="Experience Specialization"
+              value={studentData.experienceSpecialization || "NA"}
+            />
+            <InfoField
+              label="Experience Location"
+              value={studentData.experienceLocation || "NA"}
+            />
+            <InfoField
+              label="Experience Start Date"
+              value={studentData.experienceStartDate || "NA"}
+            />
+            <InfoField
+              label="Experience End Date"
+              value={
+                studentData.currentlyWorking
+                  ? "Present"
+                  : (studentData.experienceEndDate || "NA")
+              }
+            />
+            <InfoField
               label="KYC Status"
               value={<StatusBadge status={studentData.kycStatus || "NA"} />}
             />
             <InfoField
-              label="KYC Status"
+              label="Status"
               value={<StatusBadge status={studentData.status} />}
             />
           </div>

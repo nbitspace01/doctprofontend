@@ -51,7 +51,15 @@ interface HealthcareProfessionalData {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
+  isFresher?: boolean;
+  currentlyWorking?: boolean;
+  experienceOrganizationName?: string | null;
+  experienceSpecialization?: string | null;
+  experienceLocation?: string | null;
+  experienceStartDate?: string | null;
+  experienceEndDate?: string | null;
   status: string;
+  kycStatus?: string;
   isActive: boolean;
   college: CollegeData | null;
   hospital: HospitalData | null;

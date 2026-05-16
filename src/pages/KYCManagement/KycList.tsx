@@ -138,8 +138,8 @@ const KycList: React.FC = () => {
           { label: "Admin", value: "admin" },
           { label: "Sub Admin", value: "subadmin" },
           { label: "Hospital Admin", value: "hospitaladmin" },
-          { label: "Students", value: "students" },
-          { label: "Health Professional", value: "healthcareProfessional" },
+          { label: "Student", value: "student" },
+          { label: "Health Professional", value: "healthcareprofessional" },
         ],
       },
       {

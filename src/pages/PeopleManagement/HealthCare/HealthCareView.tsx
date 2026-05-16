@@ -3,6 +3,7 @@ import FormattedDate from "../../Common/FormattedDate";
 import { useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { updateHealthcareProfessionalApi } from "../../../api/healthcare.api";
+import StatusBadge from "../../Common/StatusBadge";
 
 interface CollegeData {
   id: string;
@@ -42,7 +43,15 @@ interface HealthcareProfessionalData {
   role: string;
   startMonth: string | null;
   startYearExp: string | null;
+  isFresher?: boolean;
+  currentlyWorking?: boolean;
+  experienceOrganizationName?: string | null;
+  experienceSpecialization?: string | null;
+  experienceLocation?: string | null;
+  experienceStartDate?: string | null;
+  experienceEndDate?: string | null;
   status: string;
+  kycStatus?: string;
   isActive: boolean;
   college: CollegeData | null;
   hospital: HospitalData | null;
@@ -300,18 +309,55 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-1">Start Month</p>
+              <p className="text-xs text-gray-500 mb-1">Experience Type</p>
               <p className="text-sm font-medium">
-                {professionalData.startMonth || "N/A"}
+                {professionalData.isFresher ? "Fresher" : "Experienced"}
               </p>
             </div>
 
             <div>
-              <p className="text-xs text-gray-500 mb-1">
-                Experience Start Year
-              </p>
+              <p className="text-xs text-gray-500 mb-1">Working Status</p>
               <p className="text-sm font-medium">
-                {professionalData.startYearExp || "N/A"}
+                {professionalData.currentlyWorking
+                  ? "Currently Working"
+                  : "Not Working"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Organization</p>
+              <p className="text-sm font-medium">
+                {professionalData.experienceOrganizationName || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Experience Specialty</p>
+              <p className="text-sm font-medium">
+                {professionalData.experienceSpecialization || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Experience Location</p>
+              <p className="text-sm font-medium">
+                {professionalData.experienceLocation || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Experience Start Date</p>
+              <p className="text-sm font-medium">
+                {professionalData.experienceStartDate || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Experience End Date</p>
+              <p className="text-sm font-medium">
+                {professionalData.currentlyWorking
+                  ? "Present"
+                  : (professionalData.experienceEndDate || "N/A")}
               </p>
             </div>
 
@@ -334,9 +380,15 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
             )}
 
             <div>
+              <p className="text-xs text-gray-500 mb-1">KYC Status</p>
+              <p className="text-sm font-medium">
+               {<StatusBadge status={professionalData.kycStatus || "PENDING"} />}
+              </p>
+            </div>
+            <div>
               <p className="text-xs text-gray-500 mb-1">Status</p>
               <p className="text-sm font-medium">
-                {professionalData.isActive ? "Active" : "Inactive"}
+               {<StatusBadge status={professionalData.status} />}
               </p>
             </div>
 

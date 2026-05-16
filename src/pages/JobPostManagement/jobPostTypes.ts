@@ -55,7 +55,7 @@ export interface JobApplication {
   resumeUrl: string;
   coverLetter: string;
   applied_at: string;
-  status: "PENDING" | "SHORTLISTED" | "REJECTED";
+  status: "PENDING" | "SHORTLISTED" | "REJECTED" | "HIRED";
   user: ApplicantUser;
 }
 
@@ -98,4 +98,8 @@ export interface ApplicantViewDrawerProps {
   open: boolean;
   onClose: () => void;
   applicant: JobApplication | null;
+  onStatusUpdated?: (
+    applicationId: string,
+    status: JobApplication["status"],
+  ) => void;
 }

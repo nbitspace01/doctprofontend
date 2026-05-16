@@ -24,6 +24,13 @@ interface StudentData {
   specialization: string;
   startYear: number;
   endYear: number;
+  isFresher?: boolean;
+  currentlyWorking?: boolean;
+  experienceOrganizationName?: string | null;
+  experienceSpecialization?: string | null;
+  experienceLocation?: string | null;
+  experienceStartDate?: string | null;
+  experienceEndDate?: string | null;
   kycStatus: string;
   status: string;
 }
