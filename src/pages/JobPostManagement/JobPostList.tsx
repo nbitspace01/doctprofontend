@@ -82,14 +82,26 @@ const JobPostList: React.FC = () => {
     staleTime: 0,
   });
 
-  const allJobPost = (jobPostData?.data ?? []).map((job: any) => ({
-    ...job,
-    location: job.location ?? job.district ?? job.state ?? "",
-    districtId: job.districtId ?? null,
-    stateId: job.stateId ?? null,
-    countryId: job.countryId ?? null,
-  }));
+  const allJobPost = useMemo(
+    () =>
+      (jobPostData?.data ?? []).map((job: any) => ({
+        ...job,
+        location: job.location ?? job.district ?? job.state ?? "",
+        districtId: job.districtId ?? null,
+        stateId: job.stateId ?? null,
+        countryId: job.countryId ?? null,
+      })),
+    [jobPostData?.data],
+  );
   const totalCount = jobPostData?.total ?? 0;
+
+  useEffect(() => {
+    if (!selectedJobPost?.id || !allJobPost.length) return;
+    const refreshed = allJobPost.find((job) => job.id === selectedJobPost.id);
+    if (refreshed && refreshed !== selectedJobPost) {
+      setSelectedJobPost(refreshed);
+    }
+  }, [allJobPost, selectedJobPost?.id]);
 
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({

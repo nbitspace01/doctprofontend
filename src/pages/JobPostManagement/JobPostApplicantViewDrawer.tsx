@@ -12,10 +12,63 @@ const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
   open,
   onClose,
   applicant,
+  onStatusUpdated,
 }) => {
   const queryClient = useQueryClient();
   const { modal } = App.useApp();
   if (!applicant) return null;
+  const getResolvedResumeUrl = (raw?: string) => {
+    const value = (raw || "").trim();
+    if (!value) return "";
+    if (/^[a-zA-Z]:\\/.test(value)) return "";
+    if (/^https?:\/\//i.test(value)) return encodeURI(value);
+    if (value.startsWith("www.")) return encodeURI(`https://${value}`);
+    if (value.startsWith("/")) {
+      if (/^\/(data|storage|var|private)\//i.test(value)) return "";
+      const backendBase = String(
+        import.meta.env.VITE_API_BASE_URL_BACKEND || "",
+      ).replace(/\/api\/?$/i, "");
+      if (!backendBase) return "";
+      return encodeURI(`${backendBase}${value}`);
+    }
+    return "";
+  };
+  const resumeUrl = getResolvedResumeUrl(applicant.resumeUrl);
+  const getExtensionFromUrl = (url: string) => {
+    try {
+      const pathname = new URL(url).pathname;
+      const filename = pathname.split("/").pop() || "";
+      const ext = filename.split(".").pop() || "";
+      return ext.toLowerCase();
+    } catch {
+      const clean = url.split("?")[0].split("#")[0];
+      const filename = clean.split("/").pop() || "";
+      const ext = filename.split(".").pop() || "";
+      return ext.toLowerCase();
+    }
+  };
+  const getResumeViewUrl = (url: string) => {
+    const ext = getExtensionFromUrl(url);
+    const isOfficeDoc =
+      ext === "doc" ||
+      ext === "docx" ||
+      ext === "ppt" ||
+      ext === "pptx" ||
+      ext === "xls" ||
+      ext === "xlsx";
+    if (isOfficeDoc) {
+      return `https://view.officeapps.live.com/op/view.aspx?src=${encodeURIComponent(
+        url,
+      )}`;
+    }
+    if (ext === "pdf") {
+      return `https://docs.google.com/gview?embedded=1&url=${encodeURIComponent(
+        url,
+      )}`;
+    }
+    return url;
+  };
+  const resumeViewUrl = resumeUrl ? getResumeViewUrl(resumeUrl) : "";
 
   const normalizedStatus = applicant.status.toLowerCase();
 
@@ -31,13 +84,18 @@ const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
 
     onSuccess: (_, variables) => {
       const statusLabel: Record<string, string> = {
-        shortlisted: "Shortlisted",
-        rejected: "Rejected",
-        hired: "Hired",
+        SHORTLISTED: "Shortlisted",
+        REJECTED: "Rejected",
+        HIRED: "Hired",
       };
 
+      onStatusUpdated?.(
+        applicant.id,
+        variables.status as "PENDING" | "SHORTLISTED" | "REJECTED" | "HIRED",
+      );
+
       message.success(
-        `Applicant ${statusLabel[variables.status]} successfully`,
+        `Applicant ${statusLabel[variables.status] || variables.status} successfully`,
       );
       queryClient.invalidateQueries({
         queryKey: ["jobPosts"],
@@ -180,14 +238,15 @@ const JobPostApplicantViewDrawer: React.FC<ApplicantViewDrawerProps> = ({
       )}
 
       {/* -------------------- Resume -------------------- */}
-      {applicant.resumeUrl && (
+      {resumeViewUrl && (
         <div className="pt-6">
           <p className="text-xs text-gray-500 mb-3">Resume</p>
           <Button
             type="primary"
             icon={<FileTextOutlined />}
-            href={applicant.resumeUrl}
+            href={resumeViewUrl}
             target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-2"
           >
             View Resume

@@ -12,7 +12,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { JobApplication, JobPostViewDrawerProps } from "./jobPostTypes";
 import StatusBadge from "../Common/StatusBadge";
 import JobPostApplicantViewDrawer from "./JobPostApplicantViewDrawer";
@@ -25,12 +25,31 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
   jobPostData,
   role,
 }) => {
+  const formatDateOnly = (value?: string) => {
+    if (!value) return "N/A";
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return "N/A";
+    return parsed.toLocaleDateString();
+  };
+
   const queryClient = useQueryClient();
   const [isHospitalBioExpanded, setIsHospitalBioExpanded] = useState(true);
   const [selectedApplicant, setSelectedApplicant] =
     useState<JobApplication | null>(null);
   const [isApplicantDrawerOpen, setIsApplicantDrawerOpen] = useState(false);
+  const [applications, setApplications] = useState<JobApplication[]>(
+    jobPostData?.applications ?? [],
+  );
   const { modal, message } = App.useApp();
+
+  useEffect(() => {
+    setApplications(jobPostData?.applications ?? []);
+  }, [jobPostData?.applications]);
+
+  const applicantById = useMemo(() => {
+    if (!selectedApplicant?.id) return null;
+    return applications.find((app) => app.id === selectedApplicant.id) ?? null;
+  }, [applications, selectedApplicant?.id]);
 
   // ---------Mutation---------
   const { mutate: updateStatus } = useMutation({
@@ -209,7 +228,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       <div>
         <p className="text-xs text-gray-500 mb-1">Start Date</p>
         <p className="text-sm font-medium text-blue-600">
-          {jobPostData?.valid_from || "N/A"}
+          {formatDateOnly(jobPostData?.valid_from)}
         </p>
       </div>
 
@@ -247,7 +266,7 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       <div>
         <p className="text-xs text-gray-500 mb-1">End Date</p>
         <p className="text-sm font-medium text-orange-600">
-          {jobPostData?.expires_at || "N/A"}
+          {formatDateOnly(jobPostData?.expires_at)}
         </p>
       </div>
     </div>
@@ -276,13 +295,13 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
     </div>
   )}
 
-  {/* Candidate Applications */}
+      {/* Candidate Applications */}
   {jobPostData?.applications && role !== "admin" && (
     <div>
       <h3 className="font-semibold mb-4">Candidate Applications</h3>
       <Table
         columns={candidateColumns}
-        dataSource={jobPostData.applications.map((c) => ({
+        dataSource={applications.map((c) => ({
           ...c,
           key: c.id,
         }))}
@@ -297,7 +316,17 @@ const JobPostViewDrawer: React.FC<JobPostViewDrawerProps> = ({
       <JobPostApplicantViewDrawer
         open={isApplicantDrawerOpen}
         onClose={() => setIsApplicantDrawerOpen(false)}
-        applicant={selectedApplicant}
+        applicant={applicantById || selectedApplicant}
+        onStatusUpdated={(applicationId, status) => {
+          setApplications((prev) =>
+            prev.map((app) =>
+              app.id === applicationId ? { ...app, status } : app,
+            ),
+          );
+          setSelectedApplicant((prev) =>
+            prev && prev.id === applicationId ? { ...prev, status } : prev,
+          );
+        }}
       />
     </div>
   );
