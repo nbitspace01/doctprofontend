@@ -46,6 +46,8 @@ interface HealthcareProfessionalData {
   isFresher?: boolean;
   currentlyWorking?: boolean;
   experienceOrganizationName?: string | null;
+  experienceRole?: string | null;
+  experience_role?: string | null;
   experienceSpecialization?: string | null;
   experienceLocation?: string | null;
   experienceStartDate?: string | null;
@@ -328,6 +330,15 @@ const HealthCareView: React.FC<HealthCareViewProps> = ({
               <p className="text-xs text-gray-500 mb-1">Organization</p>
               <p className="text-sm font-medium">
                 {professionalData.experienceOrganizationName || "N/A"}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-gray-500 mb-1">Experience Role</p>
+              <p className="text-sm font-medium">
+                {professionalData.experienceRole ||
+                  professionalData.experience_role ||
+                  "N/A"}
               </p>
             </div>
 
