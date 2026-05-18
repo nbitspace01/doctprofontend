@@ -25,6 +25,9 @@ interface StudentData {
   isFresher?: boolean;
   currentlyWorking?: boolean;
   experienceOrganizationName?: string | null;
+  experienceRole?: string | null;
+  experience_role?: string | null;
+  role?: string | null;
   experienceSpecialization?: string | null;
   experienceLocation?: string | null;
   experienceStartDate?: string | null;
@@ -209,6 +212,14 @@ const StudentView: React.FC<StudentViewProps> = ({
             <InfoField
               label="Experience Organization"
               value={studentData.experienceOrganizationName || "NA"}
+            />
+            <InfoField
+              label="Experience Role"
+              value={
+                studentData.experienceRole ||
+                studentData.experience_role ||
+                "NA"
+              }
             />
             <InfoField
               label="Experience Specialization"
