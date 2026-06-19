@@ -1,10 +1,10 @@
-import { Drawer, Button, Tag, Space, Select, Spin, Image, App } from "antd";
+import { Drawer, Button, Spin, Image, App, Alert } from "antd";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import {
-  fetchReportByIdApi,
   updateReportStatusApi,
-  deletePostByIdApi,
+  deleteReportedPostApi,
+  deleteReportedJobPostApi,
 } from "../../api/report.api";
 import StatusBadge from "../Common/StatusBadge";
 
@@ -24,11 +24,11 @@ const ReportViewDrawer = ({
   const { message, modal } = App.useApp();
   const queryClient = useQueryClient();
 
-  const [statusUpdating, setStatusUpdating] = useState(false);
   const [deletingPost, setDeletingPost] = useState(false);
   const isReviewed = viewData?.status === "REVIEWED";
-  const isPendingMutation = statusUpdating;
   const isPostReport = (viewData?.report_type || "POST") === "POST";
+  const isJobPostReport = viewData?.report_type === "JOB_POST";
+  const isDeletedPost = Boolean(viewData?.postDeleted);
   const targetId = viewData?.targetId || viewData?.postId || viewData?.jobPostId;
 
   const updateStatusMutation = useMutation({
@@ -88,8 +88,7 @@ const ReportViewDrawer = ({
         try {
           setDeletingPost(true);
 
-          await deletePostByIdApi(viewData.postId);
-          await updateReportStatusApi(viewData.id, "REVIEWED");
+          await deleteReportedPostApi(viewData.id);
 
           message.success("Post deleted and report marked reviewed");
 
@@ -97,13 +96,46 @@ const ReportViewDrawer = ({
           queryClient.invalidateQueries({
             queryKey: ["report", viewId],
           });
-
-          onClose();
         } catch (err: any) {
           message.error(
             err?.response?.data?.message ||
               err?.message ||
               "Failed to delete post",
+          );
+        } finally {
+          setDeletingPost(false);
+        }
+      },
+    });
+  };
+
+  const handleDeleteJobPost = () => {
+    if (!isJobPostReport || !viewData?.jobPostId) return;
+
+    modal.confirm({
+      title: "Delete this job post?",
+      content:
+        "This action cannot be undone. The job post will be permanently deleted and the report will be marked as reviewed.",
+      okText: "Delete",
+      okType: "danger",
+      cancelText: "Cancel",
+      onOk: async () => {
+        try {
+          setDeletingPost(true);
+
+          await deleteReportedJobPostApi(viewData.id);
+
+          message.success("Job post deleted and report marked reviewed");
+
+          queryClient.invalidateQueries({ queryKey: ["reports"] });
+          queryClient.invalidateQueries({
+            queryKey: ["report", viewId],
+          });
+        } catch (err: any) {
+          message.error(
+            err?.response?.data?.message ||
+              err?.message ||
+              "Failed to delete job post",
           );
         } finally {
           setDeletingPost(false);
@@ -145,16 +177,21 @@ const ReportViewDrawer = ({
 
           {/* Right side */}
           <div className="flex gap-2">
-            {isPostReport && viewData?.postId && (
+            {isPostReport && viewData?.postId && !isDeletedPost && (
               <Button size="large" className="px-8" danger loading={deletingPost} onClick={handleDeletePost}>
                 Delete Post
+              </Button>
+            )}
+            {isJobPostReport && viewData?.jobPostId && !isDeletedPost && (
+              <Button size="large" className="px-8" danger loading={deletingPost} onClick={handleDeleteJobPost}>
+                Delete Job Post
               </Button>
             )}
 
             <Button
               size="large"
-              loading={isPendingMutation}
-              disabled={isPendingMutation}
+              loading={updateStatusMutation.isPending}
+              disabled={updateStatusMutation.isPending}
               className={`px-8 ${
                 isReviewed
                   ? "border-orange-500 text-orange-500"
@@ -174,6 +211,18 @@ const ReportViewDrawer = ({
         </div>
       ) : viewData ? (
         <div className="space-y-4">
+          {isDeletedPost && (
+            <Alert
+              type="warning"
+              showIcon
+              message={isJobPostReport ? "This job post was deleted" : "This post was deleted"}
+              description={
+                viewData?.postDeletedAt
+                  ? `Deleted on ${new Date(viewData.postDeletedAt).toLocaleString()}`
+                  : undefined
+              }
+            />
+          )}
           <div className="grid grid-cols-2 gap-x-12 gap-y-4 mb-8">
             <div>
               <div className="text-xs text-gray-500">Report ID</div>
@@ -222,6 +271,16 @@ const ReportViewDrawer = ({
               </div>
             </div>
             <div>
+              <div className="text-xs text-gray-500">Deleted At</div>
+              <div className="text-sm font-medium mt-1">
+                {viewData.postDeletedAt
+                  ? new Date(viewData.postDeletedAt).toLocaleString()
+                  : isDeletedPost
+                    ? "Deleted date unavailable"
+                    : "-"}
+              </div>
+            </div>
+            <div>
               <div className="text-xs text-gray-500">Status</div>
               <div className="text-sm font-medium mt-2">
                <StatusBadge status={viewData.status || "PENDING"} />
@@ -229,7 +288,7 @@ const ReportViewDrawer = ({
             </div>
           </div>
 
-          {viewData.post && (
+          {viewData.post && !isDeletedPost && (
             <div className="space-y-2">
               <div className="text-gray-500 text-sm">Post Content</div>
               <div className="whitespace-pre-wrap border rounded p-3 bg-gray-50 text-sm">
