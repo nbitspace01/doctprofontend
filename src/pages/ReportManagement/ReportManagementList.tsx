@@ -15,7 +15,10 @@ import StatusBadge from "../Common/StatusBadge";
 
 interface ReportRow {
   id: string;
+  report_type?: string;
   postId?: string;
+  jobPostId?: string;
+  targetId?: string;
   reason?: string;
   reportedBy?: { name?: string; email?: string } | string | null;
   status?: string;
@@ -114,9 +117,17 @@ const ReportManagementList = () => {
           (currentPage - 1) * pageSize + index + 1,
       },
       {
-        title: "Post ID",
-        dataIndex: "postId",
-        key: "postId",
+        title: "Target ID",
+        dataIndex: "targetId",
+        key: "targetId",
+        render: (_: unknown, record: ReportRow) =>
+          record.targetId || record.postId || record.jobPostId || "-",
+      },
+      {
+        title: "Type",
+        dataIndex: "report_type",
+        key: "report_type",
+        render: (value?: string) => value || "POST",
       },
       {
         title: "Reason",
@@ -164,7 +175,7 @@ const ReportManagementList = () => {
 
   const filterOptions = useMemo(
     () => [
-      { label: "Post ID", key: "postId", type: "text" as const },
+      { label: "Target ID", key: "postId", type: "text" as const },
       { label: "Reason", key: "reason", type: "text" as const },
       {
         label: "Status",

@@ -28,6 +28,8 @@ const ReportViewDrawer = ({
   const [deletingPost, setDeletingPost] = useState(false);
   const isReviewed = viewData?.status === "REVIEWED";
   const isPendingMutation = statusUpdating;
+  const isPostReport = (viewData?.report_type || "POST") === "POST";
+  const targetId = viewData?.targetId || viewData?.postId || viewData?.jobPostId;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ reportId, status }: { reportId: string; status: string }) =>
@@ -72,7 +74,7 @@ const ReportViewDrawer = ({
   };
 
   const handleDeletePost = () => {
-    if (!viewData?.postId) return;
+    if (!isPostReport || !viewData?.postId) return;
 
     modal.confirm({
       title: "Delete this post?",
@@ -143,7 +145,7 @@ const ReportViewDrawer = ({
 
           {/* Right side */}
           <div className="flex gap-2">
-            {viewData?.postId && (
+            {isPostReport && viewData?.postId && (
               <Button size="large" className="px-8" danger loading={deletingPost} onClick={handleDeletePost}>
                 Delete Post
               </Button>
@@ -184,9 +186,9 @@ const ReportViewDrawer = ({
               </div>
             </div>
             <div>
-              <div className="text-xs text-gray-500">Post ID</div>
+              <div className="text-xs text-gray-500">Target ID</div>
               <div className="text-sm font-medium mt-1">
-                {viewData.postId || "NA"}
+                {targetId || "NA"}
               </div>
             </div>
             <div>
@@ -251,6 +253,23 @@ const ReportViewDrawer = ({
                     </div>
                   </div>
                 )}
+            </div>
+          )}
+
+          {viewData.jobPost && (
+            <div className="space-y-2">
+              <div className="text-gray-500 text-sm">Job Title</div>
+              <div className="whitespace-pre-wrap border rounded p-3 bg-gray-50 text-sm">
+                {viewData.jobPost.title || "-"}
+              </div>
+              <div className="text-gray-500 text-sm">Organization</div>
+              <div className="whitespace-pre-wrap border rounded p-3 bg-gray-50 text-sm">
+                {viewData.jobPost.organization || "-"}
+              </div>
+              <div className="text-gray-500 text-sm">Job Description</div>
+              <div className="whitespace-pre-wrap border rounded p-3 bg-gray-50 text-sm">
+                {viewData.jobPost.description || "-"}
+              </div>
             </div>
           )}
         </div>

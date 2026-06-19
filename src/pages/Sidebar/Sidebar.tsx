@@ -269,19 +269,19 @@ const Sidebar: React.FC = () => {
             ),
           )
         : roleName === "admin"
-          ? allMenuItems.filter((i) =>
-              [
-                "dashboard",
-                "sub-admin",
-                "masters",
-                "organizations",
-                "people",
-                "ad-management",
-                "job-post",
-                // "report-management",
-                "kyc",
-              ].includes(i.id),
-            )
+        ? allMenuItems.filter((i) =>
+            [
+              "dashboard",
+              "sub-admin",
+              "masters",
+              "organizations",
+              "people",
+              "ad-management",
+              "job-post",
+              "report-management",
+              "kyc",
+            ].includes(i.id),
+          )
           : [];
 
   /* -------------------- Render -------------------- */
