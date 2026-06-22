@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.doctpro.app",
+      "sha256_cert_fingerprints": [
+        "58:16:9D:49:20:B8:FD:D6:74:6C:E7:30:22:1B:88:1E:06:A4:AB:EA:D9:94:A7:A4:56:8A:14:82:55:32:6D:CD"
+      ]
+    }
+  }
+]
