@@ -21,13 +21,16 @@ export const updateReportStatusApi = async (id: string, status: string) => {
   return apiClient.put<any>(`/api/report/${id}/status`, { status });
 };
 
+export const deleteReportedPostApi = async (id: string) => {
+  return apiClient.post<any>(`/api/report/${id}/delete-post`, {});
+};
+
+export const deleteReportedJobPostApi = async (id: string) => {
+  return apiClient.post<any>(`/api/report/${id}/delete-job-post`, {});
+};
+
 export const exportReportsApi = async (params: Record<string, any> = {}) => {
   const query = new URLSearchParams(params as any).toString();
   const url = `/api/report/export${query ? `?${query}` : ""}`;
   return apiClient.get(url, { responseType: "blob" });
-};
-
-// Delete a post (admin/subadmin) - used from report view
-export const deletePostByIdApi = async (postId: string) => {
-  return apiClient.delete(`/api/post/${postId}`);
 };
