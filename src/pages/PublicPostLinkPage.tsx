@@ -1,11 +1,26 @@
+import { useEffect, useMemo } from "react";
 import { Button, Card, Typography } from "antd";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useParams } from "@tanstack/react-router";
 
 const { Paragraph, Title, Text } = Typography;
 
 export default function PublicPostLinkPage() {
-  const navigate = useNavigate();
   const { postId } = useParams({ strict: false });
+
+  const appLink = useMemo(() => {
+    const trimmedPostId = postId?.trim();
+    return trimmedPostId ? `doctpro://post/${trimmedPostId}` : "doctpro://home";
+  }, [postId]);
+
+  useEffect(() => {
+    const openTimer = window.setTimeout(() => {
+      window.location.href = appLink;
+    }, 250);
+
+    return () => {
+      window.clearTimeout(openTimer);
+    };
+  }, [appLink]);
 
   return (
     <div
@@ -31,18 +46,26 @@ export default function PublicPostLinkPage() {
           Open this post in Doctpro
         </Title>
         <Paragraph style={{ marginBottom: 8 }}>
-          This shared post is available in the Doctpro mobile app for signed-in
-          users.
+          We are opening this shared post in the Doctpro mobile app.
         </Paragraph>
         {postId ? (
           <Text type="secondary">Post ID: {postId}</Text>
         ) : (
           <Text type="secondary">Shared post link</Text>
         )}
-        <div style={{ marginTop: 24 }}>
-          <Button type="primary" size="large" onClick={() => navigate({ to: "/auth/login" })}>
-            Continue to Login
+        <div style={{ marginTop: 24, display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => {
+              window.location.href = appLink;
+            }}
+          >
+            Open in App
           </Button>
+          <Text type="secondary">
+            If the app is not installed, this link will stay in the browser.
+          </Text>
         </div>
       </Card>
     </div>
