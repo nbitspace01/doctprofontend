@@ -1,28 +1,22 @@
-# Stage 1: Build
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
-
-# Install dependencies
 RUN npm ci
 
-# Copy source code
 COPY . .
 
-# Build the app
+ARG VITE_API_BASE_URL_BACKEND
+ENV VITE_API_BASE_URL_BACKEND=${VITE_API_BASE_URL_BACKEND}
+
 RUN npm run build
 
-# Stage 2: Production
-FROM node:20-alpine
-WORKDIR /app
+FROM nginx:alpine
 
-# Copy built frontend
-COPY --from=builder /app/dist ./dist
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Install serve globally
-RUN npm install -g serve
+EXPOSE 80
 
-EXPOSE 4173
-CMD ["serve", "-s", "dist", "-l", "4173"]
+CMD ["nginx", "-g", "daemon off;"]
