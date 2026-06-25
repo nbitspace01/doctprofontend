@@ -37,6 +37,7 @@ import { AuthProvider } from "./pages/Common/Context/AuthContext";
 import JobPostList from "./pages/JobPostManagement/JobPostList";
 import ReportManagementList from "./pages/ReportManagement/ReportManagementList";
 import PublicPostLinkPage from "./pages/PublicPostLinkPage";
+import PublicJobLinkPage from "./pages/PublicJobLinkPage";
 
 
 export interface roleProps {
@@ -80,6 +81,12 @@ const publicPostRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "post/$postId",
   component: PublicPostLinkPage,
+});
+
+const publicJobRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "job/$jobId",
+  component: PublicJobLinkPage,
 });
 
 const loginRoute = createRoute({
@@ -235,6 +242,7 @@ const jobPostRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   rootIndexRoute,
   publicPostRoute,
+  publicJobRoute,
   authLayoutRoute.addChildren([
     loginRoute,
     // signupRoute,
