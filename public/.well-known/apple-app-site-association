@@ -5,7 +5,8 @@
       {
         "appID": "B2B4T8Y585.com.doctpro.app",
         "paths": [
-          "/post/*"
+          "/post/*",
+          "/job/*"
         ]
       }
     ]
