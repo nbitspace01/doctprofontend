@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Modal, Select, Form, Input, Button, App } from "antd";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { fetchHospitalListApi } from "../../../api/hospital.api";
+import { useMutation } from "@tanstack/react-query";
 import { createCollegeApi, updateCollegeApi } from "../../../api/college.api";
 import {
   getStates,
@@ -36,12 +35,6 @@ interface CollegeFormValues {
   city: string;
   district: string;
   state: string;
-  hospitalIds: string[];
-}
-
-interface Hospital {
-  id: string;
-  name: string;
 }
 
 /* -------------------- Component -------------------- */
@@ -104,23 +97,6 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
     }
   };
 
-  /* -------------------- QUERY -------------------- */
-  const { data: hospitalResponse, isFetching } = useQuery({
-    queryKey: ["colleges-hospitals"],
-    queryFn: fetchHospitalListApi,
-  });
-
-  const hospitals: Hospital[] = Array.isArray((hospitalResponse as any)?.data)
-    ? (hospitalResponse as any).data
-    : Array.isArray(hospitalResponse)
-      ? hospitalResponse
-      : [];
-
-  const hospitalOptions = hospitals.map((h) => ({
-    label: h.name,
-    value: h.id,
-  }));
-
   /* -------------------- Effects -------------------- */
   const primedIdRef = React.useRef<string | null>(null);
 
@@ -132,7 +108,6 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
       // Set hospital selections immediately
       form.setFieldsValue({
         ...initialData,
-        hospitalIds: initialData.hospitals.map((h) => h.id) || [],
       });
 
       // Find matching state option (case-insensitive)
@@ -309,21 +284,6 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
             showSearch
             optionFilterProp="label"
             placeholder="Select district"
-          />
-        </Form.Item>
-
-        <Form.Item
-          label="Associated Hospital"
-          name="hospitalIds"
-          rules={[{ required: true, message: "Please select hospital" }]}
-        >
-          <Select
-            mode="multiple"
-            placeholder="Select hospitals"
-            options={hospitalOptions}
-            loading={isFetching}
-            showSearch
-            optionFilterProp="label"
           />
         </Form.Item>
 

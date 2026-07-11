@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { App, Button, Form, Input, Modal, Select, Switch } from "antd";
+import { App, Button, Form, Input, Modal, Select } from "antd";
 
 import {
   createHospitalApi,
@@ -113,7 +113,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
       form.setFieldsValue({
         name: initialData.name,
-        isHeadBranch: initialData.isHeadBranch || false,
         cityId: resolvedCityId,
       });
 
@@ -255,15 +254,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
                   .includes(input.toLowerCase())
               }
             />
-          </Form.Item>
-
-          {/* Head Branch Toggle */}
-          <Form.Item
-            name="isHeadBranch"
-            label="Head Branch"
-            valuePropName="checked"
-          >
-            <Switch defaultChecked={initialData?.isHeadBranch || false} />
           </Form.Item>
 
           {/* Footer Buttons */}
