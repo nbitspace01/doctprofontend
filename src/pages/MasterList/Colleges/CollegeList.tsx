@@ -150,14 +150,6 @@ const CollegeList: React.FC = () => {
 
       { title: "District", dataIndex: "district" },
       { title: "State", dataIndex: "state" },
-
-      {
-        title: "Associated Hospital",
-        dataIndex: "hospitals",
-        render: (hospitals: any[] = []) =>
-          hospitals.length ? hospitals.map((h) => h?.name).join(", ") : "N/A",
-      },
-
       {
         title: "Created On",
         dataIndex: "created_at",
@@ -196,7 +188,6 @@ const CollegeList: React.FC = () => {
       "College Name",
       "District",
       "State",
-      "Associated Hospital",
       "Created On",
       "Status",
     ];
@@ -206,7 +197,6 @@ const CollegeList: React.FC = () => {
       `${row.name}`,
       row.district || "N/A",
       row.state || "N/A",
-      row.hospitals || "N/A",
       row.created_at || "N/A",
       row.status || "N/A",
     ]);
@@ -233,7 +223,6 @@ const CollegeList: React.FC = () => {
       { label: "College Name", key: "name", type: "text" as const },
       { label: "District", key: "district", type: "text" as const },
       { label: "State", key: "state", type: "text" as const },
-      { label: "Associated Hospital", key: "hospitals", type: "text" as const },
       {
         label: "Status",
         key: "status",
