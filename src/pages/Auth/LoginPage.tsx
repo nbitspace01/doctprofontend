@@ -10,6 +10,7 @@ import loginIllustration from "../../assets/illustrationlogin.png";
 import { showError, showSuccess } from "../Common/Notification";
 import { Logo } from "../Common/SVG/svg.functions";
 import { userLoginApi } from "../../api/auth.api";
+import { useAuth } from "../Common/Context/AuthContext";
 
 /* ---------- TYPES ---------- */
 interface LoginFormValues {
@@ -22,6 +23,20 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
   const { notification } = App.useApp();
+  const { setToken } = useAuth();
+
+  /* ---------- PERSIST SESSION (same as OTP verification flow) ---------- */
+  const persistUser = (data: any) => {
+    localStorage.setItem("userToken", data.token);
+    localStorage.setItem("userId", data.user.id);
+    localStorage.setItem("roleId", data.user.role.id);
+    localStorage.setItem("roleName", data.user.role.name);
+    if (data.user.first_name) localStorage.setItem("firstName", data.user.first_name);
+    if (data.user.last_name) localStorage.setItem("lastName", data.user.last_name);
+    if (data.user.email) localStorage.setItem("userEmail", data.user.email);
+
+    setToken(data.token);
+  };
 
   /* ---------- LOGIN MUTATION ---------- */
   const loginMutation = useMutation({
@@ -34,14 +49,13 @@ const LoginPage = () => {
           : { phone: trimmed, password: values.password },
       );
     },
-    onSuccess: (data) => {
-      console.log("Login response: ", data)
-      // localStorage.setItem
+    onSuccess: (data: any) => {
+      persistUser(data);
       showSuccess(notification, {
         message: "Login Successful",
-        description: data?.message ?? "OTP sent successfully",
+        description: data?.message ?? "Welcome back!",
       });
-      navigate({ to: "/auth/verify" });
+      navigate({ to: "/app/dashboard", replace: true });
     },
     onError: (error: any) => {
       const errorMessage = error.response?.data?.message || error.message || "An error occurred during login";
