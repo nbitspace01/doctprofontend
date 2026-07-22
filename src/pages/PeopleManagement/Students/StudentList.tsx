@@ -33,6 +33,7 @@ interface StudentData {
   experienceEndDate?: string | null;
   kycStatus: string;
   status: string;
+  category?: string;
 }
 
 interface StudentResponse {
@@ -40,7 +41,18 @@ interface StudentResponse {
   total: number;
 }
 
-const StudentList: React.FC = () => {
+interface StudentListProps {
+  /**
+   * Which registrant group to list. Non-medical users register through the same
+   * student flow (user.category = 'NONMEDICAL') but have no college/degree from
+   * the medical master lists and never go through KYC, so their table differs.
+   */
+  category?: "MEDICAL" | "NONMEDICAL";
+}
+
+const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
+  const isNonMedical = category === "NONMEDICAL";
+  const pageTitle = isNonMedical ? "Non-Medical Users" : "Students";
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
 
@@ -68,13 +80,21 @@ const StudentList: React.FC = () => {
     StudentResponse,
     Error
   >({
-    queryKey: ["students", currentPage, pageSize, searchValue, filterValues],
+    queryKey: [
+      "students",
+      category,
+      currentPage,
+      pageSize,
+      searchValue,
+      filterValues,
+    ],
     queryFn: () =>
       fetchStudentsApi({
         page: currentPage,
         limit: pageSize,
         searchValue,
         filterValues,
+        category,
       }),
     refetchOnMount: true,
     refetchOnWindowFocus: false,
@@ -139,7 +159,7 @@ const StudentList: React.FC = () => {
           </div>
         ),
       },
-      { title: "Student ID", dataIndex: "studentId", width: 180 },
+      { title: isNonMedical ? "User ID" : "Student ID", dataIndex: "studentId", width: 180 },
       { title: "Email", dataIndex: "email", width: 220 },
       { title: "Phone", dataIndex: "phone", width: 160 },
       {
@@ -155,17 +175,32 @@ const StudentList: React.FC = () => {
         render: (dob: string) =>
           dob ? <FormattedDate dateString={dob} format="long" /> : "N/A",
       },
-      { title: "College", dataIndex: "college", width: 220 },
-      { title: "Degree", dataIndex: "degree", width: 180 },
-      { title: "Specialization", dataIndex: "specialization", width: 180 },
-      {
-        title: "KYC Status",
-        dataIndex: "kycStatus",
-        width: 150,
-        render: (status: string) => (
-          <StatusBadge status={status} />
-        ),
-      },
+      // Non-medical users have no college from the medical master list; they
+      // provide free-text education and a mandatory employment status instead,
+      // and they never go through KYC.
+      ...(isNonMedical
+        ? [
+            { title: "Education", dataIndex: "degree", width: 180 },
+            { title: "Specialization", dataIndex: "specialization", width: 180 },
+            {
+              title: "Employment",
+              dataIndex: "isFresher",
+              width: 150,
+              render: (isFresher: boolean) =>
+                isFresher ? "Fresher" : "Experienced",
+            },
+          ]
+        : [
+            { title: "College", dataIndex: "college", width: 220 },
+            { title: "Degree", dataIndex: "degree", width: 180 },
+            { title: "Specialization", dataIndex: "specialization", width: 180 },
+            {
+              title: "KYC Status",
+              dataIndex: "kycStatus",
+              width: 150,
+              render: (status: string) => <StatusBadge status={status} />,
+            },
+          ]),
       {
         title: "Account Status",
         dataIndex: "status",
@@ -188,17 +223,25 @@ const StudentList: React.FC = () => {
         ),
       },
     ],
-    [currentPage, pageSize],
+    [currentPage, pageSize, isNonMedical],
   );
 
   /* -------------------- Filters -------------------- */
   const filterOptions = useMemo(
     () => [
-      { label: "Student Name", key: "studentName", type: "text" as const },
+      {
+        label: isNonMedical ? "Name" : "Student Name",
+        key: "studentName",
+        type: "text" as const,
+      },
       { label: "Email", key: "email", type: "text" as const },
       { label: "Phone", key: "phone", type: "text" as const },
-      { label: "College", key: "college", type: "text" as const },
-      { label: "Degree", key: "degree", type: "text" as const },
+      ...(isNonMedical
+        ? [{ label: "Education", key: "degree", type: "text" as const }]
+        : [
+            { label: "College", key: "college", type: "text" as const },
+            { label: "Degree", key: "degree", type: "text" as const },
+          ]),
       { label: "Specialization", key: "specialization", type: "text" as const },
       {
         label: "Gender",
@@ -206,12 +249,16 @@ const StudentList: React.FC = () => {
         type: "checkbox" as const,
         options: ["Male", "Female", "Other"],
       },
-      {
-        label: "KYC Status",
-        key: "kycStatus",
-        type: "checkbox" as const,
-        options: ["APPROVED", "REJECTED", "PENDING"],
-      },
+      ...(isNonMedical
+        ? []
+        : [
+            {
+              label: "KYC Status",
+              key: "kycStatus",
+              type: "checkbox" as const,
+              options: ["APPROVED", "REJECTED", "PENDING"],
+            },
+          ]),
       {
         label: "Account Status",
         key: "status",
@@ -219,7 +266,7 @@ const StudentList: React.FC = () => {
         options: ["ACTIVE", "INACTIVE", "PENDING"],
       },
     ],
-    [],
+    [isNonMedical],
   );
 
   const handleDownload = (format: "excel" | "csv") => {
@@ -227,16 +274,15 @@ const StudentList: React.FC = () => {
 
     const headers = [
       "S No",
-      "Student Name",
-      "Student ID",
+      isNonMedical ? "Name" : "Student Name",
+      isNonMedical ? "User ID" : "Student ID",
       "Email",
       "Phone",
       "Gender",
       "DOB",
-      "College",
-      "Degree",
-      "Specialization",
-      "KYC Status",
+      ...(isNonMedical
+        ? ["Education", "Specialization", "Employment"]
+        : ["College", "Degree", "Specialization", "KYC Status"]),
       "Account Status",
     ];
 
@@ -248,10 +294,9 @@ const StudentList: React.FC = () => {
       s.phone,
       s.gender,
       s.dob,
-      s.collegeName,
-      s.degree,
-      s.specialization,
-      s.kycStatus,
+      ...(isNonMedical
+        ? [s.degree, s.specialization, s.isFresher ? "Fresher" : "Experienced"]
+        : [s.collegeName, s.degree, s.specialization, s.kycStatus]),
       s.status,
     ]);
 
@@ -265,7 +310,9 @@ const StudentList: React.FC = () => {
 
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `students-report.${format === "csv" ? "csv" : "xls"}`;
+    a.download = `${isNonMedical ? "non-medical-users" : "students"}-report.${
+      format === "csv" ? "csv" : "xls"
+    }`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -275,7 +322,7 @@ const StudentList: React.FC = () => {
 
   return (
     <div className="px-6">
-      <h1 className="text-2xl font-bold pb-4">Students</h1>
+      <h1 className="text-2xl font-bold pb-4">{pageTitle}</h1>
 
       <CommonTable<StudentData>
         rowKey="studentId"

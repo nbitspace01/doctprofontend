@@ -203,6 +203,14 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/healthcare" });
           },
         },
+        {
+          id: "non-medical",
+          label: "Non-Medical Users",
+          onClick: () => {
+            setSelectedSubMenu("non-medical");
+            navigate({ to: "/app/non-medical" });
+          },
+        },
       ],
     },
     {

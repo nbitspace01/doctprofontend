@@ -195,7 +195,13 @@ const clinicsRoute = createRoute({
 const studentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "students",
-  component: () => <StudentList />,
+  component: () => <StudentList category="MEDICAL" />,
+});
+
+const nonMedicalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "non-medical",
+  component: () => <StudentList category="NONMEDICAL" />,
 });
 
 const healthcareRoute = createRoute({
@@ -270,6 +276,7 @@ const routeTree = rootRoute.addChildren([
     degreeSpecializationRoute,
     clinicsRoute,
     studentsRoute,
+    nonMedicalRoute,
     healthcareRoute,
     kycRoute,
     adsRoute,
