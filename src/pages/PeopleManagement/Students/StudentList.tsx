@@ -19,7 +19,8 @@ interface StudentData {
   gender: string;
   dob: string;
   address: string;
-  collegeName: string;
+  /** The list API returns the resolved college as `college`. */
+  college?: string | null;
   degree: string;
   specialization: string;
   startYear: number;
@@ -106,14 +107,18 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
   const totalCount = studentResponse?.total ?? 0;
 
   /* -------------------- Mutation -------------------- */
+  const recordLabel = isNonMedical ? "user" : "student";
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteStudentApi(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["students"] });
-      message.success("Student deleted successfully");
+      message.success(
+        `${isNonMedical ? "User" : "Student"} deleted successfully`,
+      );
     },
     onError: (error: any) => {
-      message.error(error?.message || "Failed to delete student");
+      message.error(error?.message || `Failed to delete ${recordLabel}`);
     },
   });
 
@@ -147,7 +152,7 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
           (currentPage - 1) * pageSize + index + 1,
       },
       {
-        title: "Student Name",
+        title: isNonMedical ? "Name" : "Student Name",
         dataIndex: "studentName",
         width: 260,
         render: (text: string) => (
@@ -186,8 +191,14 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
               title: "Employment",
               dataIndex: "isFresher",
               width: 150,
-              render: (isFresher: boolean) =>
-                isFresher ? "Fresher" : "Experienced",
+              // Not set until the user completes the education step, and
+              // undefined must not read as "Experienced".
+              render: (isFresher?: boolean | null) =>
+                isFresher === null || isFresher === undefined
+                  ? "N/A"
+                  : isFresher
+                    ? "Fresher"
+                    : "Experienced",
             },
           ]
         : [
@@ -269,8 +280,26 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
     [isNonMedical],
   );
 
-  const handleDownload = (format: "excel" | "csv") => {
+  const handleDownload = async (format: "excel" | "csv") => {
     if (!allStudents.length) return;
+
+    // The table only holds the current page. Export every row matching the
+    // active search/filters, falling back to the visible page if that fails.
+    let exportRows: StudentData[] = allStudents;
+    if (totalCount > allStudents.length) {
+      try {
+        const fullResponse = await fetchStudentsApi({
+          page: 1,
+          limit: totalCount,
+          searchValue,
+          filterValues,
+          category,
+        });
+        exportRows = fullResponse?.data ?? allStudents;
+      } catch {
+        message.warning("Could not load all records, exporting current page");
+      }
+    }
 
     const headers = [
       "S No",
@@ -286,7 +315,7 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
       "Account Status",
     ];
 
-    const rows = allStudents.map((s, i) => [
+    const rows = exportRows.map((s, i) => [
       i + 1,
       s.studentName,
       s.studentId,
@@ -295,8 +324,16 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
       s.gender,
       s.dob,
       ...(isNonMedical
-        ? [s.degree, s.specialization, s.isFresher ? "Fresher" : "Experienced"]
-        : [s.collegeName, s.degree, s.specialization, s.kycStatus]),
+        ? [
+            s.degree,
+            s.specialization,
+            s.isFresher === null || s.isFresher === undefined
+              ? "N/A"
+              : s.isFresher
+                ? "Fresher"
+                : "Experienced",
+          ]
+        : [s.college ?? "", s.degree, s.specialization, s.kycStatus]),
       s.status,
     ]);
 
@@ -346,6 +383,7 @@ const StudentList: React.FC<StudentListProps> = ({ category = "MEDICAL" }) => {
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
           studentData={selectedStudent}
+          category={category}
         />
       )}
     </div>
