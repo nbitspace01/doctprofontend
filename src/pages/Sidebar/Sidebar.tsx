@@ -159,6 +159,30 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/master-clinics" });
           },
         },
+        {
+          id: "pharmacies",
+          label: "Pharmacies",
+          onClick: () => {
+            setSelectedSubMenu("pharmacies");
+            navigate({ to: "/app/pharmacies" });
+          },
+        },
+        {
+          id: "laboratories",
+          label: "Laboratories",
+          onClick: () => {
+            setSelectedSubMenu("laboratories");
+            navigate({ to: "/app/laboratories" });
+          },
+        },
+        {
+          id: "pharma-manufacturers",
+          label: "Pharma Manufacturers",
+          onClick: () => {
+            setSelectedSubMenu("pharma-manufacturers");
+            navigate({ to: "/app/pharma-manufacturers" });
+          },
+        },
       ],
     },
     {
