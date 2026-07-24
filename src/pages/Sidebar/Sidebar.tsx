@@ -151,6 +151,14 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/degree-specialization" });
           },
         },
+        {
+          id: "master-clinics",
+          label: "Clinics",
+          onClick: () => {
+            setSelectedSubMenu("master-clinics");
+            navigate({ to: "/app/master-clinics" });
+          },
+        },
       ],
     },
     {

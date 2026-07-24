@@ -21,6 +21,7 @@ import HospitalList from "./pages/MasterList/Hospitals/HospitalList";
 import CollegeList from "./pages/MasterList/Colleges/CollegeList";
 import DegreeSpecializationList from "./pages/MasterList/Degree/DegreeSpecializationList";
 import ClinicsList from "./pages/Organizations/HospitalAdmin/ClinicsList";
+import MasterClinicList from "./pages/MasterList/Clinics/ClinicList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
@@ -192,6 +193,13 @@ const clinicsRoute = createRoute({
   component: () => <ClinicsList />,
 });
 
+// Master-list clinics, separate from the Organizations clinic accounts above.
+const masterClinicsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "master-clinics",
+  component: () => <MasterClinicList />,
+});
+
 const studentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "students",
@@ -274,6 +282,7 @@ const routeTree = rootRoute.addChildren([
     collegesRoute,
     // collegeListRoute,
     degreeSpecializationRoute,
+    masterClinicsRoute,
     clinicsRoute,
     studentsRoute,
     nonMedicalRoute,
