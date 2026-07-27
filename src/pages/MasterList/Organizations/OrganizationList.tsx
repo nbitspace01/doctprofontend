@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Button, App } from "antd";
+import { Button, App, Tag } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 
@@ -14,11 +14,15 @@ import { useListController } from "../../../hooks/useListController";
 import {
   fetchOrganizationsApi,
   deleteOrganizationApi,
+  mergeOrganizationApi,
 } from "../../../api/organization.api";
 import {
   getOrganizationType,
   type OrganizationTypeSlug,
 } from "./organizationTypes";
+import MergeInstitutionModal, {
+  MergeCandidate,
+} from "../MergeInstitutionModal";
 
 interface OrganizationResponse {
   data: OrganizationData[];
@@ -42,6 +46,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedOrganization, setSelectedOrganization] =
     useState<OrganizationData | null>(null);
+  const [mergeSource, setMergeSource] = useState<OrganizationData | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -75,6 +80,28 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
   const allOrganizations = organizationResponse?.data || [];
   const totalCount = organizationResponse?.total || 0;
 
+  /* -------------------- Merge candidates -------------------- */
+  const { data: mergeCandidatesRaw } = useQuery<OrganizationResponse, Error>({
+    queryKey: [queryKey, "merge-candidates"],
+    queryFn: () =>
+      fetchOrganizationsApi(type, {
+        page: 1,
+        limit: 1000,
+        searchValue: "",
+        filterValues: {},
+      }),
+    enabled: Boolean(mergeSource),
+    staleTime: 60_000,
+  });
+  const mergeCandidates: MergeCandidate[] = useMemo(() => {
+    const list = mergeCandidatesRaw?.data ?? [];
+    return list.map((o: any) => ({
+      id: o.id,
+      name: o.name,
+      hint: o.branchLocation ?? o.district?.name ?? undefined,
+    }));
+  }, [mergeCandidatesRaw]);
+
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteOrganizationApi(type, id),
@@ -82,8 +109,21 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
       queryClient.invalidateQueries({ queryKey: [queryKey] });
       message.success(`${label} deleted successfully`);
     },
-    onError: () => {
-      message.error(`Failed to delete ${label.toLowerCase()}`);
+    onError: (err: any) => {
+      message.error(err?.message || `Failed to delete ${label.toLowerCase()}`);
+    },
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
+      mergeOrganizationApi(type, id, targetId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: [queryKey] });
+      setMergeSource(null);
+      message.success(res?.message || `${label} merged successfully`);
+    },
+    onError: (err: any) => {
+      message.error(err?.message || `Failed to merge ${label.toLowerCase()}`);
     },
   });
 
@@ -107,6 +147,10 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
     });
   };
 
+  const handleMerge = (record: OrganizationData) => {
+    setMergeSource(record);
+  };
+
   /* -------------------- Columns -------------------- */
   const columns = useMemo(
     () => [
@@ -119,6 +163,16 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
       {
         title: `${label} Name`,
         dataIndex: "name",
+        render: (name: string, record: OrganizationData) => (
+          <div className="flex items-center gap-2">
+            <span>{name}</span>
+            {record.isDuplicate && (
+              <Tag color="warning" title="Another entry with the same name exists in this location">
+                Duplicate
+              </Tag>
+            )}
+          </div>
+        ),
       },
       {
         title: "Location",
@@ -140,6 +194,7 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
             onDelete={() => handleDelete(record)}
+            onMerge={record.isDuplicate ? () => handleMerge(record) : undefined}
           />
         ),
       },
@@ -241,6 +296,18 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
           organizationData={selectedOrganization}
         />
       )}
+
+      <MergeInstitutionModal
+        open={Boolean(mergeSource)}
+        entityLabel={label.toLowerCase()}
+        source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
+        candidates={mergeCandidates}
+        loading={mergeMutation.isPending}
+        onCancel={() => setMergeSource(null)}
+        onConfirm={(targetId) =>
+          mergeSource && mergeMutation.mutate({ id: mergeSource.id, targetId })
+        }
+      />
     </div>
   );
 };

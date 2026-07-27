@@ -21,6 +21,7 @@ export interface ClinicData {
   stateId?: string | null;
   stateName?: string | null;
   status: string;
+  isDuplicate?: boolean;
   created_at: string;
   updated_at: string;
 }

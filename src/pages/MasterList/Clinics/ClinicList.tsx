@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Button, App } from "antd";
+import { Button, App, Tag } from "antd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 
@@ -11,7 +11,15 @@ import AddClinicModal, { ClinicData } from "./AddClinicModal";
 import ClinicViewDrawer from "./ClinicViewDrawer";
 
 import { useListController } from "../../../hooks/useListController";
-import { fetchClinicsApi, deleteClinicApi } from "../../../api/clinic.api";
+import {
+  fetchClinicsApi,
+  deleteClinicApi,
+  mergeClinicApi,
+  fetchClinicListApi,
+} from "../../../api/clinic.api";
+import MergeInstitutionModal, {
+  MergeCandidate,
+} from "../MergeInstitutionModal";
 
 interface ClinicResponse {
   data: ClinicData[];
@@ -27,6 +35,7 @@ const ClinicList: React.FC = () => {
   const [editData, setEditData] = useState<ClinicData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedClinic, setSelectedClinic] = useState<ClinicData | null>(null);
+  const [mergeSource, setMergeSource] = useState<ClinicData | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -57,6 +66,24 @@ const ClinicList: React.FC = () => {
   const allClinics = clinicResponse?.data || [];
   const totalCount = clinicResponse?.total || 0;
 
+  /* -------------------- Merge candidates (active clinics) -------------------- */
+  const { data: mergeCandidatesRaw } = useQuery({
+    queryKey: ["clinic-merge-candidates"],
+    queryFn: () => fetchClinicListApi(),
+    enabled: Boolean(mergeSource),
+    staleTime: 60_000,
+  });
+  const mergeCandidates: MergeCandidate[] = useMemo(() => {
+    const list = Array.isArray(mergeCandidatesRaw)
+      ? mergeCandidatesRaw
+      : (mergeCandidatesRaw as any)?.data ?? [];
+    return list.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      hint: c.district?.name ?? c.branchLocation ?? undefined,
+    }));
+  }, [mergeCandidatesRaw]);
+
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteClinicApi(id),
@@ -64,8 +91,21 @@ const ClinicList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["clinic"] });
       message.success("Clinic deleted successfully");
     },
-    onError: () => {
-      message.error("Failed to delete clinic");
+    onError: (err: any) => {
+      message.error(err?.message || "Failed to delete clinic");
+    },
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
+      mergeClinicApi(id, targetId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["clinic"] });
+      setMergeSource(null);
+      message.success(res?.message || "Clinic merged successfully");
+    },
+    onError: (err: any) => {
+      message.error(err?.message || "Failed to merge clinic");
     },
   });
 
@@ -89,6 +129,10 @@ const ClinicList: React.FC = () => {
     });
   };
 
+  const handleMerge = (record: ClinicData) => {
+    setMergeSource(record);
+  };
+
   /* -------------------- Columns -------------------- */
   const columns = useMemo(
     () => [
@@ -101,6 +145,16 @@ const ClinicList: React.FC = () => {
       {
         title: "Clinic Name",
         dataIndex: "name",
+        render: (name: string, record: ClinicData) => (
+          <div className="flex items-center gap-2">
+            <span>{name}</span>
+            {record.isDuplicate && (
+              <Tag color="warning" title="Another entry with the same name exists in this location">
+                Duplicate
+              </Tag>
+            )}
+          </div>
+        ),
       },
       {
         title: "Location",
@@ -122,6 +176,7 @@ const ClinicList: React.FC = () => {
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
             onDelete={() => handleDelete(record)}
+            onMerge={record.isDuplicate ? () => handleMerge(record) : undefined}
           />
         ),
       },
@@ -221,6 +276,18 @@ const ClinicList: React.FC = () => {
           clinicData={selectedClinic}
         />
       )}
+
+      <MergeInstitutionModal
+        open={Boolean(mergeSource)}
+        entityLabel="clinic"
+        source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
+        candidates={mergeCandidates}
+        loading={mergeMutation.isPending}
+        onCancel={() => setMergeSource(null)}
+        onConfirm={(targetId) =>
+          mergeSource && mergeMutation.mutate({ id: mergeSource.id, targetId })
+        }
+      />
     </div>
   );
 };

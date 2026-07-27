@@ -49,6 +49,15 @@ export const deleteOrganizationApi = (
   return apiClient.delete<any>(`/api/organizations/${type}/${id}`);
 };
 
+// ----- Merge a duplicate organization into a canonical one -----
+export const mergeOrganizationApi = (
+  type: OrganizationTypeSlug,
+  id: string,
+  targetId: string,
+) => {
+  return apiClient.post<any>(`/api/organizations/${type}/${id}/merge`, { targetId });
+};
+
 // The GET-by-id and /list endpoints exist on the backend but have no web
 // caller: the drawer reuses the row already loaded by the list, and the
 // dropdown feed is consumed by the mobile app.

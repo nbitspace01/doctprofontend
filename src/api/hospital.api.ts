@@ -46,3 +46,7 @@ export const deleteHospitalApi = (id: string) => {
 export const fetchHospitalListApi = () =>{
   return apiClient.get<any>(`/api/hospitals/list`);
 }
+// ----- Merge a duplicate hospital into a canonical one -----
+export const mergeHospitalApi = (id: string, targetId: string) => {
+  return apiClient.post<any>(`/api/hospitals/${id}/merge`, { targetId });
+};

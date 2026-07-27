@@ -44,3 +44,8 @@ export const updateCollegeApi = (id: string, data: any) => {
 export const deleteCollegeApi = (id: string) => {
   return apiClient.delete<any>(`/api/college/${id}`);
 };
+
+// ----- Merge a duplicate college into a canonical one -----
+export const mergeCollegeApi = (id: string, targetId: string) => {
+  return apiClient.post<any>(`/api/college/${id}/merge`, { targetId });
+};

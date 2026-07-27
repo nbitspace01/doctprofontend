@@ -28,6 +28,7 @@ export interface OrganizationData {
   stateId?: string | null;
   stateName?: string | null;
   status: string;
+  isDuplicate?: boolean;
   created_at: string;
   updated_at: string;
 }

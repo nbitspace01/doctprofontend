@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Button, App, Avatar } from "antd";
+import { Button, App, Tag } from "antd";
 import { CrownFilled, PlusOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -14,7 +14,12 @@ import { useListController } from "../../../hooks/useListController";
 import {
   fetchHospitalsApi,
   deleteHospitalApi,
+  mergeHospitalApi,
+  fetchHospitalListApi,
 } from "../../../api/hospital.api";
+import MergeInstitutionModal, {
+  MergeCandidate,
+} from "../MergeInstitutionModal";
 import { Plus } from "lucide-react";
 
 interface HospitalData {
@@ -27,6 +32,7 @@ interface HospitalData {
   created_at: string;
   updated_at: string;
   updatedAt?: string;
+  isDuplicate?: boolean;
   hospital_id: string | null;
   districtId?: string | null;
   stateId?: string | null;
@@ -51,6 +57,7 @@ const HospitalList: React.FC = () => {
   const [selectedHospital, setSelectedHospital] = useState<HospitalData | null>(
     null,
   );
+  const [mergeSource, setMergeSource] = useState<HospitalData | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -84,6 +91,24 @@ const HospitalList: React.FC = () => {
   const allHospitals = hospitalResponse?.data || [];
   const totalCount = hospitalResponse?.total || 0;
 
+  /* -------------------- Merge candidates (active hospitals) -------------------- */
+  const { data: mergeCandidatesRaw } = useQuery({
+    queryKey: ["hospital-merge-candidates"],
+    queryFn: () => fetchHospitalListApi(),
+    enabled: Boolean(mergeSource),
+    staleTime: 60_000,
+  });
+  const mergeCandidates: MergeCandidate[] = useMemo(() => {
+    const list = Array.isArray(mergeCandidatesRaw)
+      ? mergeCandidatesRaw
+      : (mergeCandidatesRaw as any)?.data ?? [];
+    return list.map((h: any) => ({
+      id: h.id,
+      name: h.name,
+      hint: h.district?.name ?? h.branchLocation ?? undefined,
+    }));
+  }, [mergeCandidatesRaw]);
+
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteHospitalApi(id),
@@ -91,8 +116,22 @@ const HospitalList: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: ["hospital"] });
       message.success("Hospital deleted successfully");
     },
-    onError: () => {
-      message.error("Failed to delete hospital");
+    onError: (err: any) => {
+      // 409 = profiles still reference this hospital; tell the admin to merge.
+      message.error(err?.message || "Failed to delete hospital");
+    },
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
+      mergeHospitalApi(id, targetId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["hospital"] });
+      setMergeSource(null);
+      message.success(res?.message || "Hospital merged successfully");
+    },
+    onError: (err: any) => {
+      message.error(err?.message || "Failed to merge hospital");
     },
   });
 
@@ -116,6 +155,10 @@ const HospitalList: React.FC = () => {
     });
   };
 
+  const handleMerge = (record: HospitalData) => {
+    setMergeSource(record);
+  };
+
   /* -------------------- Columns -------------------- */
   const columns = useMemo(
     () => [
@@ -135,6 +178,11 @@ const HospitalList: React.FC = () => {
                 <CrownFilled className="text-yellow-500" title="Head Branch" />
               )}
             </span>
+            {record.isDuplicate && (
+              <Tag color="warning" title="Another entry with the same name exists in this location">
+                Duplicate
+              </Tag>
+            )}
           </div>
         ),
       },
@@ -156,6 +204,7 @@ const HospitalList: React.FC = () => {
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
             onDelete={() => handleDelete(record)}
+            onMerge={record.isDuplicate ? () => handleMerge(record) : undefined}
           />
         ),
       },
@@ -255,6 +304,19 @@ const HospitalList: React.FC = () => {
           hospitalData={selectedHospital}
         />
       )}
+
+      <MergeInstitutionModal
+        open={Boolean(mergeSource)}
+        entityLabel="hospital"
+        source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
+        candidates={mergeCandidates}
+        loading={mergeMutation.isPending}
+        onCancel={() => setMergeSource(null)}
+        onConfirm={(targetId) =>
+          mergeSource &&
+          mergeMutation.mutate({ id: mergeSource.id, targetId })
+        }
+      />
     </div>
   );
 };

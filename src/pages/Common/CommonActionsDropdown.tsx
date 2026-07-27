@@ -6,16 +6,20 @@ const CommonDropdown = ({
   onView,
   onEdit,
   onDelete,
+  onMerge,
   showView = true,
   showEdit = true,
   showDelete = true,
+  showMerge = true,
 }: {
   onView: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  onMerge?: () => void;
   showView?: boolean;
   showEdit?: boolean;
   showDelete?: boolean;
+  showMerge?: boolean;
 }) => {
   const items = [
     showView && {
@@ -29,6 +33,11 @@ const CommonDropdown = ({
       label: <span className="ml-2">Edit</span>,
       key: "edit",
       onClick: onEdit,
+    },
+    onMerge && showMerge && {
+      label: <span className="ml-2">Merge duplicate…</span>,
+      key: "merge",
+      onClick: onMerge,
     },
     onDelete && showDelete && {
       icon: <DeleteIcon />,

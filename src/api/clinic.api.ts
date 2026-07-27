@@ -46,3 +46,8 @@ export const deleteClinicApi = (id: string) => {
 export const fetchClinicListApi = () => {
   return apiClient.get<any>(`/api/clinics/list`);
 };
+
+// ----- Merge a duplicate clinic into a canonical one -----
+export const mergeClinicApi = (id: string, targetId: string) => {
+  return apiClient.post<any>(`/api/clinics/${id}/merge`, { targetId });
+};
