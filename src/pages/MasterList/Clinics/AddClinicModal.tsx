@@ -24,6 +24,8 @@ export interface ClinicData {
   isDuplicate?: boolean;
   created_at: string;
   updated_at: string;
+  // Phone of the mobile user who suggested this record (call to verify it's real).
+  submitter_phone?: string | null;
 }
 
 interface AddClinicModalProps {
@@ -202,6 +204,10 @@ const AddClinicModal: React.FC<AddClinicModalProps> = ({
             rules={[{ required: true }]}
           >
             <Input placeholder="Enter Clinic Name" />
+          </Form.Item>
+
+          <Form.Item name="phone" label="Contact Phone">
+            <Input placeholder="Enter contact phone number" />
           </Form.Item>
 
           <Form.Item label="Filter by State" style={{ marginBottom: 12 }}>

@@ -16,6 +16,8 @@ export interface CollegeData {
   hospitals: any[];
   created_at: string;
   status: string;
+  // Phone of the mobile user who suggested this record (call to verify it's real).
+  submitter_phone?: string | null;
 }
 
 interface CollegeViewDrawerProps {
@@ -216,6 +218,25 @@ const CollegeViewDrawer: React.FC<CollegeViewDrawerProps> = ({
                   />
                 </div>
               </div>
+
+              {collegeData.submitter_phone ? (
+                <div>
+                  <div className="text-xs text-gray-500">
+                    Submitted by (phone)
+                  </div>
+                  <div className="text-sm font-medium mt-1">
+                    <a
+                      href={`tel:${collegeData.submitter_phone}`}
+                      className="text-blue-600"
+                    >
+                      {collegeData.submitter_phone}
+                    </a>
+                    <div className="text-[11px] text-gray-400">
+                      Call to verify this is a real/original entry
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </>
         ) : (

@@ -214,12 +214,17 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
         <div className="space-y-6 py-4">
           {/* Hospital Name */}
           <Form.Item
-            
+
             name="name"
             label="Hospital Name"
             rules={[{ required: true }]}
           >
             <Input placeholder="Enter Hospital Name" />
+          </Form.Item>
+
+          {/* Contact / verification phone */}
+          <Form.Item name="phone" label="Contact Phone">
+            <Input placeholder="Enter contact phone number" />
           </Form.Item>
 
           {/* Branch Location */}

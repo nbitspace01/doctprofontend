@@ -247,6 +247,10 @@ const AddCollegeModal: React.FC<AddCollegeModalProps> = ({
           <Input />
         </Form.Item>
 
+        <Form.Item label="Contact Phone" name="phone">
+          <Input placeholder="Enter contact phone number" />
+        </Form.Item>
+
         <Form.Item
           label="State"
           name="state"

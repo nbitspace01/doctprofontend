@@ -187,6 +187,18 @@ const OrganizationList: React.FC<OrganizationListProps> = ({ type }) => {
         ),
       },
       {
+        title: "Submitted Phone",
+        dataIndex: "submitter_phone",
+        render: (phone: string | null | undefined) =>
+          phone ? (
+            <a href={`tel:${phone}`} className="text-blue-600">
+              {phone}
+            </a>
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
+      },
+      {
         title: "Actions",
         width: 100,
         render: (_: any, record: OrganizationData) => (

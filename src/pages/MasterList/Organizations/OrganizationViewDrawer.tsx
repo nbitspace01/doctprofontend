@@ -168,6 +168,25 @@ const OrganizationViewDrawer: React.FC<OrganizationViewDrawerProps> = ({
                     : "N/A"}
                 </div>
               </div>
+
+              {organizationData.submitter_phone ? (
+                <div>
+                  <div className="text-xs text-gray-500">
+                    Submitted by (phone)
+                  </div>
+                  <div className="text-sm font-medium mt-1">
+                    <a
+                      href={`tel:${organizationData.submitter_phone}`}
+                      className="text-blue-600"
+                    >
+                      {organizationData.submitter_phone}
+                    </a>
+                    <div className="text-[11px] text-gray-400">
+                      Call to verify this is a real/original entry
+                    </div>
+                  </div>
+                </div>
+              ) : null}
             </div>
           </>
         ) : (

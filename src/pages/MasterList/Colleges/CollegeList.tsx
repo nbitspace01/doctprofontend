@@ -214,6 +214,19 @@ const CollegeList: React.FC = () => {
       },
 
       {
+        title: "Submitted Phone",
+        dataIndex: "submitter_phone",
+        render: (phone: string | null | undefined) =>
+          phone ? (
+            <a href={`tel:${phone}`} className="text-blue-600">
+              {phone}
+            </a>
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
+      },
+
+      {
         title: "Action",
         render: (_: any, record: CollegeData) => (
           <CommonDropdown

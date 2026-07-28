@@ -31,6 +31,8 @@ export interface OrganizationData {
   isDuplicate?: boolean;
   created_at: string;
   updated_at: string;
+  // Phone of the mobile user who suggested this record (call to verify it's real).
+  submitter_phone?: string | null;
 }
 
 interface AddOrganizationModalProps {
@@ -213,6 +215,10 @@ const AddOrganizationModal: React.FC<AddOrganizationModalProps> = ({
             rules={[{ required: true }]}
           >
             <Input placeholder={`Enter ${label} Name`} />
+          </Form.Item>
+
+          <Form.Item name="phone" label="Contact Phone">
+            <Input placeholder="Enter contact phone number" />
           </Form.Item>
 
           <Form.Item label="Filter by State" style={{ marginBottom: 12 }}>
