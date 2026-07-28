@@ -17,7 +17,8 @@ interface StudentData {
   gender: string;
   dob: string;
   address: string;
-  collegeName: string;
+  /** The list API returns the resolved college as `college`. */
+  college?: string | null;
   degree: string;
   specialization: string;
   startYear: number;
@@ -34,12 +35,20 @@ interface StudentData {
   experienceEndDate?: string | null;
   kycStatus: string;
   status: string;
+  /** 'MEDICAL' | 'NONMEDICAL' as returned by the list API. */
+  category?: string;
 }
 
 interface StudentViewProps {
   open: boolean;
   onClose: () => void;
   studentData: StudentData;
+  /**
+   * Which registrant group this record belongs to. Non-medical users register
+   * through the student flow but have no college, study years, experience
+   * details or KYC, so those fields are hidden for them.
+   */
+  category?: "MEDICAL" | "NONMEDICAL";
 }
 
 type StudentStatus = "PENDING" | "ACTIVE" | "INACTIVE";
@@ -48,7 +57,19 @@ const StudentView: React.FC<StudentViewProps> = ({
   open,
   onClose,
   studentData,
+  category = "MEDICAL",
 }) => {
+  const isNonMedical =
+    (studentData.category ?? category)?.toUpperCase() === "NONMEDICAL";
+  const entityLabel = isNonMedical ? "User" : "Student";
+
+  /**
+   * Non-medical signup only collects a handful of fields, so anything they were
+   * never asked for is hidden rather than shown as "NA" (InfoField skips empty
+   * values). Students keep the existing placeholder.
+   */
+  const orPlaceholder = (value?: string | number | null) =>
+    value || (isNonMedical ? null : "NA");
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
 
@@ -82,13 +103,13 @@ const StudentView: React.FC<StudentViewProps> = ({
     }) => updateStudentStatusApi(studentId, { status }),
 
     onSuccess: () => {
-      message.success("Student status updated");
+      message.success(`${entityLabel} status updated`);
       queryClient.invalidateQueries({ queryKey: ["students"] });
       onClose();
     },
 
     onError: () => {
-      message.error("Failed to update student status");
+      message.error(`Failed to update ${entityLabel.toLowerCase()} status`);
     },
   });
 
@@ -109,7 +130,9 @@ const StudentView: React.FC<StudentViewProps> = ({
 
     modal.confirm({
       title:
-        nextStatus === "ACTIVE" ? "Activate Student?" : "Deactivate Student?",
+        nextStatus === "ACTIVE"
+          ? `Activate ${entityLabel}?`
+          : `Deactivate ${entityLabel}?`,
       content: `Are you sure you want to ${nextStatus} "${studentData.studentName}"?`,
       okType: nextStatus === "ACTIVE" ? "primary" : "danger",
       onOk: () =>
@@ -122,7 +145,7 @@ const StudentView: React.FC<StudentViewProps> = ({
 
   return (
     <Drawer
-      title="Students"
+      title={isNonMedical ? "Non-Medical Users" : "Students"}
       placement="right"
       onClose={onClose}
       open={open}
@@ -148,7 +171,7 @@ const StudentView: React.FC<StudentViewProps> = ({
             }`}
             onClick={handleStatusToggle}
           >
-            {isActive ? "Deactivate" : "Activate"} Student
+            {isActive ? "Deactivate" : "Activate"} {entityLabel}
           </Button>
         </div>
       }
@@ -167,84 +190,124 @@ const StudentView: React.FC<StudentViewProps> = ({
                 </h3>
               </div>
               <p className="text-gray-500">
-                Student ID: #{studentData.studentId.slice(0, 8)}
+                {entityLabel} ID: #{studentData.studentId.slice(0, 8)}
               </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <InfoField label="Gender" value={studentData.gender} />
+            <InfoField label="Gender" value={orPlaceholder(studentData.gender)} />
             <InfoField
               label="DOB"
               value={
                 studentData.dob ? (
                   <FormattedDate dateString={studentData.dob} format="long" />
                 ) : (
-                  "N/A"
+                  orPlaceholder(null)
                 )
               }
             />
             <InfoField label="Email Address" value={studentData.email} />
             <InfoField label="Phone Number" value={studentData.phone} />
+            {!isNonMedical && (
+              <InfoField
+                label="College/University"
+                value={studentData.college || "NA"}
+              />
+            )}
             <InfoField
-              label="College/University"
-              value={studentData.collegeName || "NA"}
+              label={isNonMedical ? "Education" : "Degree"}
+              value={orPlaceholder(studentData.degree)}
             />
-            <InfoField label="Degree" value={studentData.degree || "NA"} />
             <InfoField
               label="Specializations"
-              value={studentData.specialization || "NA"}
-            />
-            <InfoField label="Location" value={studentData.address || "NA"} />
-            <InfoField
-              label="Start Year"
-              value={studentData.startYear || "NA"}
-            />
-            <InfoField label="End Year" value={studentData.endYear || "NA"} />
-            <InfoField
-              label="Experience Type"
-              value={studentData.isFresher ? "Fresher" : "Experienced"}
+              value={orPlaceholder(studentData.specialization)}
             />
             <InfoField
-              label="Working Status"
-              value={studentData.currentlyWorking ? "Currently Working" : "Not Working"}
+              label="Location"
+              value={orPlaceholder(studentData.address)}
             />
-            <InfoField
-              label="Experience Organization"
-              value={studentData.experienceOrganizationName || "NA"}
-            />
-            <InfoField
-              label="Experience Role"
-              value={
-                studentData.experienceRole ||
-                studentData.experience_role ||
-                "NA"
-              }
-            />
-            <InfoField
-              label="Experience Specialization"
-              value={studentData.experienceSpecialization || "NA"}
-            />
-            <InfoField
-              label="Experience Location"
-              value={studentData.experienceLocation || "NA"}
-            />
-            <InfoField
-              label="Experience Start Date"
-              value={studentData.experienceStartDate || "NA"}
-            />
-            <InfoField
-              label="Experience End Date"
-              value={
-                studentData.currentlyWorking
-                  ? "Present"
-                  : (studentData.experienceEndDate || "NA")
-              }
-            />
-            <InfoField
-              label="KYC Status"
-              value={<StatusBadge status={studentData.kycStatus || "NA"} />}
-            />
+            {/* Non-medical users only supply education + an employment status;
+                study years, experience details and KYC never apply to them. */}
+            {isNonMedical ? (
+              <InfoField
+                label="Employment"
+                value={
+                  studentData.isFresher === null ||
+                  studentData.isFresher === undefined
+                    ? null
+                    : studentData.isFresher
+                      ? "Fresher"
+                      : "Experienced"
+                }
+              />
+            ) : (
+              <>
+                <InfoField
+                  label="Start Year"
+                  value={studentData.startYear || "NA"}
+                />
+                <InfoField
+                  label="End Year"
+                  value={studentData.endYear || "NA"}
+                />
+                <InfoField
+                  label="Experience Type"
+                  value={
+                    studentData.isFresher === null ||
+                    studentData.isFresher === undefined
+                      ? "NA"
+                      : studentData.isFresher
+                        ? "Fresher"
+                        : "Experienced"
+                  }
+                />
+                <InfoField
+                  label="Working Status"
+                  value={
+                    studentData.currentlyWorking
+                      ? "Currently Working"
+                      : "Not Working"
+                  }
+                />
+                <InfoField
+                  label="Experience Organization"
+                  value={studentData.experienceOrganizationName || "NA"}
+                />
+                <InfoField
+                  label="Experience Role"
+                  value={
+                    studentData.experienceRole ||
+                    studentData.experience_role ||
+                    "NA"
+                  }
+                />
+                <InfoField
+                  label="Experience Specialization"
+                  value={studentData.experienceSpecialization || "NA"}
+                />
+                <InfoField
+                  label="Experience Location"
+                  value={studentData.experienceLocation || "NA"}
+                />
+                <InfoField
+                  label="Experience Start Date"
+                  value={studentData.experienceStartDate || "NA"}
+                />
+                <InfoField
+                  label="Experience End Date"
+                  value={
+                    studentData.currentlyWorking
+                      ? "Present"
+                      : studentData.experienceEndDate || "NA"
+                  }
+                />
+                <InfoField
+                  label="KYC Status"
+                  value={<StatusBadge status={studentData.kycStatus || "NA"} />}
+                />
+              </>
+            )}
             <InfoField
               label="Status"
               value={<StatusBadge status={studentData.status} />}
@@ -259,11 +322,17 @@ const StudentView: React.FC<StudentViewProps> = ({
 const InfoField: React.FC<{
   label: string;
   value: React.ReactNode;
-}> = ({ label, value }) => (
-  <div>
-    <p className="text-gray-500 text-sm mb-1">{label}</p>
-    <p className="font-medium">{value}</p>
-  </div>
-);
+}> = ({ label, value }) => {
+  // A label with nothing under it reads as broken, so empty fields are dropped
+  // entirely. Callers that want a placeholder pass one explicitly.
+  if (value === null || value === undefined || value === "") return null;
+
+  return (
+    <div>
+      <p className="text-gray-500 text-sm mb-1">{label}</p>
+      <p className="font-medium">{value}</p>
+    </div>
+  );
+};
 
 export default StudentView;

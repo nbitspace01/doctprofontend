@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
-import { Avatar, Button, App } from "antd";
+import { Avatar, Button, App, Tag } from "antd";
 import { Plus } from "lucide-react";
 
 import Loader from "../../Common/Loader";
@@ -11,7 +11,14 @@ import StatusBadge from "../../Common/StatusBadge";
 import CommonTable from "../../../components/Common/CommonTable";
 
 import { useListController } from "../../../hooks/useListController";
-import { deleteCollegeApi, fetchCollegesApi } from "../../../api/college.api";
+import {
+  deleteCollegeApi,
+  fetchCollegesApi,
+  mergeCollegeApi,
+} from "../../../api/college.api";
+import MergeInstitutionModal, {
+  MergeCandidate,
+} from "../MergeInstitutionModal";
 
 /* ---------- TYPES ---------- */
 export interface CollegeData {
@@ -25,6 +32,7 @@ export interface CollegeData {
   hospitals: any[];
   created_at: string;
   status: "active" | "pending" | "inactive";
+  isDuplicate?: boolean;
 }
 
 interface CollegeResponse {
@@ -44,6 +52,7 @@ const CollegeList: React.FC = () => {
   const [selectedCollege, setSelectedCollege] = useState<CollegeData | null>(
     null,
   );
+  const [mergeSource, setMergeSource] = useState<CollegeData | null>(null);
 
   /* ---------- LIST CONTROLLER ---------- */
   const {
@@ -77,7 +86,37 @@ const CollegeList: React.FC = () => {
   const allColleges = collegeResponse?.data ?? [];
   const totalCount = collegeResponse?.total ?? 0;
 
+  /* -------------------- Merge candidates -------------------- */
+  const { data: mergeCandidatesRaw } = useQuery<CollegeResponse, Error>({
+    queryKey: ["college-merge-candidates"],
+    queryFn: () =>
+      fetchCollegesApi({ page: 1, limit: 1000, searchValue: "", filterValues: {} }),
+    enabled: Boolean(mergeSource),
+    staleTime: 60_000,
+  });
+  const mergeCandidates: MergeCandidate[] = useMemo(() => {
+    const list = mergeCandidatesRaw?.data ?? [];
+    return list.map((c) => ({
+      id: c.id,
+      name: c.name,
+      hint: [c.district, c.state].filter(Boolean).join(", ") || undefined,
+    }));
+  }, [mergeCandidatesRaw]);
+
   /* ---------- MUTATION ---------- */
+  const mergeMutation = useMutation({
+    mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
+      mergeCollegeApi(id, targetId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["colleges"] });
+      setMergeSource(null);
+      message.success(res?.message || "College merged successfully");
+    },
+    onError: (err: any) => {
+      message.error(err?.message || "Failed to merge college");
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteCollegeApi(id),
     onSuccess: () => {
@@ -120,6 +159,10 @@ const CollegeList: React.FC = () => {
     });
   };
 
+  const handleMerge = (record: CollegeData) => {
+    setMergeSource(record);
+  };
+
   /* ---------- COLUMNS ---------- */
   const columns = useMemo(
     () => [
@@ -144,6 +187,11 @@ const CollegeList: React.FC = () => {
               </Avatar>
             )}
             <span>{record.name}</span>
+            {record.isDuplicate && (
+              <Tag color="warning" title="Another entry with the same name exists in this city">
+                Duplicate
+              </Tag>
+            )}
           </div>
         ),
       },
@@ -166,12 +214,26 @@ const CollegeList: React.FC = () => {
       },
 
       {
+        title: "Submitted Phone",
+        dataIndex: "submitter_phone",
+        render: (phone: string | null | undefined) =>
+          phone ? (
+            <a href={`tel:${phone}`} className="text-blue-600">
+              {phone}
+            </a>
+          ) : (
+            <span className="text-gray-400">—</span>
+          ),
+      },
+
+      {
         title: "Action",
         render: (_: any, record: CollegeData) => (
           <CommonDropdown
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
             onDelete={() => handleDelete(record)}
+            onMerge={record.isDuplicate ? () => handleMerge(record) : undefined}
           />
         ),
       },
@@ -289,6 +351,18 @@ const CollegeList: React.FC = () => {
           collegeData={selectedCollege}
         />
       )}
+
+      <MergeInstitutionModal
+        open={Boolean(mergeSource)}
+        entityLabel="college"
+        source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
+        candidates={mergeCandidates}
+        loading={mergeMutation.isPending}
+        onCancel={() => setMergeSource(null)}
+        onConfirm={(targetId) =>
+          mergeSource && mergeMutation.mutate({ id: mergeSource.id, targetId })
+        }
+      />
     </div>
   );
 };

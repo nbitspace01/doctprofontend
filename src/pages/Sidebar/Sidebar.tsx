@@ -151,6 +151,38 @@ const Sidebar: React.FC = () => {
             navigate({ to: "/app/degree-specialization" });
           },
         },
+        {
+          id: "master-clinics",
+          label: "Clinics",
+          onClick: () => {
+            setSelectedSubMenu("master-clinics");
+            navigate({ to: "/app/master-clinics" });
+          },
+        },
+        {
+          id: "pharmacies",
+          label: "Pharmacies",
+          onClick: () => {
+            setSelectedSubMenu("pharmacies");
+            navigate({ to: "/app/pharmacies" });
+          },
+        },
+        {
+          id: "laboratories",
+          label: "Laboratories",
+          onClick: () => {
+            setSelectedSubMenu("laboratories");
+            navigate({ to: "/app/laboratories" });
+          },
+        },
+        {
+          id: "pharma-manufacturers",
+          label: "Pharma Manufacturers",
+          onClick: () => {
+            setSelectedSubMenu("pharma-manufacturers");
+            navigate({ to: "/app/pharma-manufacturers" });
+          },
+        },
       ],
     },
     {
@@ -201,6 +233,14 @@ const Sidebar: React.FC = () => {
           onClick: () => {
             setSelectedSubMenu("healthcare");
             navigate({ to: "/app/healthcare" });
+          },
+        },
+        {
+          id: "non-medical",
+          label: "Non-Medical Users",
+          onClick: () => {
+            setSelectedSubMenu("non-medical");
+            navigate({ to: "/app/non-medical" });
           },
         },
       ],

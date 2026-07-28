@@ -41,3 +41,7 @@ export const updateDegreeApi = (id: string, data: any) => {
 export const deleteDegreeApi = (id: string) => {
   return apiClient.delete<any>(`/api/degree/${id}`);
 };
+// ----- Merge a duplicate degree into a canonical one -----
+export const mergeDegreeApi = (id: string, targetId: string) => {
+  return apiClient.post<any>(`/api/degree/${id}/merge`, { targetId });
+};

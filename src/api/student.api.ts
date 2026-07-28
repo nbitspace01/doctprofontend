@@ -6,6 +6,8 @@ export interface FetchParams {
   limit: number;
   searchValue?: string;
   filterValues?: Record<string, any>;
+  /** Optional medical / non-medical split. Omit to fetch every student. */
+  category?: "MEDICAL" | "NONMEDICAL";
 }
 
 // ------Create Students API-----
@@ -19,11 +21,12 @@ export const fetchStudentsApi = ({
   limit,
   searchValue = "",
   filterValues = {},
+  category,
 }: FetchParams) => {
   const queryParams = buildQueryParams(searchValue, filterValues);
   const url = `/api/student/student/list?page=${page}&limit=${limit}${
-    queryParams ? `&${queryParams}` : ""
-  }`;
+    category ? `&category=${category}` : ""
+  }${queryParams ? `&${queryParams}` : ""}`;
   return apiClient.get<any>(url);
 };
 

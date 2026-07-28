@@ -21,6 +21,8 @@ import HospitalList from "./pages/MasterList/Hospitals/HospitalList";
 import CollegeList from "./pages/MasterList/Colleges/CollegeList";
 import DegreeSpecializationList from "./pages/MasterList/Degree/DegreeSpecializationList";
 import ClinicsList from "./pages/Organizations/HospitalAdmin/ClinicsList";
+import MasterClinicList from "./pages/MasterList/Clinics/ClinicList";
+import OrganizationList from "./pages/MasterList/Organizations/OrganizationList";
 import StudentList from "./pages/PeopleManagement/Students/StudentList";
 import HealthCareList from "./pages/PeopleManagement/HealthCare/HealthCareList";
 import KycList from "./pages/KYCManagement/KycList";
@@ -192,10 +194,42 @@ const clinicsRoute = createRoute({
   component: () => <ClinicsList />,
 });
 
+// Master-list clinics, separate from the Organizations clinic accounts above.
+const masterClinicsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "master-clinics",
+  component: () => <MasterClinicList />,
+});
+
+// Master-list organisations — one shared page, one route per type.
+const pharmaciesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "pharmacies",
+  component: () => <OrganizationList type="pharmacy" />,
+});
+
+const laboratoriesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "laboratories",
+  component: () => <OrganizationList type="laboratory" />,
+});
+
+const pharmaManufacturersRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "pharma-manufacturers",
+  component: () => <OrganizationList type="pharma-manufacturer" />,
+});
+
 const studentsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "students",
-  component: () => <StudentList />,
+  component: () => <StudentList category="MEDICAL" />,
+});
+
+const nonMedicalRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "non-medical",
+  component: () => <StudentList category="NONMEDICAL" />,
 });
 
 const healthcareRoute = createRoute({
@@ -268,8 +302,13 @@ const routeTree = rootRoute.addChildren([
     collegesRoute,
     // collegeListRoute,
     degreeSpecializationRoute,
+    masterClinicsRoute,
+    pharmaciesRoute,
+    laboratoriesRoute,
+    pharmaManufacturersRoute,
     clinicsRoute,
     studentsRoute,
+    nonMedicalRoute,
     healthcareRoute,
     kycRoute,
     adsRoute,

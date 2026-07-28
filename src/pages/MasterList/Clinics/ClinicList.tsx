@@ -1,63 +1,41 @@
 import React, { useMemo, useState } from "react";
 import { Button, App, Tag } from "antd";
-import { CrownFilled, PlusOutlined } from "@ant-design/icons";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Plus } from "lucide-react";
 
 import CommonTable from "../../../components/Common/CommonTable";
 import CommonDropdown from "../../Common/CommonActionsDropdown";
 import StatusBadge from "../../Common/StatusBadge";
 
-import AddHospitalModal from "./AddHospitalModal";
-import HospitalViewDrawer from "./HospitalViewDrawer";
+import AddClinicModal, { ClinicData } from "./AddClinicModal";
+import ClinicViewDrawer from "./ClinicViewDrawer";
 
 import { useListController } from "../../../hooks/useListController";
 import {
-  fetchHospitalsApi,
-  deleteHospitalApi,
-  mergeHospitalApi,
-  fetchHospitalListApi,
-} from "../../../api/hospital.api";
+  fetchClinicsApi,
+  deleteClinicApi,
+  mergeClinicApi,
+  fetchClinicListApi,
+} from "../../../api/clinic.api";
 import MergeInstitutionModal, {
   MergeCandidate,
 } from "../MergeInstitutionModal";
-import { Plus } from "lucide-react";
 
-interface HospitalData {
-  id: string;
-  name: string;
-  branchLocation: string;
-  isHeadBranch: boolean;
-  status: "ACTIVE" | "INACTIVE" | "PENDING";
-  logoUrl: string | null;
-  created_at: string;
-  updated_at: string;
-  updatedAt?: string;
-  isDuplicate?: boolean;
-  hospital_id: string | null;
-  districtId?: string | null;
-  stateId?: string | null;
-  stateName?: string | null;
-  countryId?: string | null;
-  countryName?: string | null;
-}
-
-interface HospitalResponse {
-  data: HospitalData[];
+interface ClinicResponse {
+  data: ClinicData[];
   total: number;
 }
 
-const HospitalList: React.FC = () => {
+const ClinicList: React.FC = () => {
   const { modal, message } = App.useApp();
   const queryClient = useQueryClient();
 
   /* -------------------- State -------------------- */
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editData, setEditData] = useState<HospitalData | null>(null);
+  const [editData, setEditData] = useState<ClinicData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedHospital, setSelectedHospital] = useState<HospitalData | null>(
-    null,
-  );
-  const [mergeSource, setMergeSource] = useState<HospitalData | null>(null);
+  const [selectedClinic, setSelectedClinic] = useState<ClinicData | null>(null);
+  const [mergeSource, setMergeSource] = useState<ClinicData | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -71,13 +49,10 @@ const HospitalList: React.FC = () => {
   } = useListController();
 
   /* -------------------- Query -------------------- */
-  const { data: hospitalResponse, isFetching } = useQuery<
-    HospitalResponse,
-    Error
-  >({
-    queryKey: ["hospital", currentPage, pageSize, searchValue, filterValues],
+  const { data: clinicResponse, isFetching } = useQuery<ClinicResponse, Error>({
+    queryKey: ["clinic", currentPage, pageSize, searchValue, filterValues],
     queryFn: () =>
-      fetchHospitalsApi({
+      fetchClinicsApi({
         page: currentPage,
         limit: pageSize,
         searchValue,
@@ -88,13 +63,13 @@ const HospitalList: React.FC = () => {
     staleTime: 0,
   });
 
-  const allHospitals = hospitalResponse?.data || [];
-  const totalCount = hospitalResponse?.total || 0;
+  const allClinics = clinicResponse?.data || [];
+  const totalCount = clinicResponse?.total || 0;
 
-  /* -------------------- Merge candidates (active hospitals) -------------------- */
+  /* -------------------- Merge candidates (active clinics) -------------------- */
   const { data: mergeCandidatesRaw } = useQuery({
-    queryKey: ["hospital-merge-candidates"],
-    queryFn: () => fetchHospitalListApi(),
+    queryKey: ["clinic-merge-candidates"],
+    queryFn: () => fetchClinicListApi(),
     enabled: Boolean(mergeSource),
     staleTime: 60_000,
   });
@@ -102,51 +77,50 @@ const HospitalList: React.FC = () => {
     const list = Array.isArray(mergeCandidatesRaw)
       ? mergeCandidatesRaw
       : (mergeCandidatesRaw as any)?.data ?? [];
-    return list.map((h: any) => ({
-      id: h.id,
-      name: h.name,
-      hint: h.district?.name ?? h.branchLocation ?? undefined,
+    return list.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      hint: c.district?.name ?? c.branchLocation ?? undefined,
     }));
   }, [mergeCandidatesRaw]);
 
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteHospitalApi(id),
+    mutationFn: (id: string) => deleteClinicApi(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["hospital"] });
-      message.success("Hospital deleted successfully");
+      queryClient.invalidateQueries({ queryKey: ["clinic"] });
+      message.success("Clinic deleted successfully");
     },
     onError: (err: any) => {
-      // 409 = profiles still reference this hospital; tell the admin to merge.
-      message.error(err?.message || "Failed to delete hospital");
+      message.error(err?.message || "Failed to delete clinic");
     },
   });
 
   const mergeMutation = useMutation({
     mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
-      mergeHospitalApi(id, targetId),
+      mergeClinicApi(id, targetId),
     onSuccess: (res: any) => {
-      queryClient.invalidateQueries({ queryKey: ["hospital"] });
+      queryClient.invalidateQueries({ queryKey: ["clinic"] });
       setMergeSource(null);
-      message.success(res?.message || "Hospital merged successfully");
+      message.success(res?.message || "Clinic merged successfully");
     },
     onError: (err: any) => {
-      message.error(err?.message || "Failed to merge hospital");
+      message.error(err?.message || "Failed to merge clinic");
     },
   });
 
   /* -------------------- Handlers -------------------- */
-  const handleView = (record: HospitalData) => {
-    setSelectedHospital(record);
+  const handleView = (record: ClinicData) => {
+    setSelectedClinic(record);
     setIsViewDrawerOpen(true);
   };
 
-  const handleEdit = (record: HospitalData) => {
+  const handleEdit = (record: ClinicData) => {
     setEditData(record);
     setIsModalOpen(true);
   };
 
-  const handleDelete = (record: HospitalData) => {
+  const handleDelete = (record: ClinicData) => {
     modal.confirm({
       title: "Confirm Delete",
       content: `Delete ${record.name}?`,
@@ -155,7 +129,7 @@ const HospitalList: React.FC = () => {
     });
   };
 
-  const handleMerge = (record: HospitalData) => {
+  const handleMerge = (record: ClinicData) => {
     setMergeSource(record);
   };
 
@@ -169,15 +143,11 @@ const HospitalList: React.FC = () => {
           (currentPage - 1) * pageSize + index + 1,
       },
       {
-        title: "Hospital Name",
-        render: (_: any, record: HospitalData) => (
+        title: "Clinic Name",
+        dataIndex: "name",
+        render: (name: string, record: ClinicData) => (
           <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1">
-              {record.name}
-              {record.isHeadBranch && (
-                <CrownFilled className="text-yellow-500" title="Head Branch" />
-              )}
-            </span>
+            <span>{name}</span>
             {record.isDuplicate && (
               <Tag color="warning" title="Another entry with the same name exists in this location">
                 Duplicate
@@ -187,14 +157,15 @@ const HospitalList: React.FC = () => {
         ),
       },
       {
-        title: "Branch Location",
+        title: "Location",
         dataIndex: "branchLocation",
+        render: (branchLocation: string) => branchLocation || "N/A",
       },
       {
         title: "Status",
         dataIndex: "status",
         render: (status: string) => (
-          <StatusBadge status={status.toUpperCase()} />
+          <StatusBadge status={String(status).toUpperCase()} />
         ),
       },
       {
@@ -211,7 +182,8 @@ const HospitalList: React.FC = () => {
       },
       {
         title: "Actions",
-        render: (_: any, record: HospitalData) => (
+        width: 100,
+        render: (_: any, record: ClinicData) => (
           <CommonDropdown
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
@@ -227,8 +199,8 @@ const HospitalList: React.FC = () => {
   /* -------------------- Filters -------------------- */
   const filterOptions = useMemo(
     () => [
-      { label: "Hospital Name", key: "name", type: "text" as const },
-      { label: "Branch Location", key: "city", type: "text" as const },
+      { label: "Clinic Name", key: "name", type: "text" as const },
+      { label: "Location", key: "city", type: "text" as const },
       {
         label: "Status",
         key: "status",
@@ -241,11 +213,11 @@ const HospitalList: React.FC = () => {
 
   /* -------------------- Download -------------------- */
   const handleDownload = (format: "excel" | "csv") => {
-    if (!allHospitals.length) return;
-    const headers = ["S No", "Name", "Branch Location", "Status"];
-    const rows = allHospitals.map((row, i) => [
+    if (!allClinics.length) return;
+    const headers = ["S No", "Name", "Location", "Status"];
+    const rows = allClinics.map((row, i) => [
       i + 1,
-      `${row.name}`,
+      row.name,
       row.branchLocation || "N/A",
       row.status || "N/A",
     ]);
@@ -257,7 +229,7 @@ const HospitalList: React.FC = () => {
     });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `hospital-report.${format === "csv" ? "csv" : "xls"}`;
+    a.download = `clinic-report.${format === "csv" ? "csv" : "xls"}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -266,71 +238,70 @@ const HospitalList: React.FC = () => {
   return (
     <div className="px-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 className="text-2xl font-bold">Hospital List</h1>
+        <h1 className="text-2xl font-bold">Clinic List</h1>
         <Button
           type="primary"
           onClick={() => setIsModalOpen(true)}
-          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md 
+          className="bg-button-primary hover:!bg-blue-700 text-white font-bold rounded-lg shadow-md
                px-5 py-6 flex items-center gap-2 transition-colors duration-200"
         >
           <Plus className="relative -top-0" />
-          Add New Hospital
+          Add New Clinic
         </Button>
       </div>
 
-      <CommonTable
+      <CommonTable<ClinicData>
         rowKey="id"
         columns={columns}
-        data={allHospitals}
+        data={allClinics}
         loading={isFetching}
         currentPage={currentPage}
         pageSize={pageSize}
         total={totalCount}
         onPageChange={onPageChange}
         filters={filterOptions}
+        filterValues={filterValues}
         onFilterChange={onFilterChange}
         onSearch={onSearch}
         searchValue={searchValue}
         onDownload={handleDownload}
       />
 
-      <AddHospitalModal
+      <AddClinicModal
         open={isModalOpen}
         onCancel={() => {
           setIsModalOpen(false);
           setEditData(null);
         }}
-        onSubmit={(values) => {
-          console.log(editData ? "Update" : "Add", values);
-          queryClient.invalidateQueries({ queryKey: ["hospital"] });
+        onSubmit={() => {
+          queryClient.invalidateQueries({ queryKey: ["clinic"] });
           setIsModalOpen(false);
           setEditData(null);
         }}
         initialData={editData}
       />
 
-      {selectedHospital && (
-        <HospitalViewDrawer
+      {selectedClinic && (
+        <ClinicViewDrawer
           open={isViewDrawerOpen}
           onClose={() => setIsViewDrawerOpen(false)}
-          hospitalData={selectedHospital}
+          clinicData={selectedClinic}
         />
       )}
 
       <MergeInstitutionModal
         open={Boolean(mergeSource)}
-        entityLabel="hospital"
+        entityLabel="clinic"
         source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
         candidates={mergeCandidates}
         loading={mergeMutation.isPending}
         onCancel={() => setMergeSource(null)}
         onConfirm={(targetId) =>
-          mergeSource &&
-          mergeMutation.mutate({ id: mergeSource.id, targetId })
+          mergeSource && mergeMutation.mutate({ id: mergeSource.id, targetId })
         }
       />
     </div>
   );
 };
 
-export default HospitalList;
+export default ClinicList;

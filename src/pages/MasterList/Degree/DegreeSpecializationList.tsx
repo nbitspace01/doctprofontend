@@ -1,4 +1,4 @@
-import { Button, App } from "antd";
+import { Button, App, Tag } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import React, { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -7,9 +7,16 @@ import DegreeView from "./DegreeView";
 import CommonDropdown from "../../Common/CommonActionsDropdown"; // 🔹 Our new table
 import StatusBadge from "../../Common/StatusBadge";
 import FormattedDate from "../../Common/FormattedDate";
-import { deleteDegreeApi, fetchDegreesApi } from "../../../api/degree.api";
+import {
+  deleteDegreeApi,
+  fetchDegreesApi,
+  mergeDegreeApi,
+} from "../../../api/degree.api";
 import CommonTable from "../../../components/Common/CommonTable";
 import { useListController } from "../../../hooks/useListController";
+import MergeInstitutionModal, {
+  MergeCandidate,
+} from "../MergeInstitutionModal";
 import { Plus } from "lucide-react";
 
 interface DegreeData {
@@ -19,6 +26,7 @@ interface DegreeData {
   specialization: string;
   status: string;
   created_at: string;
+  isDuplicate?: boolean;
 }
 
 interface DegreeResponse {
@@ -35,6 +43,7 @@ const DegreeSpecializationList: React.FC = () => {
   const [editData, setEditData] = useState<DegreeData | null>(null);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedDegree, setSelectedDegree] = useState<DegreeData | null>(null);
+  const [mergeSource, setMergeSource] = useState<DegreeData | null>(null);
 
   /* -------------------- List Controller -------------------- */
   const {
@@ -65,6 +74,23 @@ const DegreeSpecializationList: React.FC = () => {
   const allDegrees = degreeResponse?.data ?? [];
   const totalCount = degreeResponse?.total ?? 0;
 
+  /* -------------------- Merge candidates -------------------- */
+  const { data: mergeCandidatesRaw } = useQuery<DegreeResponse, Error>({
+    queryKey: ["degree-merge-candidates"],
+    queryFn: () =>
+      fetchDegreesApi({ page: 1, limit: 1000, searchValue: "", filterValues: {} }),
+    enabled: Boolean(mergeSource),
+    staleTime: 60_000,
+  });
+  const mergeCandidates: MergeCandidate[] = useMemo(() => {
+    const list = mergeCandidatesRaw?.data ?? [];
+    return list.map((d) => ({
+      id: d.id,
+      name: d.name,
+      hint: d.specialization || undefined,
+    }));
+  }, [mergeCandidatesRaw]);
+
   /* -------------------- Mutation -------------------- */
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDegreeApi(id),
@@ -74,6 +100,19 @@ const DegreeSpecializationList: React.FC = () => {
     },
     onError: (error: any) => {
       message.error(error?.message || "Failed to delete degree");
+    },
+  });
+
+  const mergeMutation = useMutation({
+    mutationFn: ({ id, targetId }: { id: string; targetId: string }) =>
+      mergeDegreeApi(id, targetId),
+    onSuccess: (res: any) => {
+      queryClient.invalidateQueries({ queryKey: ["degree"] });
+      setMergeSource(null);
+      message.success(res?.message || "Degree merged successfully");
+    },
+    onError: (err: any) => {
+      message.error(err?.message || "Failed to merge degree");
     },
   });
 
@@ -97,6 +136,10 @@ const DegreeSpecializationList: React.FC = () => {
     });
   };
 
+  const handleMerge = (record: DegreeData) => {
+    setMergeSource(record);
+  };
+
   /* -------------------- Columns -------------------- */
   const columns = useMemo(
     () => [
@@ -109,6 +152,16 @@ const DegreeSpecializationList: React.FC = () => {
       {
         title: "Degree Name",
         dataIndex: "name",
+        render: (name: string, record: DegreeData) => (
+          <div className="flex items-center gap-2">
+            <span>{name}</span>
+            {record.isDuplicate && (
+              <Tag color="warning" title="Another degree with the same name exists">
+                Duplicate
+              </Tag>
+            )}
+          </div>
+        ),
       },
       {
         title: "Specialization",
@@ -134,6 +187,7 @@ const DegreeSpecializationList: React.FC = () => {
             onView={() => handleView(record)}
             onEdit={() => handleEdit(record)}
             onDelete={() => handleDelete(record)}
+            onMerge={record.isDuplicate ? () => handleMerge(record) : undefined}
           />
         ),
       },
@@ -245,6 +299,18 @@ const DegreeSpecializationList: React.FC = () => {
           degreeData={selectedDegree}
         />
       )}
+
+      <MergeInstitutionModal
+        open={Boolean(mergeSource)}
+        entityLabel="degree"
+        source={mergeSource ? { id: mergeSource.id, name: mergeSource.name } : null}
+        candidates={mergeCandidates}
+        loading={mergeMutation.isPending}
+        onCancel={() => setMergeSource(null)}
+        onConfirm={(targetId) =>
+          mergeSource && mergeMutation.mutate({ id: mergeSource.id, targetId })
+        }
+      />
     </div>
   );
 };

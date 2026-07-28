@@ -157,6 +157,13 @@ const Dashboard: React.FC<roleProps> = ({ role: propRole }) => {
             gradientTo="pink-400"
           />
           <DashboardStatCard
+            title="Non Medical Count"
+            value={dashboardCounts?.users?.non_medical ?? 0}
+            icon={totalStudents()}
+            gradientFrom="purple-500"
+            gradientTo="pink-400"
+          />
+          <DashboardStatCard
             title="Healthcare Professional Count"
             value={dashboardCounts?.users?.healthcare_professionals ?? 0}
             icon={totalHealthCare()}

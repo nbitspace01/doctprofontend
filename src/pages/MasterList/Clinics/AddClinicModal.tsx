@@ -2,10 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { App, Button, Form, Input, Modal, Select } from "antd";
 
-import {
-  createHospitalApi,
-  updateHospitalApi,
-} from "../../../api/hospital.api";
+import { createClinicApi, updateClinicApi } from "../../../api/clinic.api";
 import {
   getCountries,
   getStates,
@@ -14,38 +11,37 @@ import {
 import { showError, showSuccess } from "../../Common/Notification";
 
 /* -------------------- Types -------------------- */
-interface HospitalData {
+export interface ClinicData {
   id: string;
   name: string;
   logoUrl: string | null;
   branchLocation: string;
-  city?: { id: string; name: string }; // Relation
   cityId?: string | null;
   districtId?: string | null;
   stateId?: string | null;
   stateName?: string | null;
-  isHeadBranch: boolean;
-  created_at: string;
   status: string;
+  isDuplicate?: boolean;
+  created_at: string;
   updated_at: string;
+  // Phone of the mobile user who suggested this record (call to verify it's real).
+  submitter_phone?: string | null;
 }
 
-interface AddHospitalModalProps {
+interface AddClinicModalProps {
   open: boolean;
   onCancel: () => void;
   onSubmit: (values: any) => void;
-  initialData?: HospitalData | null;
+  initialData?: ClinicData | null;
 }
 
-interface HospitalFormValues {
+interface ClinicFormValues {
   name: string;
-  logoUrl: string | null;
-  branchLocation?: string; // Legacy
   cityId: string;
 }
 
 /* -------------------- Component -------------------- */
-const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
+const AddClinicModal: React.FC<AddClinicModalProps> = ({
   open,
   onCancel,
   onSubmit,
@@ -56,9 +52,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
   const isEditMode = Boolean(initialData);
   const [states, setStates] = useState<any[]>([]);
-  const [districts, setdistricts] = useState<any[]>([]);
-
-  // Helper state for filtering (not submitted)
+  const [districts, setDistricts] = useState<any[]>([]);
   const [selectedStateId, setSelectedStateId] = useState<string | null>(null);
 
   const resolveStateIdFromName = (stateValue?: string | null) => {
@@ -82,7 +76,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
           const stateData = await getStates(india.id);
           setStates(
             stateData.map((s: any) => ({ label: s.name, value: s.id })),
-          ); // value is ID for fetching districts
+          );
         }
       } catch (error) {
         console.error("Failed to load locations", error);
@@ -91,13 +85,12 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     if (open) initLocations();
   }, [open]);
 
-  // Handler for State Change (Filter)
   const handleStateChange = async (stateId: string) => {
     try {
       setSelectedStateId(stateId);
-      form.setFieldValue("cityId", undefined); // Reset city
-      const cityData = await getDistricts(stateId); // fetch by state
-      setdistricts(cityData.map((c: any) => ({ label: c.name, value: c.id })));
+      form.setFieldValue("cityId", undefined);
+      const cityData = await getDistricts(stateId);
+      setDistricts(cityData.map((c: any) => ({ label: c.name, value: c.id })));
     } catch (error) {
       console.error("Failed to load districts", error);
     }
@@ -124,33 +117,28 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
               label: c.name,
               value: c.id,
             }));
-            setdistricts(options);
+            setDistricts(options);
             if (resolvedCityId) {
               form.setFieldValue("cityId", resolvedCityId);
             }
           })
           .catch((err) => console.error(err));
       } else {
-        setdistricts([]);
+        setDistricts([]);
       }
     } else {
       form.resetFields();
       setSelectedStateId(null);
-      setdistricts([]);
+      setDistricts([]);
     }
   }, [open, initialData, form, states]);
 
   /* -------------------- Mutations -------------------- */
   const createMutation = useMutation({
-    mutationFn: (values: HospitalFormValues) =>
-      createHospitalApi({
-        ...values,
-        // branchLocation: values.branchLocation?.toLowerCase(), // Deprecated
-      }),
-    // ... same success/error handlers
+    mutationFn: (values: ClinicFormValues) => createClinicApi(values),
     onSuccess: (data: any) => {
       showSuccess(notification, {
-        message: "Hospital Created Successfully",
+        message: "Clinic Created Successfully",
         description: data.message,
       });
       form.resetFields();
@@ -161,23 +149,21 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       const apiMessage =
         error?.response?.data?.message ||
         error?.message ||
-        "Failed to create hospital";
+        "Failed to create clinic";
       const firstDetail = error?.response?.data?.errors?.[0]?.message;
       showError(notification, {
-        message: "Failed to create hospital",
+        message: "Failed to create clinic",
         description: firstDetail || apiMessage,
       });
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: (values: HospitalFormValues) => {
-      // Logic for update
-      return updateHospitalApi(initialData!.id, values);
-    },
+    mutationFn: (values: ClinicFormValues) =>
+      updateClinicApi(initialData!.id, values),
     onSuccess: (data: any) => {
       showSuccess(notification, {
-        message: "Hospital Updated Successfully",
+        message: "Clinic Updated Successfully",
         description: data.message,
       });
       form.resetFields();
@@ -188,23 +174,23 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
       const apiMessage =
         error?.response?.data?.message ||
         error?.message ||
-        "Failed to update hospital";
+        "Failed to update clinic";
       const firstDetail = error?.response?.data?.errors?.[0]?.message;
       showError(notification, {
-        message: "Failed to update hospital",
+        message: "Failed to update clinic",
         description: firstDetail || apiMessage,
       });
     },
   });
 
-  //* -------------------- Submit -------------------- */
-  const handleSubmit = (values: HospitalFormValues) => {
+  /* -------------------- Submit -------------------- */
+  const handleSubmit = (values: ClinicFormValues) => {
     isEditMode ? updateMutation.mutate(values) : createMutation.mutate(values);
   };
 
   return (
     <Modal
-      title={isEditMode ? "Edit Hospital" : "Create New Hospital"}
+      title={isEditMode ? "Edit Clinic" : "Create New Clinic"}
       open={open}
       onCancel={onCancel}
       footer={null}
@@ -212,23 +198,18 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
     >
       <Form form={form} onFinish={handleSubmit}>
         <div className="space-y-6 py-4">
-          {/* Hospital Name */}
           <Form.Item
-
             name="name"
-            label="Hospital Name"
+            label="Clinic Name"
             rules={[{ required: true }]}
           >
-            <Input placeholder="Enter Hospital Name" />
+            <Input placeholder="Enter Clinic Name" />
           </Form.Item>
 
-          {/* Contact / verification phone */}
           <Form.Item name="phone" label="Contact Phone">
             <Input placeholder="Enter contact phone number" />
           </Form.Item>
 
-          {/* Branch Location */}
-          {/* Branch Location (State Filter + City Selection) */}
           <Form.Item label="Filter by State" style={{ marginBottom: 12 }}>
             <Select
               placeholder="Select State first"
@@ -246,7 +227,7 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
 
           <Form.Item
             name="cityId"
-            label="Branch Location (City)"
+            label="Location (City)"
             rules={[{ required: true, message: "Please select city" }]}
           >
             <Select
@@ -261,7 +242,6 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
             />
           </Form.Item>
 
-          {/* Footer Buttons */}
           <div className="flex justify-end gap-2 mt-6">
             <Button onClick={onCancel}>Cancel</Button>
             <Button
@@ -278,4 +258,4 @@ const AddHospitalModal: React.FC<AddHospitalModalProps> = ({
   );
 };
 
-export default AddHospitalModal;
+export default AddClinicModal;
