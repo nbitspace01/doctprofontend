@@ -365,7 +365,7 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
   const updateHospitalMutation = useMutation({
     mutationFn: (payload: any) =>
-      updateHospitalAdminApi(initialData!.id, payload),
+      updateHospitalAdminApi(initialData?.id || preRegistrationId, payload),
     onMutate: () => {
       setUploading(true);
     },
@@ -552,7 +552,9 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           "status",
           isEditMode && initialData
             ? initialData?.status || "ACTIVE"
-            : "PENDING",
+            : preRegistrationId
+              ? "DRAFT"
+              : "PENDING",
         );
         const links = [{ type: "Website", url: values.website || "" }];
         formData.append("links", JSON.stringify(links));
@@ -564,6 +566,15 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           updateHospitalMutation.mutate(formData as any, {
             onSuccess: () => {
               setPreRegistrationId(initialData.id);
+              setCurrentStep(2);
+            },
+          });
+        } else if (preRegistrationId) {
+          // Already registered in this session (user went Back to step 1 and
+          // pressed Proceed again). Save the edits instead of registering a
+          // second time, which would fail with "email already exists".
+          updateHospitalMutation.mutate(formData as any, {
+            onSuccess: () => {
               setCurrentStep(2);
             },
           });
@@ -608,6 +619,11 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
 
   const handleBack = () => {
     setCurrentStep(currentStep - 1);
+  };
+
+  // Skip the KYC step without validating or submitting any KYC data
+  const handleSkipKyc = () => {
+    setCurrentStep(3);
   };
 
   const handleSubmit = async () => {
@@ -680,6 +696,20 @@ const HospitalRegistration: React.FC<HospitalRegistrationProps> = ({
           >
             Cancel
           </Button>,
+          currentStep === 2 && (
+            <Button
+              key="skip"
+              onClick={handleSkipKyc}
+              disabled={
+                uploading ||
+                hospitalRegistrationMutation.isPending ||
+                kycVerificationMutation.isPending ||
+                setPasswordMutation.isPending
+              }
+            >
+              Skip
+            </Button>
+          ),
           <Button
             key="next"
             type="primary"
