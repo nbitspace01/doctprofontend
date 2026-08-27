@@ -15,8 +15,15 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status, className = "" }) => 
     if (statusLower === "pending" || statusLower === "Pending" || statusLower === "PENDING") {
       return "text-orange-600 font-semibold bg-orange-50";
     }
-    if(statusLower === "inactive" || statusLower === "closed" || statusLower === "expired" || statusLower === "rejected")
-    return "text-red-600 font-semibold bg-red-50";
+    if (
+      statusLower === "inactive" ||
+      statusLower === "closed" ||
+      statusLower === "expired" ||
+      statusLower === "rejected" ||
+      statusLower === "deleted" ||
+      statusLower === "suspended"
+    )
+      return "text-red-600 font-semibold bg-red-50";
     return "text-blue-600 font-semibold bg-blue-50"
   };
 

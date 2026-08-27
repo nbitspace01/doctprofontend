@@ -29,6 +29,14 @@ export const deleteReportedJobPostApi = async (id: string) => {
   return apiClient.post<any>(`/api/report/${id}/delete-job-post`, {});
 };
 
+export const suspendReportedUserApi = async (id: string) => {
+  return apiClient.post<any>(`/api/report/${id}/suspend-user`, {});
+};
+
+export const activateReportedUserApi = async (id: string) => {
+  return apiClient.post<any>(`/api/report/${id}/activate-user`, {});
+};
+
 export const exportReportsApi = async (params: Record<string, any> = {}) => {
   const query = new URLSearchParams(params as any).toString();
   const url = `/api/report/export${query ? `?${query}` : ""}`;

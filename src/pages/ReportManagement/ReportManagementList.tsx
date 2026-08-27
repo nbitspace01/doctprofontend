@@ -21,6 +21,7 @@ interface ReportRow {
   targetId?: string;
   reason?: string;
   reportedBy?: { name?: string; email?: string } | string | null;
+  reportedUser?: { name?: string; email?: string } | null;
   status?: string;
   created_at?: string;
 }
@@ -130,6 +131,13 @@ const ReportManagementList = () => {
         render: (value?: string) => value || "POST",
       },
       {
+        title: "Reported User",
+        dataIndex: "reportedUser",
+        key: "reportedUser",
+        render: (val: ReportRow["reportedUser"]) =>
+          val?.name || val?.email || "-",
+      },
+      {
         title: "Reason",
         dataIndex: "reason",
         key: "reason",
@@ -178,10 +186,16 @@ const ReportManagementList = () => {
       { label: "Target ID", key: "postId", type: "text" as const },
       { label: "Reason", key: "reason", type: "text" as const },
       {
+        label: "Type",
+        key: "reportType",
+        type: "checkbox" as const,
+        options: ["POST", "JOB_POST", "USER"],
+      },
+      {
         label: "Status",
         key: "status",
         type: "checkbox" as const,
-        options: ["REVIEWED", "PENDING"],
+        options: ["PENDING", "REVIEWED", "DELETED", "SUSPENDED"],
       },
     ],
     [],

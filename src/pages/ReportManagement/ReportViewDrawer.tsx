@@ -5,6 +5,8 @@ import {
   updateReportStatusApi,
   deleteReportedPostApi,
   deleteReportedJobPostApi,
+  suspendReportedUserApi,
+  activateReportedUserApi,
 } from "../../api/report.api";
 import StatusBadge from "../Common/StatusBadge";
 
@@ -25,11 +27,26 @@ const ReportViewDrawer = ({
   const queryClient = useQueryClient();
 
   const [deletingPost, setDeletingPost] = useState(false);
+  const [updatingUser, setUpdatingUser] = useState(false);
   const isReviewed = viewData?.status === "REVIEWED";
+  const isPending = (viewData?.status || "PENDING") === "PENDING";
+  // DELETED / SUSPENDED are written by the action handlers — an admin should
+  // not be able to hand-edit them back, so the manual toggle only appears
+  // while the report is still in one of the two human-chosen states.
+  const canToggleStatus = isPending || isReviewed;
   const isPostReport = (viewData?.report_type || "POST") === "POST";
   const isJobPostReport = viewData?.report_type === "JOB_POST";
+  const isUserReport = viewData?.report_type === "USER";
   const isDeletedPost = Boolean(viewData?.postDeleted);
-  const targetId = viewData?.targetId || viewData?.postId || viewData?.jobPostId;
+  const reportedUser = viewData?.reportedUser ?? null;
+  // The account row is the source of truth for access, not the report row.
+  const isUserSuspended =
+    reportedUser?.isActive === false || reportedUser?.status === "INACTIVE";
+  const targetId =
+    viewData?.targetId ||
+    viewData?.postId ||
+    viewData?.jobPostId ||
+    viewData?.reportedUserId;
 
   const updateStatusMutation = useMutation({
     mutationFn: ({ reportId, status }: { reportId: string; status: string }) =>
@@ -144,6 +161,45 @@ const ReportViewDrawer = ({
     });
   };
 
+  const handleUserAccessToggle = () => {
+    if (!isUserReport || !viewData?.id || !reportedUser) return;
+    const suspending = !isUserSuspended;
+
+    modal.confirm({
+      title: suspending ? "Suspend this user?" : "Activate this user?",
+      content: suspending
+        ? `${reportedUser.name || "This user"} will be blocked from logging in. The report will be marked as reviewed. You can activate them again later.`
+        : `${reportedUser.name || "This user"} will be able to log in again.`,
+      okText: suspending ? "Suspend" : "Activate",
+      okType: suspending ? "danger" : "primary",
+      cancelText: "Cancel",
+      onOk: async () => {
+        try {
+          setUpdatingUser(true);
+          if (suspending) {
+            await suspendReportedUserApi(viewData.id);
+            message.success("User suspended and report marked reviewed");
+          } else {
+            await activateReportedUserApi(viewData.id);
+            message.success("User activated");
+          }
+          queryClient.invalidateQueries({ queryKey: ["reports"] });
+          queryClient.invalidateQueries({ queryKey: ["report", viewId] });
+        } catch (err: any) {
+          message.error(
+            err?.response?.data?.message ||
+              err?.message ||
+              (suspending
+                ? "Failed to suspend user"
+                : "Failed to activate user"),
+          );
+        } finally {
+          setUpdatingUser(false);
+        }
+      },
+    });
+  };
+
   return (
     <Drawer
       open={!!viewId}
@@ -187,20 +243,35 @@ const ReportViewDrawer = ({
                 Delete Job Post
               </Button>
             )}
+            {isUserReport && reportedUser && (
+              <Button
+                size="large"
+                className={`px-8 ${
+                  isUserSuspended ? "border-green-500 text-green-500" : ""
+                }`}
+                danger={!isUserSuspended}
+                loading={updatingUser}
+                onClick={handleUserAccessToggle}
+              >
+                {isUserSuspended ? "Activate User" : "Suspend User"}
+              </Button>
+            )}
 
-            <Button
-              size="large"
-              loading={updateStatusMutation.isPending}
-              disabled={updateStatusMutation.isPending}
-              className={`px-8 ${
-                isReviewed
-                  ? "border-orange-500 text-orange-500"
-                  : "border-green-500 text-green-500"
-              }`}
-              onClick={handleStatusToggle}
-            >
-              {isReviewed ? "Mark Pending" : "Mark Reviewed"}
-            </Button>
+            {canToggleStatus && (
+              <Button
+                size="large"
+                loading={updateStatusMutation.isPending}
+                disabled={updateStatusMutation.isPending}
+                className={`px-8 ${
+                  isReviewed
+                    ? "border-orange-500 text-orange-500"
+                    : "border-green-500 text-green-500"
+                }`}
+                onClick={handleStatusToggle}
+              >
+                {isReviewed ? "Mark Pending" : "Mark Reviewed"}
+              </Button>
+            )}
           </div>
         </div>
       }
@@ -287,6 +358,83 @@ const ReportViewDrawer = ({
               </div>
             </div>
           </div>
+
+          {isUserReport && (
+            <div className="border rounded p-4 bg-gray-50 space-y-3">
+              <div className="text-gray-500 text-sm">Reported User</div>
+              {reportedUser ? (
+                <>
+                  <div className="flex items-center gap-3">
+                    <div className="h-12 w-12 rounded-full overflow-hidden bg-red-100 text-red-700 flex items-center justify-center text-lg font-semibold shrink-0">
+                      {reportedUser.profileImage ? (
+                        <Image
+                          src={reportedUser.profileImage}
+                          alt={reportedUser.name || "user"}
+                          width={48}
+                          height={48}
+                          style={{ objectFit: "cover" }}
+                          fallback="https://via.placeholder.com/48?text=U"
+                        />
+                      ) : (
+                        reportedUser.name?.[0]?.toUpperCase() || "U"
+                      )}
+                    </div>
+                    <div className="leading-tight">
+                      <div className="text-sm font-semibold">
+                        {reportedUser.name || "-"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {reportedUser.email || "-"}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-12 gap-y-3">
+                    <div>
+                      <div className="text-xs text-gray-500">Phone</div>
+                      <div className="text-sm font-medium mt-1">
+                        {reportedUser.phone || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">User Type</div>
+                      <div className="text-sm font-medium mt-1">
+                        {reportedUser.userType || "-"}
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">Account Status</div>
+                      <div className="text-sm font-medium mt-2">
+                        <StatusBadge
+                          status={isUserSuspended ? "INACTIVE" : "ACTIVE"}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-gray-500">
+                        Total Reports Against
+                      </div>
+                      <div className="text-sm font-medium mt-1">
+                        {viewData.reportedUserTotalReports ?? 1}
+                      </div>
+                    </div>
+                  </div>
+                  {isUserSuspended && (
+                    <Alert
+                      type="warning"
+                      showIcon
+                      message="This user is suspended and cannot log in"
+                    />
+                  )}
+                </>
+              ) : (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message="This user account no longer exists"
+                />
+              )}
+            </div>
+          )}
 
           {viewData.post && !isDeletedPost && (
             <div className="space-y-2">
