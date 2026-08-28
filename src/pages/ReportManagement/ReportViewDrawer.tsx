@@ -37,6 +37,7 @@ const ReportViewDrawer = ({
   const isPostReport = (viewData?.report_type || "POST") === "POST";
   const isJobPostReport = viewData?.report_type === "JOB_POST";
   const isUserReport = viewData?.report_type === "USER";
+  const isMessageReport = viewData?.report_type === "MESSAGE";
   const isDeletedPost = Boolean(viewData?.postDeleted);
   const reportedUser = viewData?.reportedUser ?? null;
   // The account row is the source of truth for access, not the report row.
@@ -162,7 +163,9 @@ const ReportViewDrawer = ({
   };
 
   const handleUserAccessToggle = () => {
-    if (!isUserReport || !viewData?.id || !reportedUser) return;
+    if ((!isUserReport && !isMessageReport) || !viewData?.id || !reportedUser) {
+      return;
+    }
     const suspending = !isUserSuspended;
 
     modal.confirm({
@@ -243,7 +246,7 @@ const ReportViewDrawer = ({
                 Delete Job Post
               </Button>
             )}
-            {isUserReport && reportedUser && (
+            {(isUserReport || isMessageReport) && reportedUser && (
               <Button
                 size="large"
                 className={`px-8 ${
@@ -359,9 +362,26 @@ const ReportViewDrawer = ({
             </div>
           </div>
 
-          {isUserReport && (
+          {isMessageReport && (
+            <Alert
+              type="info"
+              showIcon
+              message="Reported conversation"
+              description={
+                <span>
+                  Private messages are not shown here. The reporter and the
+                  other participant are listed below — act on the account if
+                  the complaint is upheld.
+                </span>
+              }
+            />
+          )}
+
+          {(isUserReport || isMessageReport) && (
             <div className="border rounded p-4 bg-gray-50 space-y-3">
-              <div className="text-gray-500 text-sm">Reported User</div>
+              <div className="text-gray-500 text-sm">
+                {isMessageReport ? "Other Participant" : "Reported User"}
+              </div>
               {reportedUser ? (
                 <>
                   <div className="flex items-center gap-3">
@@ -430,7 +450,11 @@ const ReportViewDrawer = ({
                 <Alert
                   type="warning"
                   showIcon
-                  message="This user account no longer exists"
+                  message={
+                    isMessageReport
+                      ? "This was a group conversation, or the account no longer exists"
+                      : "This user account no longer exists"
+                  }
                 />
               )}
             </div>

@@ -189,7 +189,7 @@ const ReportManagementList = () => {
         label: "Type",
         key: "reportType",
         type: "checkbox" as const,
-        options: ["POST", "JOB_POST", "USER"],
+        options: ["POST", "JOB_POST", "USER", "MESSAGE"],
       },
       {
         label: "Status",
